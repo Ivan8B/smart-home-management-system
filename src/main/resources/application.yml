@@ -1,0 +1,50 @@
+bot:
+  # Параметры подключения к чатботу.
+  name: ${BOT_NAME}
+  token: ${BOT_TOKEN}
+  # Пользователи, которые могут писать боту (бот поддерживает только личные диалоги)
+  validUserIds: ${BOT_VALID_USER_IDS}
+  # Идентификаторы чатов, в которые бот будет слать рассылки
+  chatIds: ${BOT_CHAT_IDS}
+
+# Настройки опроса реле байпаса, подключено к CHINALCTECH (bestep) 2IN-2OUT
+bypassRelay:
+  # Modbus slaveId
+  address: 1
+  # DiscreteInput к которому подключено реле байпаса (F02)
+  discreteInput: 0
+  # Периодиченость опросов цепи реле байпаса
+  pollInterval: PT30S
+  # Количество опросов за период принятия решений
+  pollCountInPeriod: 30
+  # Процент "ноликов" за период, при котором цепь реле будет считаться разомкнутой
+  openThreshold: 70
+
+# Настройки опроса платы опроса датчиков DS18B20, модель R4DCB08
+temperatureSensorsBoard:
+  # modbus slaveId
+  address: 2
+  # Настройки регистров температурных сенсоров находятся в enum TemperatureSensorsPresets
+
+# Настройки управления реле газового котла, подключено к CHINALCTECH (bestep) 2IN-2OUT
+gasBoilerRelay:
+  # Modbus slaveId
+  address: 1
+  # Coil в который пишется значение (F05), нумерация с 0
+  coil: 0
+
+modbus:
+  tcpHost: dr302
+  tcpPort: 8234
+
+health:
+  # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService)
+  events:
+    pollInterval: PT30M
+  # Периодичность опроса критичных температурных сенсоров с минимальной температурой в temperatureService
+  minimalTemperature:
+    pollInterval: PT15M
+
+logging:
+  config: classpath:log4j2.yml
+

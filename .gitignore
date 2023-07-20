@@ -1,0 +1,6 @@
+*.iml
+**/target/**
+**/.idea/*
+logs/*
+.DS_Store
+sensitive.env
