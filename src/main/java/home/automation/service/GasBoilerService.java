@@ -1,6 +1,6 @@
 package home.automation.service;
 
-import home.automation.enums.GasBoilerRelayStatus;
+import home.automation.enums.GasBoilerStatus;
 
 public interface GasBoilerService {
     /**
@@ -16,10 +16,10 @@ public interface GasBoilerService {
     String manualTurnOff();
 
     /**
-     * Получение статуса газового котла (а фактически - реле термостата)
-     * @return статус реле газового котла
+     * Получение статуса газового котла (рассчитывается по росту температуры подачи)
+     * @return статус газового котла
      */
-    GasBoilerRelayStatus getStatus();
+    GasBoilerStatus getStatus();
 
     /**
      * Получение статуса газового котла текстом
