@@ -1,6 +1,7 @@
 package home.automation.service.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,8 +15,10 @@ import home.automation.event.MinimalTemperatureLowEvent;
 import home.automation.event.TemperatureSensorPollErrorEvent;
 import home.automation.service.BotService;
 import home.automation.service.HealthService;
+import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,10 @@ public class HealthServiceImpl implements HealthService {
 
     private final BotService botService;
 
+    private final TemperatureSensorsService temperatureSensorsService;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
+
     private final List<BypassRelayPollErrorEvent> bypassRelayPollErrorEvents = new ArrayList<>();
 
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
@@ -39,9 +46,13 @@ public class HealthServiceImpl implements HealthService {
     private final Set<TemperatureSensor> minimalTemperatureLowEvents = new HashSet<>();
 
     public HealthServiceImpl(
-        BotService botService
+        BotService botService,
+        TemperatureSensorsService temperatureSensorsService,
+        ApplicationEventPublisher applicationEventPublisher
     ) {
         this.botService = botService;
+        this.temperatureSensorsService = temperatureSensorsService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Scheduled(fixedRateString = "${health.events.pollInterval}")
@@ -61,6 +72,19 @@ public class HealthServiceImpl implements HealthService {
             status = newStatus;
         }
         clear();
+    }
+
+    @Scheduled(fixedRateString = "${health.minimalTemperature.pollInterval}")
+    private void checkMinimalTemperature() {
+        Arrays.stream(TemperatureSensor.values())
+            .filter(sensor -> sensor.isCritical() && sensor.getMinimalTemperature() != null).forEach(sensor -> {
+                Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
+                if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimalTemperature()) {
+                    logger.warn(sensor.getTemplate() + " - слишком низкая температура!");
+                    logger.debug("Отправляем событие о низкой температуре");
+                    applicationEventPublisher.publishEvent(new MinimalTemperatureLowEvent(this, sensor));
+                }
+            });
     }
 
     @EventListener

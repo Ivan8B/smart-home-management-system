@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import home.automation.configuration.TemperatureSensorsBoardConfiguration;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.MinimalTemperatureLowEvent;
 import home.automation.event.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
@@ -14,7 +13,6 @@ import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,19 +37,6 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
         this.modbusService = modbusService;
     }
 
-    @Scheduled(fixedRateString = "${health.minimalTemperature.pollInterval}")
-    private void checkMinimalTemperature() {
-        Arrays.stream(TemperatureSensor.values())
-            .filter(sensor -> sensor.isCritical() && sensor.getMinimalTemperature() != null).forEach(sensor -> {
-                Float currentTemperatureForSensor = getCurrentTemperatureForSensor(sensor);
-                if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimalTemperature()) {
-                    logger.warn(sensor.getTemplate() + " - слишком низкая температура!");
-                    logger.debug("Отправляем событие о низкой температуре");
-                    applicationEventPublisher.publishEvent(new MinimalTemperatureLowEvent(this, sensor));
-                }
-            });
-    }
-
     @Override
     public Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
@@ -64,7 +49,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
         } catch (ModbusException e) {
             logger.error("{} - ошибка опроса, адрес {}", sensor.getTemplate(), sensor.getRegisterId());
             logger.debug("Отправляем событие об ошибке поллинга сенсора {}", sensor.getRegisterId());
-            publishEvent(sensor);
+            applicationEventPublisher.publishEvent(new TemperatureSensorPollErrorEvent(this, sensor));
             return null;
         }
     }
@@ -82,10 +67,5 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     public String getCurrentTemperaturesFormatted() {
         return Arrays.stream(TemperatureSensor.values()).map(this::getCurrentTemperatureForSensorFormatted)
             .collect(Collectors.joining("\n"));
-    }
-
-    private void publishEvent(TemperatureSensor sensor) {
-        TemperatureSensorPollErrorEvent event = new TemperatureSensorPollErrorEvent(this, sensor);
-        applicationEventPublisher.publishEvent(event);
     }
 }
