@@ -25,7 +25,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
 
-    private final TemperatureSensor gasBoilerDirectSensor = TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
+    private final TemperatureSensor waterDirectGasBoilerTemperature =
+        TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
 
     private Float lastDirectTemperature;
 
@@ -99,7 +100,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             return;
         }
 
-        Float newDirectTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(gasBoilerDirectSensor);
+        Float newDirectTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(waterDirectGasBoilerTemperature);
 
         if (newDirectTemperature == null) {
             logger.warn("Не удалось вычислить статус газового котла");
@@ -152,8 +154,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatus() {
-        return getStatus().getTemplate() + "\n" + gasBoilerDirectSensor.getTemplate() + " " + formatTemperature(
-            lastDirectTemperature);
+        return getStatus().getTemplate() + "\n" + waterDirectGasBoilerTemperature.getTemplate() + " "
+            + formatTemperature(lastDirectTemperature);
     }
 
     private String formatTemperature(Float temperature) {
