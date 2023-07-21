@@ -7,6 +7,10 @@ bot:
   # Идентификаторы чатов, в которые бот будет слать рассылки
   chatIds: ${BOT_CHAT_IDS}
 
+modbus:
+  tcpHost: dr302
+  tcpPort: 8234
+
 # Настройки опроса реле байпаса, подключено к CHINALCTECH (bestep) 2IN-2OUT
 bypassRelay:
   # Modbus slaveId
@@ -36,10 +40,6 @@ gasBoiler:
   # Периодичность опроса реле подачи газового котла (в отопление), чтобы понимать его статус
   direct:
     pollInterval: PT60S
-
-modbus:
-  tcpHost: dr302
-  tcpPort: 8234
 
 health:
   # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService)
