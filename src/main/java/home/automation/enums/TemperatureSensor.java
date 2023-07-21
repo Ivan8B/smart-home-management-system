@@ -12,7 +12,8 @@ public enum TemperatureSensor {
     WATER_DIRECT_GAS_BOILER_TEMPERATURE
         (
             1,
-            "Подача из газового котла"
+            "Подача из газового котла",
+            true
         ),
 
     WATER_RETURN_GAS_BOILER_TEMPERATURE
@@ -22,12 +23,14 @@ public enum TemperatureSensor {
 
     WATER_DIRECT_FLOOR_TEMPERATURE
         (3,
-            "Подача в теплые полы     "
+            "Подача в теплые полы     ",
+            true
         ),
 
     WATER_RETURN_FLOOR_TEMPERATURE
         (4,
-            "Обратка из теплых полов"
+            "Обратка из теплых полов",
+            true
         ),
 
     OUTSIDE_TEMPERATURE
@@ -47,6 +50,13 @@ public enum TemperatureSensor {
         this.registerId = registerId;
         this.template = template;
         this.isCritical = false;
+        this.minimalTemperature = null;
+    }
+
+    TemperatureSensor(Integer registerId, String template, Boolean isCritical) {
+        this.registerId = registerId;
+        this.template = template;
+        this.isCritical = isCritical;
         this.minimalTemperature = null;
     }
 
