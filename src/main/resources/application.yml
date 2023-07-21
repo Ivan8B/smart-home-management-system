@@ -26,12 +26,13 @@ temperatureSensorsBoard:
   address: 2
   # Настройки регистров температурных сенсоров находятся в enum TemperatureSensorsPresets
 
-# Настройки управления реле газового котла, подключено к CHINALCTECH (bestep) 2IN-2OUT
-gasBoilerRelay:
+gasBoiler:
+  # Настройки управления реле газового котла, подключено к CHINALCTECH (bestep) 2IN-2OUT
+  relay:
   # Modbus slaveId
-  address: 1
-  # Coil в который пишется значение (F05), нумерация с 0
-  coil: 0
+    address: 1
+    # Coil в который пишется значение (F05), нумерация с 0
+    coil: 0
 
 modbus:
   tcpHost: dr302

@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class GasBoilerConfiguration {
-    @Value("${gasBoilerRelay.address}")
+    @Value("${gasBoiler.relay.address}")
     private Integer ADDRESS;
 
-    @Value("${gasBoilerRelay.coil}")
+    @Value("${gasBoiler.relay.coil}")
     private Integer COIL;
 
     public Integer getAddress() {
