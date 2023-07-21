@@ -60,7 +60,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent());
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
 
@@ -69,7 +69,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent());
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
 
@@ -88,7 +88,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         } catch (ModbusException e) {
             logger.error("Ошибка получения статуса реле газового котла", e);
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent());
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
             return GasBoilerRelayStatus.ERROR;
         }
     }

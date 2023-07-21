@@ -115,6 +115,6 @@ public class BypassRelayServiceImpl implements BypassRelayService {
     }
 
     private void publishPollErrorEvent() {
-        applicationEventPublisher.publishEvent(new BypassRelayPollErrorEvent());
+        applicationEventPublisher.publishEvent(new BypassRelayPollErrorEvent(this));
     }
 }

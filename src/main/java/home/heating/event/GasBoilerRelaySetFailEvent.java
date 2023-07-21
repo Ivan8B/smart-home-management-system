@@ -1,4 +1,9 @@
 package home.heating.event;
 
-public class GasBoilerRelaySetFailEvent {
+import org.springframework.context.ApplicationEvent;
+
+public class GasBoilerRelaySetFailEvent extends ApplicationEvent {
+    public GasBoilerRelaySetFailEvent(Object source) {
+        super(source);
+    }
 }
