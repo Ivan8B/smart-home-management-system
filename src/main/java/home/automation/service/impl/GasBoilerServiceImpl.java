@@ -3,12 +3,17 @@ package home.automation.service.impl;
 import java.text.DecimalFormat;
 
 import home.automation.configuration.GasBoilerConfiguration;
+import home.automation.enums.BypassRelayStatus;
+import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.BypassRelayStatusCalculatedEvent;
+import home.automation.event.FloorHeatingStatusCalculatedEvent;
 import home.automation.event.GasBoilerRelaySetFailEvent;
 import home.automation.exception.ModbusException;
+import home.automation.service.BypassRelayService;
+import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
@@ -38,16 +43,24 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private final TemperatureSensorsService temperatureSensorsService;
 
+    private final BypassRelayService bypassRelayService;
+
+    private final FloorHeatingService floorHeatingService;
+
     public GasBoilerServiceImpl(
         GasBoilerConfiguration configuration,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
-        TemperatureSensorsService temperatureSensorsService
+        TemperatureSensorsService temperatureSensorsService,
+        BypassRelayService bypassRelayService,
+        FloorHeatingService floorHeatingService
     ) {
         this.configuration = configuration;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.temperatureSensorsService = temperatureSensorsService;
+        this.bypassRelayService = bypassRelayService;
+        this.floorHeatingService = floorHeatingService;
     }
 
     @EventListener
@@ -55,7 +68,26 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         logger.debug("Получено событие о расчете статуса реле байпаса");
         switch (event.getStatus()) {
             case OPEN -> turnOn();
-            case CLOSED -> turnOff();
+            case CLOSED -> {
+                // проверяем, нужно ли теплым полам тепло, если нет - гасим котел
+                if (floorHeatingService.getFloorHeatingStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
+                    turnOff();
+                }
+            }
+        }
+    }
+
+    @EventListener
+    public void onApplicationEvent(FloorHeatingStatusCalculatedEvent event) {
+        logger.debug("Получено событие о расчете запроса тепла в полы");
+        switch (event.getStatus()) {
+            case NEED_HEAT -> turnOn();
+            case NO_NEED_HEAT -> {
+                // проверяем, нужно ли радиаторам тепло, если нет - гасим котел
+                if (bypassRelayService.getBypassRelayCalculatedStatus() == BypassRelayStatus.CLOSED) {
+                    turnOff();
+                }
+            }
         }
     }
 

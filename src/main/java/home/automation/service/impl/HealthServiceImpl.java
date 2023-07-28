@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.BypassRelayPollErrorEvent;
+import home.automation.event.FloorHeatingStatusCalculateErrorEvent;
 import home.automation.event.GasBoilerRelaySetFailEvent;
 import home.automation.event.MinimalTemperatureLowEvent;
 import home.automation.event.TemperatureSensorPollErrorEvent;
@@ -38,6 +39,9 @@ public class HealthServiceImpl implements HealthService {
     private final List<BypassRelayPollErrorEvent> bypassRelayPollErrorEvents = new ArrayList<>();
 
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
+
+    private final List<FloorHeatingStatusCalculateErrorEvent> floorHeatingStatusCalculateErrorEvents =
+        new ArrayList<>();
 
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
 
@@ -93,7 +97,12 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onTemperatureSensorStatusChangedEvent(TemperatureSensorPollErrorEvent event) {
+    public void onFloorHeatingStatusCalculateErrorEvent(FloorHeatingStatusCalculateErrorEvent event) {
+        floorHeatingStatusCalculateErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onTemperatureSensorPollErrorEvent(TemperatureSensorPollErrorEvent event) {
         if ((event.getSensor().isCritical())) {
             criticalTemperatureSensorFailEvents.add(event.getSensor());
         } else {
@@ -134,6 +143,10 @@ public class HealthServiceImpl implements HealthService {
         return gasBoilerRelaySetFailEvents.isEmpty();
     }
 
+    private boolean floorHeatingCalculationIsOk() {
+        return floorHeatingStatusCalculateErrorEvents.isEmpty();
+    }
+
     private boolean criticalTemperatureSensorsAreOk() {
         return criticalTemperatureSensorFailEvents.isEmpty();
     }
@@ -149,6 +162,7 @@ public class HealthServiceImpl implements HealthService {
     private void clear() {
         bypassRelayPollErrorEvents.clear();
         gasBoilerRelaySetFailEvents.clear();
+        floorHeatingStatusCalculateErrorEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();
         minimalTemperatureLowEvents.clear();
@@ -161,6 +175,9 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!gasBoilerRelayIsOk()) {
             message.append("* отказ реле газового котла \n");
+        }
+        if (!floorHeatingCalculationIsOk()) {
+            message.append("* не удалось рассчитать запрос на тепло в полы");
         }
         if (!criticalTemperatureSensorFailEvents.isEmpty()) {
             message.append("* отказ критичных температурных датчиков: ");
