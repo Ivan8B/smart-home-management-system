@@ -36,6 +36,17 @@ public enum TemperatureSensor {
     OUTSIDE_TEMPERATURE
         (5,
             "Температура на улице      "
+        ),
+
+    CHILD_BATHROOM_TEMPERATURE
+        (6,
+            "Температура в детском санузле"
+        ),
+
+    SECOND_FLOOR_BATHROOM_TEMPERATURE
+        (
+        7,
+        "Температура в санузле 2го этажа"
         );
 
     private final Integer registerId;
