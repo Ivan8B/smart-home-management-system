@@ -4,7 +4,7 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import home.automation.configuration.TemperatureSensorsBoardConfiguration;
+import home.automation.configuration.TemperatureSensorsBoardsConfiguration;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
@@ -18,19 +18,17 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class TemperatureSensorsServiceImpl implements TemperatureSensorsService {
-    private static final Logger logger = LoggerFactory.getLogger(TemperatureSensorsServiceImpl.class);
-
     public static final Integer TEMPERATURE_SENSOR_ERROR_VALUE = 32768;
-
+    private static final Logger logger = LoggerFactory.getLogger(TemperatureSensorsServiceImpl.class);
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    private final TemperatureSensorsBoardConfiguration configuration;
+    private final TemperatureSensorsBoardsConfiguration configuration;
 
     private final ModbusService modbusService;
 
     public TemperatureSensorsServiceImpl(
         ApplicationEventPublisher applicationEventPublisher,
-        TemperatureSensorsBoardConfiguration configuration,
+        TemperatureSensorsBoardsConfiguration configuration,
         ModbusService modbusService
     ) {
         this.applicationEventPublisher = applicationEventPublisher;
@@ -41,7 +39,10 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     @Override
     public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
-            int rawTemperature = modbusService.readHoldingRegister(sensor.getRegisterId(), configuration.getAddress());
+            int rawTemperature = modbusService.readHoldingRegister(
+                configuration.getAddressByName(sensor.getBoardName()),
+                sensor.getRegisterId()
+            );
             if (rawTemperature == TEMPERATURE_SENSOR_ERROR_VALUE) {
                 throw new ModbusException(
                     "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " + sensor.getRegisterId());

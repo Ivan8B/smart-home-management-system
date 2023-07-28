@@ -24,10 +24,12 @@ bypassRelay:
   # Процент "ноликов" за период, при котором цепь реле будет считаться разомкнутой
   openThreshold: 70
 
-# Настройки опроса платы опроса датчиков DS18B20, модель R4DCB08
+# Настройки опроса плат опроса датчиков DS18B20, модель R4DCB08
 temperatureSensorsBoard:
-  # modbus slaveId
-  address: 2
+  # плата 1
+  board1:
+    # modbus slaveId
+    address: 2
   # Настройки регистров температурных сенсоров находятся в enum TemperatureSensorsPresets
 
 # Настройки управления газовым котлом
