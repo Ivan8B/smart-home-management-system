@@ -10,6 +10,7 @@ import home.automation.event.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,7 +39,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     }
 
     @Override
-    public Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
+    public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
             int rawTemperature = modbusService.readHoldingRegister(sensor.getRegisterId(), configuration.getAddress());
             if (rawTemperature == TEMPERATURE_SENSOR_ERROR_VALUE) {

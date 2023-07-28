@@ -6,6 +6,7 @@ import home.automation.service.BotService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -79,7 +80,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         }
     }
 
-    private String processBotCommand(String messageText) {
+    private @Nullable String processBotCommand(String messageText) {
         if (BotCommands.GET_CURRENT_TEMPERATURES.getTelegramCommand().equals(messageText)) {
             logger.info("Получена команда на получение температур");
             return temperatureSensorsService.getCurrentTemperaturesFormatted();

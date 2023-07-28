@@ -17,6 +17,7 @@
     <modbus.tcp.version>1.2.0</modbus.tcp.version>
     <telegrambots.version>6.7.0</telegrambots.version>
     <jlibmodbus.version>1.2.9.7</jlibmodbus.version>
+    <jetbrains.annotation.version>23.0.0</jetbrains.annotation.version>
 </properties>
 <dependencies>
     <dependency>
@@ -55,6 +56,13 @@
         <groupId>com.intelligt.modbus</groupId>
         <artifactId>jlibmodbus</artifactId>
         <version>${jlibmodbus.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>${jetbrains.annotation.version}</version>
+        <scope>compile</scope>
     </dependency>
 </dependencies>
 
