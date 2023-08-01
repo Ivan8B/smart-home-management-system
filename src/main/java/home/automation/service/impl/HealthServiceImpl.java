@@ -177,7 +177,7 @@ public class HealthServiceImpl implements HealthService {
             message.append("* отказ реле газового котла \n");
         }
         if (!floorHeatingCalculationIsOk()) {
-            message.append("* не удалось рассчитать запрос на тепло в полы");
+            message.append("* не удалось рассчитать запрос на тепло в полы \n");
         }
         if (!criticalTemperatureSensorFailEvents.isEmpty()) {
             message.append("* отказ критичных температурных датчиков: ");
