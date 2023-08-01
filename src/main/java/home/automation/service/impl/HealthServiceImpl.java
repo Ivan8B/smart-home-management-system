@@ -51,7 +51,7 @@ public class HealthServiceImpl implements HealthService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    @Scheduled(fixedRateString = "${health.events.pollInterval}")
+    @Scheduled(fixedRateString = "${health.controlInterval}")
     private void checkHealth() {
         logger.debug("Запущена задача селфмониторинга");
         SelfMonitoringStatus newStatus = calculateStatus();

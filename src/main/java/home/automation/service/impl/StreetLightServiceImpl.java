@@ -32,7 +32,7 @@ public class StreetLightServiceImpl implements StreetLightService {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    @Scheduled(fixedRateString = "${streetLight.calculateInterval}")
+    @Scheduled(fixedRateString = "${streetLight.controlInterval}")
     private void control() {
         logger.debug("Запущена задача расчета освещенности на улице");
         if (SunriseSunset.isNight(configuration.getLatitude(), configuration.getLongitude())) {

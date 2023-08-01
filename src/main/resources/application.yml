@@ -40,7 +40,7 @@ gasBoiler:
     address: 1
     # Coil в который пишется значение (F05), нумерация с 0
     coil: 0
-  # Периодичность опроса реле подачи газового котла (в отопление), чтобы понимать его статус
+  # Периодичность опроса подачи газового котла (в отопление), чтобы понимать его статус
   direct:
     pollInterval: PT60S
 
@@ -67,15 +67,14 @@ streetLight:
     # Coil в который пишется значение (F05), нумерация с 0
     coil: 0
   # Периодичность расчета необходимости освещения
-  calculateInterval: PT5M
+  controlInterval: PT5M
   # Широта и долгота места, для которого рассчитывается время суток
   latitude: ${LATITUDE}
   longitude: ${LONGITUDE}
 
 health:
   # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService)
-  events:
-    pollInterval: PT30M
+  controlInterval: PT30M
   # Периодичность опроса критичных температурных сенсоров с минимальной температурой в temperatureService
   minimalTemperature:
     pollInterval: PT15M
