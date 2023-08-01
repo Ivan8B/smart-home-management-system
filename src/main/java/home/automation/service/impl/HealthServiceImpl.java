@@ -126,7 +126,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private SelfMonitoringStatus calculateStatus() {
-        if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()) {
+        if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()
+            || !gasBoilerRelayIsOk() || !floorHeatingCalculationIsOk()) {
             return SelfMonitoringStatus.EMERGENCY;
         }
         if (!minorTemperatureSensorsAreOk()) {
