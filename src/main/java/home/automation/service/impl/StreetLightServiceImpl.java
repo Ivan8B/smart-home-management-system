@@ -1,6 +1,7 @@
 package home.automation.service.impl;
 
-import ca.rmen.sunrisesunset.SunriseSunset;
+import java.util.Calendar;
+
 import home.automation.configuration.StreetLightConfiguration;
 import home.automation.event.StreetLightRelaySetFailEvent;
 import home.automation.exception.ModbusException;
@@ -11,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import static ca.rmen.sunrisesunset.SunriseSunset.getCivilTwilight;
 
 @Service
 public class StreetLightServiceImpl implements StreetLightService {
@@ -24,7 +27,8 @@ public class StreetLightServiceImpl implements StreetLightService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public StreetLightServiceImpl(
-        StreetLightConfiguration configuration, ModbusService modbusService,
+        StreetLightConfiguration configuration,
+        ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher
     ) {
         this.configuration = configuration;
@@ -35,12 +39,21 @@ public class StreetLightServiceImpl implements StreetLightService {
     @Scheduled(fixedRateString = "${streetLight.controlInterval}")
     private void control() {
         logger.debug("Запущена задача расчета освещенности на улице");
-        if (SunriseSunset.isNight(configuration.getLatitude(), configuration.getLongitude())) {
-            logger.debug("Нужно освещение, включаем");
-            turnOn();
-        } else {
+        Calendar today = Calendar.getInstance();
+        /* вынесено в отдельный метод для удобства тестирования */
+        control(today);
+    }
+
+    private void control(Calendar calendar) {
+        /* гражданские сумерки на широте Москвы есть всегда, поэтому не боимся получить ошибку */
+        Calendar[] civilTwilight = getCivilTwilight(calendar, configuration.getLatitude(), configuration.getLongitude());
+
+        if (calendar.after(civilTwilight[0]) && calendar.before(civilTwilight[1])) {
             logger.debug("Освещение не требуется, выключаем");
             turnOff();
+        } else {
+            logger.debug("Нужно освещение, включаем");
+            turnOn();
         }
     }
 
