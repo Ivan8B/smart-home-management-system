@@ -18,6 +18,7 @@
     <telegrambots.version>6.7.0</telegrambots.version>
     <jlibmodbus.version>1.2.9.7</jlibmodbus.version>
     <jetbrains.annotation.version>23.0.0</jetbrains.annotation.version>
+    <sunrise-sunset.version>1.1.1</sunrise-sunset.version>
 </properties>
 <dependencies>
     <dependency>
@@ -56,6 +57,12 @@
         <groupId>com.intelligt.modbus</groupId>
         <artifactId>jlibmodbus</artifactId>
         <version>${jlibmodbus.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>ca.rmen</groupId>
+        <artifactId>lib-sunrise-sunset</artifactId>
+        <version>${sunrise-sunset.version}</version>
     </dependency>
 
     <dependency>

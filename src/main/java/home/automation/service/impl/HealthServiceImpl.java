@@ -13,6 +13,7 @@ import home.automation.event.BypassRelayPollErrorEvent;
 import home.automation.event.FloorHeatingStatusCalculateErrorEvent;
 import home.automation.event.GasBoilerRelaySetFailEvent;
 import home.automation.event.MinimalTemperatureLowEvent;
+import home.automation.event.StreetLightRelaySetFailEvent;
 import home.automation.event.TemperatureSensorPollErrorEvent;
 import home.automation.service.BotService;
 import home.automation.service.HealthService;
@@ -27,27 +28,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class HealthServiceImpl implements HealthService {
     private static final Logger logger = LoggerFactory.getLogger(HealthServiceImpl.class);
-
-    private SelfMonitoringStatus status = SelfMonitoringStatus.OK;
-
     private final BotService botService;
-
     private final TemperatureSensorsService temperatureSensorsService;
-
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final List<BypassRelayPollErrorEvent> bypassRelayPollErrorEvents = new ArrayList<>();
-
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
-
     private final List<FloorHeatingStatusCalculateErrorEvent> floorHeatingStatusCalculateErrorEvents =
         new ArrayList<>();
-
+    private final List<StreetLightRelaySetFailEvent> streetLightRelaySetFailEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
-
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
-
     private final Set<TemperatureSensor> minimalTemperatureLowEvents = new HashSet<>();
+    private SelfMonitoringStatus status = SelfMonitoringStatus.OK;
 
     public HealthServiceImpl(
         BotService botService,
@@ -120,6 +112,11 @@ public class HealthServiceImpl implements HealthService {
         minimalTemperatureLowEvents.add(event.getSensor());
     }
 
+    @EventListener
+    public void onStreetLightRelayFailSetEvent(StreetLightRelaySetFailEvent event) {
+        streetLightRelaySetFailEvents.add(event);
+    }
+
     @Override
     public String getFormattedStatus() {
         return status.getTemplate();
@@ -130,7 +127,7 @@ public class HealthServiceImpl implements HealthService {
             || !gasBoilerRelayIsOk() || !floorHeatingCalculationIsOk()) {
             return SelfMonitoringStatus.EMERGENCY;
         }
-        if (!minorTemperatureSensorsAreOk()) {
+        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()) {
             return SelfMonitoringStatus.MINOR_PROBLEMS;
         }
         return SelfMonitoringStatus.OK;
@@ -146,6 +143,10 @@ public class HealthServiceImpl implements HealthService {
 
     private boolean floorHeatingCalculationIsOk() {
         return floorHeatingStatusCalculateErrorEvents.isEmpty();
+    }
+
+    private boolean streetLightRelayIsOk() {
+        return streetLightRelaySetFailEvents.isEmpty();
     }
 
     private boolean criticalTemperatureSensorsAreOk() {
@@ -164,6 +165,7 @@ public class HealthServiceImpl implements HealthService {
         bypassRelayPollErrorEvents.clear();
         gasBoilerRelaySetFailEvents.clear();
         floorHeatingStatusCalculateErrorEvents.clear();
+        streetLightRelaySetFailEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();
         minimalTemperatureLowEvents.clear();
@@ -172,15 +174,15 @@ public class HealthServiceImpl implements HealthService {
     private String formatCriticalMessage() {
         StringBuilder message = new StringBuilder("Аварийная ситуация:\n");
         if (!bypassRelayIsOk()) {
-            message.append("* отказ реле байпаса \n");
+            message.append("* отказ реле байпаса\n");
         }
         if (!gasBoilerRelayIsOk()) {
-            message.append("* отказ реле газового котла \n");
+            message.append("* отказ реле газового котла\n");
         }
         if (!floorHeatingCalculationIsOk()) {
-            message.append("* не удалось рассчитать запрос на тепло в полы \n");
+            message.append("* не удалось рассчитать запрос на тепло в полы\n");
         }
-        if (!criticalTemperatureSensorFailEvents.isEmpty()) {
+        if (!criticalTemperatureSensorsAreOk()) {
             message.append("* отказ критичных температурных датчиков: ");
             message.append(criticalTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
                 .collect(Collectors.joining(", ")));
@@ -194,8 +196,16 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private String formatMinorMessage() {
-        return "Отказ второстепенных температурных датчиков:\n *" + minorTemperatureSensorFailEvents.stream()
-            .map(TemperatureSensor::getTemplate).collect(Collectors.joining(", "));
+        StringBuilder message = new StringBuilder("Неполадки:\n");
+        if (!minorTemperatureSensorsAreOk()) {
+            message.append("* отказ температурных датчиков: ");
+            message.append(minorTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
+                .collect(Collectors.joining(", ")));
+        }
+        if (!streetLightRelayIsOk()) {
+            message.append("* отказ реле уличного освещения\n");
+        }
+        return message.toString();
     }
 
     private String formatOkMessage() {
