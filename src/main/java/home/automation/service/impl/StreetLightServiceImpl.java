@@ -3,6 +3,7 @@ package home.automation.service.impl;
 import java.util.Calendar;
 
 import home.automation.configuration.StreetLightConfiguration;
+import home.automation.enums.StreetLightRelayStatus;
 import home.automation.event.StreetLightRelaySetFailEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
@@ -46,7 +47,8 @@ public class StreetLightServiceImpl implements StreetLightService {
 
     private void control(Calendar calendar) {
         /* гражданские сумерки на широте Москвы есть всегда, поэтому не боимся получить ошибку */
-        Calendar[] civilTwilight = getCivilTwilight(calendar, configuration.getLatitude(), configuration.getLongitude());
+        Calendar[] civilTwilight =
+            getCivilTwilight(calendar, configuration.getLatitude(), configuration.getLongitude());
 
         if (calendar.after(civilTwilight[0]) && calendar.before(civilTwilight[1])) {
             logger.debug("Освещение не требуется, выключаем");
@@ -72,6 +74,31 @@ public class StreetLightServiceImpl implements StreetLightService {
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
             applicationEventPublisher.publishEvent(new StreetLightRelaySetFailEvent(this));
+        }
+    }
+
+    @Override
+    public String getFormattedStatus() {
+        StreetLightRelayStatus status = getRelayStatus();
+        return status.getTemplate();
+    }
+
+    public StreetLightRelayStatus getRelayStatus() {
+        try {
+            boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
+            if (pollResult.length < 1) {
+                throw new ModbusException("Опрос катушек вернул пустой массив");
+            }
+            if (pollResult[configuration.getCoil()]) {
+                return StreetLightRelayStatus.TURNED_ON;
+            } else {
+                return StreetLightRelayStatus.TURNED_OFF;
+            }
+
+        } catch (ModbusException e) {
+            logger.error("Ошибка получения статуса реле уличного освещения", e);
+            applicationEventPublisher.publishEvent(new StreetLightRelaySetFailEvent(this));
+            return StreetLightRelayStatus.ERROR;
         }
     }
 }

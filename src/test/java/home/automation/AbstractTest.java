@@ -24,5 +24,3 @@ public abstract class AbstractTest {
     @MockBean
     BotService botService;
 }
-
-

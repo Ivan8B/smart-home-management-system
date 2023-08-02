@@ -5,6 +5,7 @@ import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
+import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -33,16 +34,21 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final HealthService healthService;
 
+    private final StreetLightService streetLightService;
+
     public BotServiceImpl(
-        TelegramBotConfiguration telegramBotConfiguration, TemperatureSensorsService temperatureSensorsService,
+        TelegramBotConfiguration telegramBotConfiguration,
+        TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
-        @Lazy HealthService healthService
+        @Lazy HealthService healthService,
+        StreetLightService streetLightService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
         this.healthService = healthService;
+        this.streetLightService = streetLightService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -70,7 +76,10 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             return;
         }
 
-            logger.debug("Получено сообщение {} от пользователя {}", update.getMessage().getText(), update.getMessage().getFrom());
+        logger.debug("Получено сообщение {} от пользователя {}",
+            update.getMessage().getText(),
+            update.getMessage().getFrom()
+        );
 
         String response = processBotCommand(update.getMessage().getText());
 
@@ -100,6 +109,10 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         if (BotCommands.GET_SELF_MONITORING_STATUS.getTelegramCommand().equals(messageText)) {
             logger.info("Получена команда на получение статуса селф мониторинга");
             return healthService.getFormattedStatus();
+        }
+        if (BotCommands.GET_STREET_LIGHT_STATUS.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на получение статуса уличного освещения");
+            return streetLightService.getFormattedStatus();
         }
         return null;
     }

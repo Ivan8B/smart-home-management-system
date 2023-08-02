@@ -9,7 +9,9 @@ public enum BotCommands {
 
     GET_GAS_BOILER_STATUS("/gas_boiler_status"),
 
-    GET_SELF_MONITORING_STATUS("/self_monitoring_status");
+    GET_SELF_MONITORING_STATUS("/self_monitoring_status"),
+
+    GET_STREET_LIGHT_STATUS("/street_light_status");
 
     private final String telegramCommand;
 
