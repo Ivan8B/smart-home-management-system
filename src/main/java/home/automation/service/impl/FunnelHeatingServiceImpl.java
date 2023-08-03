@@ -16,20 +16,25 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FunnelHeatingServiceImpl implements FunnelHeatingService {
-
     private final Logger logger = LoggerFactory.getLogger(FunnelHeatingServiceImpl.class);
 
     private final TemperatureSensor outsideTemperature = TemperatureSensor.OUTSIDE_TEMPERATURE;
+
     private final FunnelHeatingConfiguration configuration;
+
     private final TemperatureSensorsService temperatureSensorsService;
+
     private final ApplicationEventPublisher applicationEventPublisher;
+
     private final ModbusService modbusService;
+
     private FunnelHeatingStatus status = FunnelHeatingStatus.INIT;
 
     public FunnelHeatingServiceImpl(
         FunnelHeatingConfiguration configuration,
         TemperatureSensorsService temperatureSensorsService,
-        ApplicationEventPublisher applicationEventPublisher, ModbusService modbusService
+        ApplicationEventPublisher applicationEventPublisher,
+        ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.temperatureSensorsService = temperatureSensorsService;
@@ -51,7 +56,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
             return;
         }
 
-        if (configuration.getTemperatureMin() < currentTemperature && currentTemperature < configuration.getTemperatureMax()) {
+        if (configuration.getTemperatureMin() < currentTemperature
+            && currentTemperature < configuration.getTemperatureMax()) {
             logger.debug("Требуется подогрев воронок, включаем");
             turnOn();
         } else {
