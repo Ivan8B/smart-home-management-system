@@ -4,9 +4,15 @@ import home.automation.enums.FloorHeatingStatus;
 
 public interface FloorHeatingService {
     /**
-     * Получить последний расчитанный статус запроса на полом
+     * Получить последний расчитанный статус запроса тепла в пол
      *
      * @return статус запроса тепла в пол
      */
-    FloorHeatingStatus getFloorHeatingStatus();
+    FloorHeatingStatus getStatus();
+
+    /**
+     * Получение статуса статуса запроса тепла в пол текстом
+     * @return сообщение для бота
+     */
+    String getFormattedStatus();
 }

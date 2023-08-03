@@ -59,7 +59,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             case OPEN -> turnOn();
             case CLOSED -> {
                 // проверяем, нужно ли теплым полам тепло, если нет - гасим котел
-                if (floorHeatingService.getFloorHeatingStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
+                if (floorHeatingService.getStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
                     turnOff();
                 }
             }

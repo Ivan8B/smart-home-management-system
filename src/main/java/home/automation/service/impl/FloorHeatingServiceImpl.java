@@ -139,7 +139,12 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     @Override
-    public FloorHeatingStatus getFloorHeatingStatus() {
+    public FloorHeatingStatus getStatus() {
         return calculatedStatus;
+    }
+
+    @Override
+    public String getFormattedStatus() {
+        return calculatedStatus.getTemplate();
     }
 }

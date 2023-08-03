@@ -6,7 +6,7 @@ public enum GasBoilerRelayStatus {
 
     NO_NEED_HEAT("статус реле газового котла - нет запроса на тепло"),
 
-    ERROR("статус реле газового котла - ошибка");
+    ERROR("статус реле газового котла - ошибка!");
 
     private final String template;
 

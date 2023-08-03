@@ -3,6 +3,7 @@ package home.automation.service.impl;
 import home.automation.configuration.TelegramBotConfiguration;
 import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
+import home.automation.service.FloorHeatingService;
 import home.automation.service.FunnelHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
@@ -39,13 +40,16 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final FunnelHeatingService funnelHeatingService;
 
+    private final FloorHeatingService floorHeatingService;
+
     public BotServiceImpl(
         TelegramBotConfiguration telegramBotConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
         @Lazy HealthService healthService,
         StreetLightService streetLightService,
-        FunnelHeatingService funnelHeatingService
+        FunnelHeatingService funnelHeatingService,
+        FloorHeatingService floorHeatingService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
@@ -54,6 +58,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.healthService = healthService;
         this.streetLightService = streetLightService;
         this.funnelHeatingService = funnelHeatingService;
+        this.floorHeatingService = floorHeatingService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -118,6 +123,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(funnelHeatingService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(floorHeatingService.getFormattedStatus()).append("\n\n");
         return message.toString();
     }
 
