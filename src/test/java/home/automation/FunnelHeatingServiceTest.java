@@ -13,6 +13,8 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
+import static org.mockito.ArgumentMatchers.any;
+
 public class FunnelHeatingServiceTest extends AbstractTest {
 
     @Autowired
@@ -57,5 +59,14 @@ public class FunnelHeatingServiceTest extends AbstractTest {
         invokeControlMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+    }
+
+    @Test
+    @DisplayName("Проверка того, что реле не переключается при ошибке датчика температуры")
+    void checkError() throws ModbusException {
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(null);
+        invokeControlMethod();
+        Mockito.verify(modbusService, Mockito.never()).writeCoil(any(int.class), any(int.class), any(boolean.class));
     }
 }
