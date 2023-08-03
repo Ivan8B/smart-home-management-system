@@ -51,7 +51,7 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
             return;
         }
 
-        if (configuration.getTemperatureMin() > currentTemperature && currentTemperature < configuration.getTemperatureMax()) {
+        if (configuration.getTemperatureMin() < currentTemperature && currentTemperature < configuration.getTemperatureMax()) {
             logger.debug("Требуется подогрев воронок, включаем");
             turnOn();
         } else {
