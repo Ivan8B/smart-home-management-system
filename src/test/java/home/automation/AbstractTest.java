@@ -12,7 +12,6 @@ import org.springframework.test.context.ActiveProfiles;
         "bot.token = no_data",
         "bot.validUserIds = 0",
         "bot.chatIds = 0",
-        "health.controlInterval = PT24H",
         "streetLight.latitude = 55.7522",
         "streetLight.longitude = 37.6156"
     })
