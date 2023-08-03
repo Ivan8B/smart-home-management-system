@@ -3,8 +3,8 @@ package home.automation.service.impl;
 import java.util.Calendar;
 
 import home.automation.configuration.StreetLightConfiguration;
-import home.automation.enums.StreetLightRelayStatus;
-import home.automation.event.error.StreetLightRelaySetFailEvent;
+import home.automation.enums.StreetLightStatus;
+import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.StreetLightService;
@@ -26,6 +26,8 @@ public class StreetLightServiceImpl implements StreetLightService {
     private final ModbusService modbusService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
+
+    private StreetLightStatus status = StreetLightStatus.INIT;
 
     public StreetLightServiceImpl(
         StreetLightConfiguration configuration,
@@ -62,43 +64,32 @@ public class StreetLightServiceImpl implements StreetLightService {
     private void turnOn() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+            status = StreetLightStatus.TURNED_ON;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
-            applicationEventPublisher.publishEvent(new StreetLightRelaySetFailEvent(this));
+            status = StreetLightStatus.ERROR;
+            applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
         }
     }
 
     private void turnOff() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+            status = StreetLightStatus.TURNED_OFF;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
-            applicationEventPublisher.publishEvent(new StreetLightRelaySetFailEvent(this));
+            status = StreetLightStatus.ERROR;
+            applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
         }
     }
 
     @Override
-    public String getFormattedStatus() {
-        StreetLightRelayStatus status = getRelayStatus();
-        return status.getTemplate();
+    public StreetLightStatus getStatus() {
+        return status;
     }
 
-    public StreetLightRelayStatus getRelayStatus() {
-        try {
-            boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
-            if (pollResult.length < 1) {
-                throw new ModbusException("Опрос катушек вернул пустой массив");
-            }
-            if (pollResult[configuration.getCoil()]) {
-                return StreetLightRelayStatus.TURNED_ON;
-            } else {
-                return StreetLightRelayStatus.TURNED_OFF;
-            }
-
-        } catch (ModbusException e) {
-            logger.error("Ошибка получения статуса реле уличного освещения", e);
-            applicationEventPublisher.publishEvent(new StreetLightRelaySetFailEvent(this));
-            return StreetLightRelayStatus.ERROR;
-        }
+    @Override
+    public String getFormattedStatus() {
+        return status.getTemplate();
     }
 }

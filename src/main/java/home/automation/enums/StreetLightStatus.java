@@ -1,6 +1,8 @@
 package home.automation.enums;
 
-public enum StreetLightRelayStatus {
+public enum StreetLightStatus {
+    INIT("статус уличного освещения - неизвестен"),
+
     TURNED_ON("статус уличного освещения - включено"),
 
     TURNED_OFF("статус уличного освещения - отключено"),
@@ -9,7 +11,7 @@ public enum StreetLightRelayStatus {
 
     private final String template;
 
-    StreetLightRelayStatus(String template) {
+    StreetLightStatus(String template) {
         this.template = template;
     }
 

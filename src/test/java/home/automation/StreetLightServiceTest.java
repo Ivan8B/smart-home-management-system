@@ -4,12 +4,15 @@ import java.lang.reflect.Method;
 import java.util.Calendar;
 
 import home.automation.configuration.StreetLightConfiguration;
+import home.automation.enums.StreetLightStatus;
 import home.automation.exception.ModbusException;
 import home.automation.service.StreetLightService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StreetLightServiceTest extends AbstractTest {
 
@@ -37,6 +40,7 @@ public class StreetLightServiceTest extends AbstractTest {
         invokeControlMethod(dayTime);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+        assertEquals(StreetLightStatus.TURNED_OFF, streetLightService.getStatus());
     }
 
     @Test
@@ -47,6 +51,7 @@ public class StreetLightServiceTest extends AbstractTest {
         invokeControlMethod(nightTime);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+        assertEquals(StreetLightStatus.TURNED_ON, streetLightService.getStatus());
     }
 
     @Test
@@ -58,26 +63,34 @@ public class StreetLightServiceTest extends AbstractTest {
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
+        assertEquals(StreetLightStatus.TURNED_OFF, streetLightService.getStatus());
+
         Calendar dayTimeAfter = Calendar.getInstance();
         dayTimeAfter.set(2023, Calendar.JUNE, 22, 22, 21);
         invokeControlMethod(dayTimeAfter);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+
+        assertEquals(StreetLightStatus.TURNED_ON, streetLightService.getStatus());
     }
 
     @Test
     @DisplayName("Проверка граничного условия - отключения в сумерки утром")
     void checkDisableMorningTwilight() throws ModbusException {
         Calendar dayTimeBefore = Calendar.getInstance();
-        dayTimeBefore.set(2023, Calendar.JUNE, 22,    2, 43);
+        dayTimeBefore.set(2023, Calendar.JUNE, 22, 2, 43);
         invokeControlMethod(dayTimeBefore);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
+        assertEquals(StreetLightStatus.TURNED_ON, streetLightService.getStatus());
+
         Calendar dayTimeAfter = Calendar.getInstance();
-        dayTimeAfter.set(2023, Calendar.JUNE, 22,    2, 45);
+        dayTimeAfter.set(2023, Calendar.JUNE, 22, 2, 45);
         invokeControlMethod(dayTimeAfter);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+
+        assertEquals(StreetLightStatus.TURNED_OFF, streetLightService.getStatus());
     }
 }

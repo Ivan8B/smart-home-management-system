@@ -13,7 +13,7 @@ import home.automation.event.error.BypassRelayPollErrorEvent;
 import home.automation.event.error.FloorHeatingStatusCalculateErrorEvent;
 import home.automation.event.error.FunnelHeatingErrorEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
-import home.automation.event.error.StreetLightRelaySetFailEvent;
+import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.service.BotService;
@@ -36,7 +36,7 @@ public class HealthServiceImpl implements HealthService {
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
     private final List<FloorHeatingStatusCalculateErrorEvent> floorHeatingStatusCalculateErrorEvents =
         new ArrayList<>();
-    private final List<StreetLightRelaySetFailEvent> streetLightRelaySetFailEvents = new ArrayList<>();
+    private final List<StreetLightErrorEvent> streetLightErrorEvents = new ArrayList<>();
     private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
@@ -106,8 +106,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onStreetLightRelayFailSetEvent(StreetLightRelaySetFailEvent event) {
-        streetLightRelaySetFailEvents.add(event);
+    public void onStreetLightErrorEvent(StreetLightErrorEvent event) {
+        streetLightErrorEvents.add(event);
     }
 
     @EventListener
@@ -153,7 +153,7 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private boolean streetLightRelayIsOk() {
-        return streetLightRelaySetFailEvents.isEmpty();
+        return streetLightErrorEvents.isEmpty();
     }
 
     private boolean funnelHeatingIsOk() {
@@ -176,7 +176,7 @@ public class HealthServiceImpl implements HealthService {
         bypassRelayPollErrorEvents.clear();
         gasBoilerRelaySetFailEvents.clear();
         floorHeatingStatusCalculateErrorEvents.clear();
-        streetLightRelaySetFailEvents.clear();
+        streetLightErrorEvents.clear();
         funnelHeatingErrorEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();

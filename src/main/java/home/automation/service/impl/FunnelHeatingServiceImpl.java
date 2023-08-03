@@ -89,6 +89,11 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     }
 
     @Override
+    public FunnelHeatingStatus getStatus() {
+        return status;
+    }
+
+    @Override
     public String getFormattedStatus() {
         return status.getTemplate();
     }
