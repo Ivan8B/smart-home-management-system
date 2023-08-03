@@ -1,7 +1,5 @@
 package home.automation.service.impl;
 
-import java.text.DecimalFormat;
-
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
@@ -9,8 +7,8 @@ import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.BypassRelayStatusCalculatedEvent;
-import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
+import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.BypassRelayService;
 import home.automation.service.FloorHeatingService;
@@ -27,25 +25,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class GasBoilerServiceImpl implements GasBoilerService {
     private static final Logger logger = LoggerFactory.getLogger(GasBoilerServiceImpl.class);
-
-    private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
-
     private final TemperatureSensor waterDirectGasBoilerTemperature =
         TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
-
-    private Float lastDirectTemperature;
-
     private final GasBoilerConfiguration configuration;
-
     private final ModbusService modbusService;
-
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final TemperatureSensorsService temperatureSensorsService;
-
     private final BypassRelayService bypassRelayService;
-
     private final FloorHeatingService floorHeatingService;
+    private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
+    private Float lastDirectTemperature;
 
     public GasBoilerServiceImpl(
         GasBoilerConfiguration configuration,
@@ -186,15 +175,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatus() {
-        return getStatus().getTemplate() + "\n" + waterDirectGasBoilerTemperature.getTemplate() + " "
-            + formatTemperature(lastDirectTemperature);
-    }
-
-    private String formatTemperature(Float temperature) {
-        if (temperature == null) {
-            return "";
-        }
-        DecimalFormat df = new DecimalFormat("#.#");
-        return df.format(temperature) + " C°";
+        return getStatus().getTemplate();
     }
 }

@@ -2,11 +2,11 @@ package home.automation.enums;
 
 public enum GasBoilerRelayStatus {
 
-    NEED_HEAT("Запрос на включение газового котла"),
+    NEED_HEAT("статус реле газового котла - есть запрос на тепло"),
 
-    NO_NEED_HEAT("Нет запроса на работу газового котла"),
+    NO_NEED_HEAT("статус реле газового котла - нет запроса на тепло"),
 
-    ERROR("Ошибка работы с реле газового котла");
+    ERROR("статус реле газового котла - ошибка");
 
     private final String template;
 

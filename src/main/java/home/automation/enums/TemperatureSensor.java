@@ -7,7 +7,7 @@ public enum TemperatureSensor {
         (
             0,
             FIRST_BOARD_NAME,
-            "Температура в котельной",
+            "температура в котельной",
             true,
             15F
         ),
@@ -16,7 +16,7 @@ public enum TemperatureSensor {
         (
             1,
             FIRST_BOARD_NAME,
-            "Подача из газового котла",
+            "подача из газового котла",
             true
         ),
 
@@ -24,14 +24,14 @@ public enum TemperatureSensor {
         (
             2,
             FIRST_BOARD_NAME,
-            "Обратка в газовый котел"
+            "обратка в газовый котел"
         ),
 
     WATER_DIRECT_FLOOR_TEMPERATURE
         (
             3,
             FIRST_BOARD_NAME,
-            "Подача в теплые полы",
+            "подача в теплые полы",
             true
         ),
 
@@ -39,7 +39,7 @@ public enum TemperatureSensor {
         (
             4,
             FIRST_BOARD_NAME,
-            "Обратка из теплых полов",
+            "обратка из теплых полов",
             true
         ),
 
@@ -47,21 +47,21 @@ public enum TemperatureSensor {
         (
             5,
             FIRST_BOARD_NAME,
-            "Температура на улице"
+            "температура на улице"
         ),
 
     CHILD_BATHROOM_TEMPERATURE
         (
             6,
             FIRST_BOARD_NAME,
-            "Температура в детском санузле"
+            "температура в детском санузле"
         ),
 
     SECOND_FLOOR_BATHROOM_TEMPERATURE
         (
             7,
             FIRST_BOARD_NAME,
-            "Температура в санузле 2го этажа"
+            "температура в санузле 2го этажа"
         );
 
     private final Integer registerId;

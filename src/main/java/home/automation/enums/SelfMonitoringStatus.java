@@ -1,11 +1,11 @@
 package home.automation.enums;
 
 public enum SelfMonitoringStatus {
-    OK("Все хорошо"),
+    OK("все хорошо"),
 
-    MINOR_PROBLEMS("Небольшие проблемы"),
+    MINOR_PROBLEMS("небольшие проблемы"),
 
-    EMERGENCY("Аварийная ситуация!");
+    EMERGENCY("аварийная ситуация!");
 
     private final String template;
 

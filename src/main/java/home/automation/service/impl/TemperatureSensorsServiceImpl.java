@@ -59,7 +59,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     private String getCurrentTemperatureForSensorFormatted(TemperatureSensor sensor) {
         Float temperature = getCurrentTemperatureForSensor(sensor);
         if (temperature == null) {
-            return sensor.getTemplate() + "- ошибка опроса!";
+            return sensor.getTemplate() + " - ошибка опроса!";
         }
         DecimalFormat df = new DecimalFormat("#.#");
         return sensor.getTemplate() + "  " + df.format(temperature) + " C°";
@@ -68,6 +68,6 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     @Override
     public String getCurrentTemperaturesFormatted() {
         return Arrays.stream(TemperatureSensor.values()).map(this::getCurrentTemperatureForSensorFormatted)
-            .collect(Collectors.joining("\n"));
+            .collect(Collectors.joining("\n* "));
     }
 }

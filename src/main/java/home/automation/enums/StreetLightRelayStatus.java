@@ -1,11 +1,11 @@
 package home.automation.enums;
 
 public enum StreetLightRelayStatus {
-    TURNED_ON("Освещение включено"),
+    TURNED_ON("статус уличного освещения - включено"),
 
-    TURNED_OFF("Освещение отключено"),
+    TURNED_OFF("статус уличного освещения - отключено"),
 
-    ERROR("Ошибка работы с реле освещения");
+    ERROR("статус уличного освещения - ошибка");
 
     private final String template;
 

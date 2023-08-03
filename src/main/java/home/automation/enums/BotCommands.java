@@ -1,17 +1,11 @@
 package home.automation.enums;
 
 public enum BotCommands {
-    GET_CURRENT_TEMPERATURES("/current_temperatures"),
+    GET_STATUS("/get_status"),
 
     GAS_BOILER_ON("/gas_boiler_on"),
 
-    GAS_BOILER_OFF("/gas_boiler_off"),
-
-    GET_GAS_BOILER_STATUS("/gas_boiler_status"),
-
-    GET_SELF_MONITORING_STATUS("/self_monitoring_status"),
-
-    GET_STREET_LIGHT_STATUS("/street_light_status");
+    GAS_BOILER_OFF("/gas_boiler_off");
 
     private final String telegramCommand;
 

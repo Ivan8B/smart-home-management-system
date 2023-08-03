@@ -3,6 +3,7 @@ package home.automation.service.impl;
 import home.automation.configuration.TelegramBotConfiguration;
 import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
+import home.automation.service.FunnelHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.StreetLightService;
@@ -36,12 +37,15 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final StreetLightService streetLightService;
 
+    private final FunnelHeatingService funnelHeatingService;
+
     public BotServiceImpl(
         TelegramBotConfiguration telegramBotConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
         @Lazy HealthService healthService,
-        StreetLightService streetLightService
+        StreetLightService streetLightService,
+        FunnelHeatingService funnelHeatingService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
@@ -49,6 +53,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.gasBoilerService = gasBoilerService;
         this.healthService = healthService;
         this.streetLightService = streetLightService;
+        this.funnelHeatingService = funnelHeatingService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -90,9 +95,10 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     }
 
     private @Nullable String processBotCommand(String messageText) {
-        if (BotCommands.GET_CURRENT_TEMPERATURES.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на получение температур");
-            return temperatureSensorsService.getCurrentTemperaturesFormatted();
+        if (BotCommands.GET_STATUS.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на получение статуса системы");
+            notify("Считаю статус системы...\n");
+            return formatStatus();
         }
         if (BotCommands.GAS_BOILER_ON.getTelegramCommand().equals(messageText)) {
             logger.info("Получена команда на ручное включение газового котла");
@@ -102,19 +108,17 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             logger.info("Получена команда на ручное отключение газового котла");
             return gasBoilerService.manualTurnOff();
         }
-        if (BotCommands.GET_GAS_BOILER_STATUS.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на получение статуса отопления");
-            return gasBoilerService.getFormattedStatus();
-        }
-        if (BotCommands.GET_SELF_MONITORING_STATUS.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на получение статуса селф мониторинга");
-            return healthService.getFormattedStatus();
-        }
-        if (BotCommands.GET_STREET_LIGHT_STATUS.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на получение статуса уличного освещения");
-            return streetLightService.getFormattedStatus();
-        }
         return null;
+    }
+
+    private String formatStatus() {
+        StringBuilder message =
+            new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
+        message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(funnelHeatingService.getFormattedStatus()).append("\n\n");
+        return message.toString();
     }
 
     private void sendMessage(Long chatId, String text) {
