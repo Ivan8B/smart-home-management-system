@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import home.automation.configuration.TemperatureSensorsBoardsConfiguration;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.TemperatureSensorPollErrorEvent;
+import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;

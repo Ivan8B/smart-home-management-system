@@ -4,7 +4,7 @@ import java.util.Calendar;
 
 import home.automation.configuration.StreetLightConfiguration;
 import home.automation.enums.StreetLightRelayStatus;
-import home.automation.event.StreetLightRelaySetFailEvent;
+import home.automation.event.error.StreetLightRelaySetFailEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.StreetLightService;

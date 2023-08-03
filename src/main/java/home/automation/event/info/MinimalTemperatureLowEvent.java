@@ -1,4 +1,4 @@
-package home.automation.event;
+package home.automation.event.info;
 
 import home.automation.enums.TemperatureSensor;
 import org.springframework.context.ApplicationEvent;

@@ -9,12 +9,12 @@ import java.util.stream.Collectors;
 
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.BypassRelayPollErrorEvent;
-import home.automation.event.FloorHeatingStatusCalculateErrorEvent;
-import home.automation.event.GasBoilerRelaySetFailEvent;
-import home.automation.event.MinimalTemperatureLowEvent;
-import home.automation.event.StreetLightRelaySetFailEvent;
-import home.automation.event.TemperatureSensorPollErrorEvent;
+import home.automation.event.error.BypassRelayPollErrorEvent;
+import home.automation.event.error.FloorHeatingStatusCalculateErrorEvent;
+import home.automation.event.error.GasBoilerRelaySetFailEvent;
+import home.automation.event.info.MinimalTemperatureLowEvent;
+import home.automation.event.error.StreetLightRelaySetFailEvent;
+import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.service.BotService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;

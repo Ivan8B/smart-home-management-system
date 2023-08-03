@@ -1,4 +1,4 @@
-package home.automation.event;
+package home.automation.event.error;
 
 import home.automation.enums.BypassRelayStatus;
 import org.springframework.context.ApplicationEvent;
