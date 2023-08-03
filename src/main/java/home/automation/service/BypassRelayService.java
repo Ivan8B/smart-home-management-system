@@ -7,5 +7,11 @@ public interface BypassRelayService {
      * Получить последний расчитанный статус реле байпаса
      * @return статус реле байпаса
      */
-    BypassRelayStatus getBypassRelayCalculatedStatus();
+    BypassRelayStatus getStatus();
+
+    /**
+     * Получение последний расчитанный статус реле байпаса текстом
+     * @return сообщение для бота
+     */
+    String getFormattedStatus();
 }

@@ -42,8 +42,13 @@ public class BypassRelayServiceImpl implements BypassRelayService {
     }
 
     @Override
-    public BypassRelayStatus getBypassRelayCalculatedStatus() {
+    public BypassRelayStatus getStatus() {
         return calculatedStatus;
+    }
+
+    @Override
+    public String getFormattedStatus() {
+        return calculatedStatus.getTemplate();
     }
 
     @Scheduled(fixedRateString = "${bypass.pollInterval}")
@@ -99,7 +104,7 @@ public class BypassRelayServiceImpl implements BypassRelayService {
             }
             logger.info(calculatedStatus.getTemplate());
 
-            publishCalculatedEvent(getBypassRelayCalculatedStatus());
+            publishCalculatedEvent(getStatus());
             logger.debug("Отправлено событие о новом статусе реле байпаса");
 
             pollingResults.clear();

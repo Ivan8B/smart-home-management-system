@@ -73,7 +73,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             case NEED_HEAT -> turnOn();
             case NO_NEED_HEAT -> {
                 // проверяем, нужно ли радиаторам тепло, если нет - гасим котел
-                if (bypassRelayService.getBypassRelayCalculatedStatus() == BypassRelayStatus.CLOSED) {
+                if (bypassRelayService.getStatus() == BypassRelayStatus.CLOSED) {
                     turnOff();
                 }
             }
