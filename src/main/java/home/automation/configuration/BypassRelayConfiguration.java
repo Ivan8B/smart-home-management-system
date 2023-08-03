@@ -5,16 +5,16 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class BypassRelayConfiguration {
-    @Value("${bypassRelay.pollCountInPeriod}")
+    @Value("${bypass.pollCountInPeriod}")
     private Integer POLL_COUNT_IN_PERIOD;
 
-    @Value("${bypassRelay.openThreshold}")
+    @Value("${bypass.openThreshold}")
     private Integer OPEN_THRESHOLD;
 
-    @Value("${bypassRelay.address}")
+    @Value("${bypass.relay.address}")
     private Integer ADDRESS;
 
-    @Value("${bypassRelay.discreteInput}")
+    @Value("${bypass.relay.discreteInput}")
     private Integer DISCRETE_INPUT;
 
     public Integer getPollCountInPeriod() {

@@ -46,7 +46,7 @@ public class BypassRelayServiceImpl implements BypassRelayService {
         return calculatedStatus;
     }
 
-    @Scheduled(fixedRateString = "${bypassRelay.pollInterval}")
+    @Scheduled(fixedRateString = "${bypass.pollInterval}")
     private void pollBypassRelay() {
         logger.debug("Запущена задача опроса реле байпаса");
         try {

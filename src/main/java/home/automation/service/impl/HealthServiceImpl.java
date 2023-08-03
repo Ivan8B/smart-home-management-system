@@ -11,10 +11,11 @@ import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.BypassRelayPollErrorEvent;
 import home.automation.event.error.FloorHeatingStatusCalculateErrorEvent;
+import home.automation.event.error.FunnelHeatingErrorEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
-import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.event.error.StreetLightRelaySetFailEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
+import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.service.BotService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;
@@ -36,6 +37,7 @@ public class HealthServiceImpl implements HealthService {
     private final List<FloorHeatingStatusCalculateErrorEvent> floorHeatingStatusCalculateErrorEvents =
         new ArrayList<>();
     private final List<StreetLightRelaySetFailEvent> streetLightRelaySetFailEvents = new ArrayList<>();
+    private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minimalTemperatureLowEvents = new HashSet<>();
@@ -94,15 +96,6 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onTemperatureSensorPollErrorEvent(TemperatureSensorPollErrorEvent event) {
-        if ((event.getSensor().isCritical())) {
-            criticalTemperatureSensorFailEvents.add(event.getSensor());
-        } else {
-            minorTemperatureSensorFailEvents.add(event.getSensor());
-        }
-    }
-
-    @EventListener
     public void onGasBoilerRelaySetFailEvent(GasBoilerRelaySetFailEvent event) {
         gasBoilerRelaySetFailEvents.add(event);
     }
@@ -117,6 +110,20 @@ public class HealthServiceImpl implements HealthService {
         streetLightRelaySetFailEvents.add(event);
     }
 
+    @EventListener
+    public void onFunnelHeatingErrorEvent(FunnelHeatingErrorEvent event) {
+        funnelHeatingErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onTemperatureSensorPollErrorEvent(TemperatureSensorPollErrorEvent event) {
+        if ((event.getSensor().isCritical())) {
+            criticalTemperatureSensorFailEvents.add(event.getSensor());
+        } else {
+            minorTemperatureSensorFailEvents.add(event.getSensor());
+        }
+    }
+
     @Override
     public String getFormattedStatus() {
         return status.getTemplate();
@@ -127,7 +134,7 @@ public class HealthServiceImpl implements HealthService {
             || !gasBoilerRelayIsOk() || !floorHeatingCalculationIsOk()) {
             return SelfMonitoringStatus.EMERGENCY;
         }
-        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()) {
+        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
             return SelfMonitoringStatus.MINOR_PROBLEMS;
         }
         return SelfMonitoringStatus.OK;
@@ -149,6 +156,10 @@ public class HealthServiceImpl implements HealthService {
         return streetLightRelaySetFailEvents.isEmpty();
     }
 
+    private boolean funnelHeatingIsOk() {
+        return funnelHeatingErrorEvents.isEmpty();
+    }
+
     private boolean criticalTemperatureSensorsAreOk() {
         return criticalTemperatureSensorFailEvents.isEmpty();
     }
@@ -166,6 +177,7 @@ public class HealthServiceImpl implements HealthService {
         gasBoilerRelaySetFailEvents.clear();
         floorHeatingStatusCalculateErrorEvents.clear();
         streetLightRelaySetFailEvents.clear();
+        funnelHeatingErrorEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();
         minimalTemperatureLowEvents.clear();
@@ -204,6 +216,9 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!streetLightRelayIsOk()) {
             message.append("* отказ реле уличного освещения\n");
+        }
+        if (!funnelHeatingIsOk()) {
+            message.append("* отказ обогрева воронок\n");
         }
         return message.toString();
     }

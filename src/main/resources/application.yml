@@ -11,12 +11,14 @@ modbus:
   tcpHost: dr302
   tcpPort: 8234
 
-# Настройки опроса реле байпаса, подключено к CHINALCTECH (bestep) 2IN-2OUT
-bypassRelay:
-  # Modbus slaveId
-  address: 1
-  # DiscreteInput к которому подключено реле байпаса (F02)
-  discreteInput: 0
+# Настройки опроса реле байпаса
+bypass:
+  # Реле подключено к CHINALCTECH (bestep) 2IN-2OUT
+  relay:
+    # Modbus slaveId
+    address: 1
+    # DiscreteInput к которому подключено реле байпаса (F02)
+    discreteInput: 0
   # Периодиченость опросов цепи реле байпаса
   pollInterval: PT30S
   # Количество опросов за период принятия решений
@@ -71,6 +73,21 @@ streetLight:
   # Широта и долгота места, для которого рассчитывается время суток
   latitude: ${LATITUDE}
   longitude: ${LONGITUDE}
+
+# Настройки управления обогрева воронок
+funnelHeating:
+  # Настройки реле, управляющего обогревом
+  relay:
+    # Modbus slaveId
+    address: 3
+    # Coil в который пишется значение (F05), нумерация с 0
+    coil: 1
+  # Периодичность расчета необходимости обогрева
+  controlInterval: PT15M
+  # Пороговые значения температуры между которыми включается обогрев
+  temperature:
+    min: -2.0
+    max: 2.0
 
 health:
   # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService)
