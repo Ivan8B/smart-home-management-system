@@ -28,7 +28,7 @@ public class StreetLightServiceTest extends AbstractTest {
             method.setAccessible(true);
             method.invoke(streetLightService, calendar);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод управления освещением");
+            throw new RuntimeException("Не удалось вызвать метод управления освещением", e);
         }
     }
 

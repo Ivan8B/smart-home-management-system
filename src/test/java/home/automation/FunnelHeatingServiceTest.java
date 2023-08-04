@@ -34,7 +34,7 @@ public class FunnelHeatingServiceTest extends AbstractTest {
             method.setAccessible(true);
             method.invoke(funnelHeatingService);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод управления обогревом");
+            throw new RuntimeException("Не удалось вызвать метод управления обогревом", e);
         }
     }
 
