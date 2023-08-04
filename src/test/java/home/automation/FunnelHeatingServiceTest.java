@@ -28,7 +28,7 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 
-    private void invokeControlMethod() {
+    private void invokeScheduledMethod() {
         try {
             Method method = funnelHeatingService.getClass().getDeclaredMethod("control");
             method.setAccessible(true);
@@ -43,11 +43,11 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkDisable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-10F);
-        invokeControlMethod();
+        invokeScheduledMethod();
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(10F);
-        invokeControlMethod();
+        invokeScheduledMethod();
 
         Mockito.verify(modbusService, Mockito.times(2))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
@@ -60,7 +60,7 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkEnable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(0F);
-        invokeControlMethod();
+        invokeScheduledMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
         assertEquals(FunnelHeatingStatus.TURNED_ON, funnelHeatingService.getStatus());
@@ -71,7 +71,7 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkError() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(null);
-        invokeControlMethod();
+        invokeScheduledMethod();
         Mockito.verify(modbusService, Mockito.never()).writeCoil(any(int.class), any(int.class), any(boolean.class));
         assertEquals(FunnelHeatingStatus.ERROR, funnelHeatingService.getStatus());
     }

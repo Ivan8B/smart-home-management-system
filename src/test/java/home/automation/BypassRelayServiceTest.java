@@ -27,7 +27,7 @@ public class BypassRelayServiceTest extends AbstractTest {
     @Autowired
     private ApplicationEvents applicationEvents;
 
-    private void invokeControlMethod() {
+    private void invokeScheduledMethod() {
         try {
             Method method = bypassRelayService.getClass().getDeclaredMethod("pollBypassRelay");
             method.setAccessible(true);
@@ -43,7 +43,7 @@ public class BypassRelayServiceTest extends AbstractTest {
         Mockito.when(modbusService.readAllDiscreteInputsFromZero(configuration.getAddress()))
             .thenReturn(new boolean[]{true});
         for (int i = 0; i < configuration.getPollCountInPeriod() + 1; i++) {
-            invokeControlMethod();
+            invokeScheduledMethod();
         }
         assertEquals(BypassRelayStatus.CLOSED, bypassRelayService.getStatus());
         assertEquals(
@@ -59,7 +59,7 @@ public class BypassRelayServiceTest extends AbstractTest {
         Mockito.when(modbusService.readAllDiscreteInputsFromZero(configuration.getAddress()))
             .thenReturn(new boolean[]{false});
         for (int i = 0; i < configuration.getPollCountInPeriod() + 1; i++) {
-            invokeControlMethod();
+            invokeScheduledMethod();
         }
         assertEquals(BypassRelayStatus.OPEN, bypassRelayService.getStatus());
         assertEquals(
@@ -74,7 +74,7 @@ public class BypassRelayServiceTest extends AbstractTest {
     void checkException() throws ModbusException {
         Mockito.when(modbusService.readAllDiscreteInputsFromZero(configuration.getAddress()))
             .thenThrow(new ModbusException());
-        invokeControlMethod();
+        invokeScheduledMethod();
         assertEquals(BypassRelayStatus.ERROR, bypassRelayService.getStatus());
         // событие по подсчету статуса долетать не должно, оно и не обрабатывается сервисом котла
         assertEquals(
