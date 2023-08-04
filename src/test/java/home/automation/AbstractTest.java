@@ -5,6 +5,7 @@ import home.automation.service.ModbusService;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.RecordApplicationEvents;
 
 @SpringBootTest(
     properties = {
@@ -16,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
         "streetLight.longitude = 37.6156"
     })
 @ActiveProfiles("test")
+@RecordApplicationEvents
 public abstract class AbstractTest {
     @MockBean
     ModbusService modbusService;
