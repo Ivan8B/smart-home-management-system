@@ -22,8 +22,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private static final Logger logger = LoggerFactory.getLogger(FloorHeatingServiceImpl.class);
 
-    private FloorHeatingStatus calculatedStatus = FloorHeatingStatus.INIT;
-
     private final Set<TemperatureSensor> averageInternalSensors =
         Set.of(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE, TemperatureSensor.SECOND_FLOOR_BATHROOM_TEMPERATURE);
 
@@ -32,6 +30,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private final TemperatureSensorsService temperatureSensorsService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
+
+    private FloorHeatingStatus calculatedStatus = FloorHeatingStatus.INIT;
+
+    private Float targetDirectTemperature;
 
     public FloorHeatingServiceImpl(
         FloorHeatingConfiguration configuration,
@@ -53,7 +55,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (averageInternalTemperature != null) {
-            logger.debug("Есть показания от датчиков в помещениях, приступаем к засчету запроса тепла");
+            logger.debug("Есть показания от датчиков в помещениях, приступаем к расчету запроса тепла");
 
             if (averageInternalTemperature < configuration.getDirectMinTemperature()) {
                 logger.debug("Средняя температура в помещениях меньше целевой, отправляем запрос на тепло в теплые полы");
@@ -68,11 +70,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             if (outsideTemperature != null) {
                 logger.debug(
                     "Есть показания от датчика на улице, приступаем к расчету целевой температуры подачи в теплые полы");
-                Float targetDirectTemperature =
+                targetDirectTemperature =
                     calculateTargetDirectTemperature(averageInternalTemperature, outsideTemperature);
                 //TODO - добавить выставление целевой температуры на теплом полу через контроллер (с учетом статуса котла)
             } else {
-                logger.warn("Невозможно расчитать целевую температуру подачи в теплые полы");
+                logger.warn("Невозможно рассчитать целевую температуру подачи в теплые полы");
             }
         } else {
             logger.warn("Нет возможности определить температуру в помещениях, статус ERROR");
@@ -90,13 +92,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         if (calculated < configuration.getDirectMinTemperature()) {
             logger.debug(
-                "Целевая температру подачи в полы меньше минимальной, возвращаем минимальную - {}",
+                "Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
                 configuration.getDirectMinTemperature()
             );
             return configuration.getDirectMinTemperature();
         } else if (calculated > configuration.getDirectMaxTemperature()) {
             logger.debug(
-                "Целевая температру подачи в полы больше максимальной, возвращаем максимальную - {}",
+                "Целевая температура подачи в полы больше максимальной, возвращаем максимальную - {}",
                 configuration.getDirectMaxTemperature()
             );
             return configuration.getDirectMaxTemperature();
