@@ -107,7 +107,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private void turnOn() {
         try {
-            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
             relayStatus = GasBoilerRelayStatus.NEED_HEAT;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
@@ -118,7 +118,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private void turnOff() {
         try {
-            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
             relayStatus = GasBoilerRelayStatus.NO_NEED_HEAT;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
