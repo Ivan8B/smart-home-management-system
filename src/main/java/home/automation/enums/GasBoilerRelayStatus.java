@@ -2,6 +2,8 @@ package home.automation.enums;
 
 public enum GasBoilerRelayStatus {
 
+    INIT("статус реле газового котла - неизвестный статус!"),
+
     NEED_HEAT("статус реле газового котла - есть запрос на тепло"),
 
     NO_NEED_HEAT("статус реле газового котла - нет запроса на тепло"),

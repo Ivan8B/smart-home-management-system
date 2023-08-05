@@ -25,15 +25,26 @@ import org.springframework.stereotype.Service;
 @Service
 public class GasBoilerServiceImpl implements GasBoilerService {
     private static final Logger logger = LoggerFactory.getLogger(GasBoilerServiceImpl.class);
+
     private final TemperatureSensor waterDirectGasBoilerTemperature =
         TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
+
     private final GasBoilerConfiguration configuration;
+
     private final ModbusService modbusService;
+
     private final ApplicationEventPublisher applicationEventPublisher;
+
     private final TemperatureSensorsService temperatureSensorsService;
+
     private final BypassRelayService bypassRelayService;
+
     private final FloorHeatingService floorHeatingService;
+
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
+
+    private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
+
     private Float lastDirectTemperature;
 
     public GasBoilerServiceImpl(
@@ -97,26 +108,30 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private void turnOn() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+            relayStatus = GasBoilerRelayStatus.NEED_HEAT;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            relayStatus = GasBoilerRelayStatus.ERROR;
         }
     }
 
     private void turnOff() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+            relayStatus = GasBoilerRelayStatus.NO_NEED_HEAT;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            relayStatus = GasBoilerRelayStatus.ERROR;
         }
     }
 
     @Scheduled(fixedRateString = "${gasBoiler.direct.pollInterval}")
     private void calculateStatus() {
         logger.debug("Запущена задача расчета статуса газового котла");
-        if (GasBoilerRelayStatus.NO_NEED_HEAT == getRelayStatus()) {
-            logger.debug("Запроса на тепло нет, значит газовый котел не работает");
+        if (GasBoilerRelayStatus.NO_NEED_HEAT == relayStatus) {
+            logger.debug("Реле котла не замкнуто, значит газовый котел не работает");
             calculatedStatus = GasBoilerStatus.IDLE;
             return;
         }
@@ -128,6 +143,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             logger.warn("Не удалось вычислить статус газового котла");
             calculatedStatus = GasBoilerStatus.ERROR;
             lastDirectTemperature = null;
+            /* Можно сделать событие о невозможности рассчитать статус газового котла. Но зачем оно? */
             return;
         }
 
@@ -138,15 +154,14 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             return;
         }
 
-        if (newDirectTemperature > lastDirectTemperature) {
+        if (newDirectTemperature >= lastDirectTemperature) {
             logger.debug("Котел работает");
             calculatedStatus = GasBoilerStatus.WORKS;
-            lastDirectTemperature = newDirectTemperature;
         } else {
             logger.debug("Котел не работает");
-            calculatedStatus = GasBoilerStatus.WORKS;
-            lastDirectTemperature = newDirectTemperature;
+            calculatedStatus = GasBoilerStatus.IDLE;
         }
+        lastDirectTemperature = newDirectTemperature;
     }
 
     @Override
@@ -154,27 +169,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         return calculatedStatus;
     }
 
-    public GasBoilerRelayStatus getRelayStatus() {
-        try {
-            boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
-            if (pollResult.length < 1) {
-                throw new ModbusException("Опрос катушек вернул пустой массив");
-            }
-            if (pollResult[configuration.getCoil()]) {
-                return GasBoilerRelayStatus.NEED_HEAT;
-            } else {
-                return GasBoilerRelayStatus.NO_NEED_HEAT;
-            }
-
-        } catch (ModbusException e) {
-            logger.error("Ошибка получения статуса реле газового котла", e);
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
-            return GasBoilerRelayStatus.ERROR;
-        }
-    }
-
     @Override
     public String getFormattedStatus() {
-        return getStatus().getTemplate();
+        return calculatedStatus.getTemplate();
     }
 }
