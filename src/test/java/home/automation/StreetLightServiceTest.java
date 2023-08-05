@@ -55,10 +55,10 @@ public class StreetLightServiceTest extends AbstractTest {
     }
 
     @Test
-    @DisplayName("Проверка граничного условия - включения в сумерки вечером")
+    @DisplayName("Проверка граничного условия - включения после заката")
     void checkEnableEveningTwilight() throws ModbusException {
         Calendar dayTimeBefore = Calendar.getInstance();
-        dayTimeBefore.set(2023, Calendar.JUNE, 22, 22, 19);
+        dayTimeBefore.set(2023, Calendar.JUNE, 22, 21, 18);
         invokeScheduledMethod(dayTimeBefore);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
@@ -66,7 +66,7 @@ public class StreetLightServiceTest extends AbstractTest {
         assertEquals(StreetLightStatus.TURNED_OFF, streetLightService.getStatus());
 
         Calendar dayTimeAfter = Calendar.getInstance();
-        dayTimeAfter.set(2023, Calendar.JUNE, 22, 22, 21);
+        dayTimeAfter.set(2023, Calendar.JUNE, 22, 21, 20);
         invokeScheduledMethod(dayTimeAfter);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
@@ -75,10 +75,10 @@ public class StreetLightServiceTest extends AbstractTest {
     }
 
     @Test
-    @DisplayName("Проверка граничного условия - отключения в сумерки утром")
+    @DisplayName("Проверка граничного условия - отключения после восхода")
     void checkDisableMorningTwilight() throws ModbusException {
         Calendar dayTimeBefore = Calendar.getInstance();
-        dayTimeBefore.set(2023, Calendar.JUNE, 22, 2, 43);
+        dayTimeBefore.set(2023, Calendar.JUNE, 22, 3, 44);
         invokeScheduledMethod(dayTimeBefore);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
@@ -86,7 +86,7 @@ public class StreetLightServiceTest extends AbstractTest {
         assertEquals(StreetLightStatus.TURNED_ON, streetLightService.getStatus());
 
         Calendar dayTimeAfter = Calendar.getInstance();
-        dayTimeAfter.set(2023, Calendar.JUNE, 22, 2, 45);
+        dayTimeAfter.set(2023, Calendar.JUNE, 22, 3, 46);
         invokeScheduledMethod(dayTimeAfter);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);

@@ -14,7 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import static ca.rmen.sunrisesunset.SunriseSunset.getCivilTwilight;
+import static ca.rmen.sunrisesunset.SunriseSunset.getSunriseSunset;
 
 @Service
 public class StreetLightServiceImpl implements StreetLightService {
@@ -48,11 +48,11 @@ public class StreetLightServiceImpl implements StreetLightService {
     }
 
     private void control(Calendar calendar) {
-        /* гражданские сумерки на широте Москвы есть всегда, поэтому не боимся получить ошибку */
-        Calendar[] civilTwilight =
-            getCivilTwilight(calendar, configuration.getLatitude(), configuration.getLongitude());
+        /* восход и закат на широте Москвы есть всегда, поэтому не боимся получить ошибку */
+        Calendar[] sunriseSunset =
+            getSunriseSunset(calendar, configuration.getLatitude(), configuration.getLongitude());
 
-        if (calendar.after(civilTwilight[0]) && calendar.before(civilTwilight[1])) {
+        if (calendar.after(sunriseSunset[0]) && calendar.before(sunriseSunset[1])) {
             logger.debug("Освещение не требуется, выключаем");
             turnOff();
         } else {
