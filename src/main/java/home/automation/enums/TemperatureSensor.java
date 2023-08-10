@@ -47,7 +47,8 @@ public enum TemperatureSensor {
         (
             5,
             FIRST_BOARD_NAME,
-            "температура на улице"
+            "температура на улице",
+            true
         ),
 
     CHILD_BATHROOM_TEMPERATURE
@@ -61,7 +62,8 @@ public enum TemperatureSensor {
         (
             7,
             FIRST_BOARD_NAME,
-            "температура в санузле 2го этажа"
+            "температура в санузле 2го этажа",
+            true
         );
 
     private final Integer registerId;
