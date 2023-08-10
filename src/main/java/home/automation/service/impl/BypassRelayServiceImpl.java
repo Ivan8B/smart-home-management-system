@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import home.automation.configuration.BypassRelayConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.event.error.BypassRelayPollErrorEvent;
-import home.automation.event.error.BypassRelayStatusCalculatedEvent;
+import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.BypassRelayService;
 import home.automation.service.ModbusService;

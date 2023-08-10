@@ -6,7 +6,7 @@ import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.error.BypassRelayStatusCalculatedEvent;
+import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
 import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
 import home.automation.exception.ModbusException;

@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import home.automation.configuration.BypassRelayConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.event.error.BypassRelayPollErrorEvent;
-import home.automation.event.error.BypassRelayStatusCalculatedEvent;
+import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.BypassRelayService;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +17,6 @@ import org.springframework.test.context.event.ApplicationEvents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BypassRelayServiceTest extends AbstractTest {
-
     @Autowired
     BypassRelayService bypassRelayService;
 

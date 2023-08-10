@@ -7,7 +7,7 @@ import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.error.BypassRelayStatusCalculatedEvent;
+import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.TemperatureSensorsService;
@@ -21,7 +21,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class GasBoilerServiceTest extends AbstractTest {
-
     @Autowired
     GasBoilerService gasBoilerService;
 
