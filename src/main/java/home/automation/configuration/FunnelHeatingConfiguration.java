@@ -6,30 +6,30 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FunnelHeatingConfiguration {
     @Value("${funnelHeating.relay.address}")
-    private Integer ADDRESS;
+    private Integer address;
 
     @Value("${funnelHeating.relay.coil}")
-    private Integer COIL;
+    private Integer coil;
 
     @Value("${funnelHeating.temperature.min}")
-    private Float TEMPERATURE_MIN;
+    private Float temperatureMin;
 
     @Value("${funnelHeating.temperature.max}")
-    private Float TEMPERATURE_MAX;
+    private Float temperatureMax;
 
     public Integer getAddress() {
-        return ADDRESS;
+        return address;
     }
 
     public Integer getCoil() {
-        return COIL;
+        return coil;
     }
 
     public Float getTemperatureMin() {
-        return TEMPERATURE_MIN;
+        return temperatureMin;
     }
 
     public Float getTemperatureMax() {
-        return TEMPERATURE_MAX;
+        return temperatureMax;
     }
 }

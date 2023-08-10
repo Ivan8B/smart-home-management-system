@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class StreetLightConfiguration {
     @Value("${streetLight.relay.address}")
-    private Integer ADDRESS;
+    private Integer address;
 
     @Value("${streetLight.relay.coil}")
-    private Integer COIL;
+    private Integer coil;
 
     @Value("${streetLight.latitude}")
     private Double latitude;
@@ -18,11 +18,11 @@ public class StreetLightConfiguration {
     private Double longitude;
 
     public Integer getAddress() {
-        return ADDRESS;
+        return address;
     }
 
     public Integer getCoil() {
-        return COIL;
+        return coil;
     }
 
     public Double getLatitude() {

@@ -6,16 +6,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GasBoilerConfiguration {
     @Value("${gasBoiler.relay.address}")
-    private Integer ADDRESS;
+    private Integer address;
 
     @Value("${gasBoiler.relay.coil}")
-    private Integer COIL;
+    private Integer coil;
 
     public Integer getAddress() {
-        return ADDRESS;
+        return address;
     }
 
     public Integer getCoil() {
-        return COIL;
+        return coil;
     }
 }

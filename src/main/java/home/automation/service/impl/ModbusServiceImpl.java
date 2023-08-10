@@ -35,9 +35,9 @@ public class ModbusServiceImpl implements ModbusService {
         try {
             if (modbusMaster == null) {
                 TcpParameters tcpParameters = new TcpParameters();
-                tcpParameters.setHost(InetAddress.getByName(modbusConfiguration.getHOST()));
+                tcpParameters.setHost(InetAddress.getByName(modbusConfiguration.getHost()));
                 tcpParameters.setKeepAlive(true);
-                tcpParameters.setPort(modbusConfiguration.getPORT());
+                tcpParameters.setPort(modbusConfiguration.getPort());
 
                 modbusMaster = ModbusMasterFactory.createModbusMasterTCP(tcpParameters);
                 Modbus.setAutoIncrementTransactionId(true);

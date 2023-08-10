@@ -8,30 +8,30 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class TelegramBotConfiguration {
     @Value("${bot.name}")
-    private String BOT_NAME;
+    private String botName;
 
     @Value("${bot.token}")
-    private String TOKEN;
+    private String token;
 
     @Value("${bot.validUserIds}")
-    private List<Long> VALID_USER_IDS;
+    private List<Long> validUserIds;
 
     @Value("${bot.chatIds}")
-    private List<Long> CHAT_IDS;
+    private List<Long> chatIds;
 
     public String getBotName() {
-        return BOT_NAME;
+        return botName;
     }
 
     public String getToken() {
-        return TOKEN;
+        return token;
     }
 
     public List<Long> getValidUserIds() {
-        return VALID_USER_IDS;
+        return validUserIds;
     }
 
     public List<Long> getChatIds() {
-        return CHAT_IDS;
+        return chatIds;
     }
 }

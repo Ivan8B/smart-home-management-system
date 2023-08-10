@@ -6,16 +6,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ModbusConfiguration {
     @Value("${modbus.tcpHost}")
-    private String HOST;
+    private String host;
 
     @Value("${modbus.tcpPort}")
-    private Integer PORT;
+    private Integer port;
 
-    public String getHOST() {
-        return HOST;
+    public String getHost() {
+        return host;
     }
 
-    public Integer getPORT() {
-        return PORT;
+    public Integer getPort() {
+        return port;
     }
 }

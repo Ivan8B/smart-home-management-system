@@ -7,13 +7,13 @@ import org.springframework.context.annotation.Configuration;
 public class TemperatureSensorsBoardsConfiguration {
 
     @Value("${temperatureSensorsBoard." + FIRST_BOARD_NAME + ".address}")
-    private Integer FIRST_ADDRESS;
+    private Integer firstAddress;
 
     public static final String FIRST_BOARD_NAME = "board1";
 
     public Integer getAddressByName(String name) {
         if (FIRST_BOARD_NAME.equals(name)) {
-            return FIRST_ADDRESS;
+            return firstAddress;
         }
         return null;
     }
