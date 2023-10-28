@@ -91,20 +91,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
     }
 
-    @Override
-    public String manualTurnOn() {
-        logger.info("Ручное включение котла");
-        turnOn();
-        return getFormattedStatus();
-    }
-
-    @Override
-    public String manualTurnOff() {
-        logger.info("Ручное отключение котла");
-        turnOff();
-        return getFormattedStatus();
-    }
-
     private void turnOn() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);

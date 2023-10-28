@@ -109,14 +109,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             notify("Считаю статус системы...\n");
             return formatStatus();
         }
-        if (BotCommands.GAS_BOILER_ON.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на ручное включение газового котла");
-            return gasBoilerService.manualTurnOn();
-        }
-        if (BotCommands.GAS_BOILER_OFF.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на ручное отключение газового котла");
-            return gasBoilerService.manualTurnOff();
-        }
         return null;
     }
 
