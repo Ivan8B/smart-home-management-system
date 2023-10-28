@@ -1,6 +1,9 @@
 package home.automation.service.impl;
 
 import java.net.InetAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.intelligt.modbus.jlibmodbus.Modbus;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMaster;
@@ -20,6 +23,8 @@ public class ModbusServiceImpl implements ModbusService {
     private ModbusMaster modbusMaster;
 
     private final ModbusConfiguration modbusConfiguration;
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public ModbusServiceImpl(ModbusConfiguration modbusConfiguration) {
         this.modbusConfiguration = modbusConfiguration;
@@ -55,44 +60,81 @@ public class ModbusServiceImpl implements ModbusService {
     public boolean[] readAllDiscreteInputsFromZero(int address) throws ModbusException {
         try {
             init();
-            return modbusMaster.readDiscreteInputs(address, 0, 1);
+            Future<boolean[]> future = executorService.submit(() -> readAllDiscreteInputsFromZeroWithDelay(address));
+            return future.get();
         } catch (Exception e) {
             logger.error("Ошибка чтения состояния входов", e);
             throw new ModbusException();
         }
     }
 
+    private boolean[] readAllDiscreteInputsFromZeroWithDelay(int address) throws Exception {
+        boolean[] result = modbusMaster.readDiscreteInputs(address, 0, 1);
+        delay();
+        return result;
+    }
+
     @Override
     public boolean[] readAllCoilsFromZero(int address) throws ModbusException {
         try {
             init();
-            return modbusMaster.readCoils(address, 0, 1);
+            Future<boolean[]> future = executorService.submit(() -> readAllCoilsFromZeroWithDelay(address));
+            return future.get();
         } catch (Exception e) {
             logger.error("Ошибка чтения состояний катушек", e);
             throw new ModbusException();
         }
     }
 
+    private boolean[] readAllCoilsFromZeroWithDelay(int address) throws Exception {
+        boolean[] result = modbusMaster.readCoils(address, 0, 1);
+        delay();
+        return result;
+    }
+
     @Override
     public void writeCoil(int address, int coilId, boolean value) throws ModbusException {
         try {
             init();
-            modbusMaster.writeSingleCoil(address, coilId, value);
+            Future<boolean[]> future = executorService.submit(() -> writeCoilWithDelay(address, coilId, value));
+            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с записью*/
+            future.get();
         } catch (Exception e) {
             logger.error("Ошибка выставления значения катушки", e);
             throw new ModbusException();
         }
     }
 
+    private boolean[] writeCoilWithDelay(int address, int coilId, boolean value) throws Exception {
+        modbusMaster.writeSingleCoil(address, coilId, value);
+        delay();
+        return new boolean[]{true};
+    }
+
+
     @Override
     public int readHoldingRegister(int address, int registerId) throws ModbusException {
         try {
             init();
-            int[] registerValues = modbusMaster.readHoldingRegisters(address, registerId, 1);
-            return registerValues[0];
+            Future<int[]> future = executorService.submit(() -> readHoldingRegistersWithDelay(address, registerId));
+            return future.get()[0];
         } catch (Exception e) {
             logger.error("Ошибка чтения регистра", e);
             throw new ModbusException();
+        }
+    }
+
+    private int[] readHoldingRegistersWithDelay(int address, int registerId) throws Exception {
+        int[] result = modbusMaster.readHoldingRegisters(address, registerId, 1);
+        delay();
+        return result;
+    }
+
+    private void delay() {
+        try {
+            Thread.sleep(modbusConfiguration.getDelay());
+        } catch (InterruptedException ignored) {
+
         }
     }
 }

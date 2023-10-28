@@ -11,11 +11,18 @@ public class ModbusConfiguration {
     @Value("${modbus.tcpPort}")
     private Integer port;
 
+    @Value("${modbus.delay}")
+    private Integer delay;
+
     public String getHost() {
         return host;
     }
 
     public Integer getPort() {
         return port;
+    }
+
+    public Integer getDelay() {
+        return delay;
     }
 }
