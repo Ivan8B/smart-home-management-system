@@ -7,7 +7,7 @@ Configuration:
         Pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
     RollingFile:
       - name: RollingFile
-        fileName: logs/app.log
+        fileName: "/tmp/home-automation.log"
         filePattern: "logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz"
         PatternLayout:
           pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
@@ -19,7 +19,6 @@ Configuration:
   Loggers:
     Root:
       level: info
-      additivity: false
       AppenderRef:
         - ref: Console
         - ref: RollingFile
