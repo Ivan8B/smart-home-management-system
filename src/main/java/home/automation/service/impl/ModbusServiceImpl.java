@@ -19,12 +19,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class ModbusServiceImpl implements ModbusService {
     private static final Logger logger = LoggerFactory.getLogger(ModbusServiceImpl.class);
-
-    private ModbusMaster modbusMaster;
-
     private final ModbusConfiguration modbusConfiguration;
-
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private ModbusMaster modbusMaster;
 
     public ModbusServiceImpl(ModbusConfiguration modbusConfiguration) {
         this.modbusConfiguration = modbusConfiguration;
@@ -111,7 +108,6 @@ public class ModbusServiceImpl implements ModbusService {
         return new boolean[]{true};
     }
 
-
     @Override
     public int readHoldingRegister(int address, int registerId) throws ModbusException {
         try {
@@ -134,7 +130,6 @@ public class ModbusServiceImpl implements ModbusService {
         try {
             Thread.sleep(modbusConfiguration.getDelay());
         } catch (InterruptedException ignored) {
-
         }
     }
 }
