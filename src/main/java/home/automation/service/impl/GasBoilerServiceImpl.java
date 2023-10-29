@@ -187,7 +187,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         long countIdle = gasBoilerStatusDailyHistory.values().stream().filter(GasBoilerStatus.IDLE::equals).count();
 
         DecimalFormat df = new DecimalFormat("#");
-        float percent = (float) countWorks / (countWorks + countIdle);
+        float percent = (float) countWorks / (countWorks + countIdle) * 100;
         return "за последние сутки котел работал на отопление " + df.format(percent) + "% времени";
     }
 }
