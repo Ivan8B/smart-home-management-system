@@ -115,7 +115,8 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private String formatStatus() {
         StringBuilder message =
             new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
-        message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n");
+        message.append("* ").append(gasBoilerService.getFormattedStatusForLastDay()).append("\n\n");
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(bypassRelayService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");

@@ -14,4 +14,10 @@ public interface GasBoilerService {
      * @return сообщение для бота
      */
     String getFormattedStatus();
+
+    /**
+     * Полуение аналитики по работе котла за прошедшие сутки
+     * @return сообщение для бота
+     */
+    String getFormattedStatusForLastDay();
 }

@@ -1,13 +1,20 @@
 package home.automation.service.impl;
 
+import java.text.DecimalFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
+import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.BypassRelayService;
@@ -40,6 +47,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private final BypassRelayService bypassRelayService;
 
     private final FloorHeatingService floorHeatingService;
+
+    private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
 
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
 
@@ -148,6 +157,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             calculatedStatus = GasBoilerStatus.IDLE;
         }
         lastDirectTemperature = newDirectTemperature;
+        putGasBoilerStatusToDailyHistory(calculatedStatus);
+    }
+
+    private void putGasBoilerStatusToDailyHistory(GasBoilerStatus calculatedStatus) {
+        gasBoilerStatusDailyHistory.put(Instant.now(), calculatedStatus);
+        gasBoilerStatusDailyHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     @Override
@@ -158,5 +174,20 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     @Override
     public String getFormattedStatus() {
         return calculatedStatus.getTemplate();
+    }
+
+    @Override
+    public String getFormattedStatusForLastDay() {
+        /* считаем, что можно рассчитать статистику имея данные за 23 часа работы котла */
+        if (gasBoilerStatusDailyHistory.isEmpty() || Collections.min(gasBoilerStatusDailyHistory.keySet())
+            .isAfter(Instant.now().minus(23, ChronoUnit.HOURS))) {
+            return "сведений о работе котла пока не достаточно";
+        }
+        long countWorks = gasBoilerStatusDailyHistory.values().stream().filter(GasBoilerStatus.WORKS::equals).count();
+        long countIdle = gasBoilerStatusDailyHistory.values().stream().filter(GasBoilerStatus.IDLE::equals).count();
+
+        DecimalFormat df = new DecimalFormat("#");
+        float percent = (float) countWorks / (countWorks + countIdle);
+        return "за последние сутки котел работал на отопление " + df.format(percent) + "% времени";
     }
 }
