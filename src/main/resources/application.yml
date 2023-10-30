@@ -46,7 +46,7 @@ gasBoiler:
     coil: 0
   # Периодичность опроса подачи газового котла (в отопление), чтобы понимать его статус
   direct:
-    pollInterval: PT60S
+    pollInterval: PT30S
 
 # Настройки управления теплым полом
 floorHeating:
