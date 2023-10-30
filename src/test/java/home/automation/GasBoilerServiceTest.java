@@ -23,9 +23,12 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 public class GasBoilerServiceTest extends AbstractTest {
     @Autowired
     GasBoilerService gasBoilerService;
@@ -115,7 +118,6 @@ public class GasBoilerServiceTest extends AbstractTest {
     @DisplayName("Проверка очистки старых записей из истории")
     void checkGasBoilerStatusHistoryClean() {
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
-        gasBoilerStatusDailyHistory.clear();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
         invokePutGasBoilerStatusToDailyHistoryMethod(GasBoilerStatus.IDLE);
         assertEquals(1, gasBoilerStatusDailyHistory.size());
@@ -145,7 +147,6 @@ public class GasBoilerServiceTest extends AbstractTest {
     @DisplayName("Проверка расчета процента работы на отопление")
     void checkCalculateWorkPercent() {
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
-        gasBoilerStatusDailyHistory.clear();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
@@ -157,7 +158,6 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         assertEquals(33.333, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
-        gasBoilerStatusDailyHistory.clear();
     }
 
     private Pair<Float, Float> invokeCalculateAverageTimesMethod(Pair<List<Float>, List<Float>> intervals) {
@@ -174,7 +174,6 @@ public class GasBoilerServiceTest extends AbstractTest {
     @DisplayName("Проверка расчета среднего времени работы на отопление")
     void checkCalculateAverageTimes() {
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
-        gasBoilerStatusDailyHistory.clear();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
@@ -186,6 +185,62 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         assertEquals(Pair.of(1f, 1.5f), invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod()));
-        gasBoilerStatusDailyHistory.clear();
+    }
+
+    private float invokeCalculateAverageGasBoilerReturnTemperatureMethod() {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateAverageGasBoilerReturnTemperature");
+            method.setAccessible(true);
+            return (float) method.invoke(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод расчета средней температуры обратки при включении", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка правильного расчета средней температуры обратки")
+    void checkCalculationAverageGasBoilerReturnTemperature() {
+        /* в радиаторы нужно тепло */
+        applicationEventPublisher.publishEvent(new BypassRelayStatusCalculatedEvent(this, BypassRelayStatus.CLOSED));
+        /* состояние теплых полов неважно */
+        Mockito.when(floorHeatingService.getStatus()).thenReturn(FloorHeatingStatus.NO_NEED_HEAT);
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(40F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(35F);
+        invokeCalculateStatusMethod();
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(40F);
+        invokeCalculateStatusMethod();
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(41F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(38F);
+        invokeCalculateStatusMethod();
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(46F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(41F);
+        invokeCalculateStatusMethod();
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(42F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(39F);
+        invokeCalculateStatusMethod();
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(47F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(42F);
+        invokeCalculateStatusMethod();
+
+        assertEquals(41.5f, invokeCalculateAverageGasBoilerReturnTemperatureMethod());
     }
 }

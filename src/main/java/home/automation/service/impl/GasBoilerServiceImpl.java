@@ -57,6 +57,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
 
+    private final Map<Instant, Float> gasBoilerReturnTemperatureHistory = new HashMap<>();
+
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
 
     private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
@@ -156,20 +158,37 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             return;
         }
 
+        GasBoilerStatus newCalculatedStatus;
+
         if (newDirectTemperature >= lastDirectTemperature) {
             logger.debug("Котел работает");
-            calculatedStatus = GasBoilerStatus.WORKS;
+            newCalculatedStatus = GasBoilerStatus.WORKS;
         } else {
             logger.debug("Котел не работает");
-            calculatedStatus = GasBoilerStatus.IDLE;
+            newCalculatedStatus = GasBoilerStatus.IDLE;
         }
-        lastDirectTemperature = newDirectTemperature;
+
         putGasBoilerStatusToDailyHistory(calculatedStatus);
+        if (calculatedStatus == GasBoilerStatus.IDLE && newCalculatedStatus == GasBoilerStatus.WORKS) {
+            putGasBoilerReturnTemperatureToDailyHistory();
+        }
+
+        lastDirectTemperature = newDirectTemperature;
+        calculatedStatus = newCalculatedStatus;
     }
 
     private void putGasBoilerStatusToDailyHistory(GasBoilerStatus calculatedStatus) {
         gasBoilerStatusDailyHistory.put(Instant.now(), calculatedStatus);
         gasBoilerStatusDailyHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+    }
+
+    private void putGasBoilerReturnTemperatureToDailyHistory() {
+        gasBoilerReturnTemperatureHistory.put(
+            Instant.now(),
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE)
+        );
+        gasBoilerReturnTemperatureHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
@@ -185,8 +204,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatusForLastDay() {
-        if (gasBoilerStatusDailyHistory.isEmpty() || (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-            && !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))) {
+        if (gasBoilerStatusDailyHistory.isEmpty() || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
+            || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
+            || gasBoilerReturnTemperatureHistory.isEmpty()) {
             return "сведений о работе газового котла пока не достаточно";
         }
         Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals();
@@ -205,8 +225,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
                 + " газовый котел работал на отопление ";
 
-        return intro + df0.format(calculateWorkPercent(intervals)) + "% времени, среднее время работы/простоя " + df1.format(
-            averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин";
+        return intro + df0.format(calculateWorkPercent(intervals)) + "% времени\n* среднее время работы/простоя "
+            + df1.format(averageWorkTime) + "/" + df1.format(averageIdleTime)
+            + " мин\n* средняя температура обратки при запуске "
+            + df1.format(calculateAverageGasBoilerReturnTemperature()) + " C°";
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals() {
@@ -268,5 +290,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         float averageWorkTime = (float) intervals.getLeft().stream().mapToDouble(t -> t).average().orElse(0f);
         float averageIdleTime = (float) intervals.getRight().stream().mapToDouble(t -> t).average().orElse(0f);
         return Pair.of(averageWorkTime, averageIdleTime);
+    }
+
+    private float calculateAverageGasBoilerReturnTemperature() {
+        return (float) gasBoilerReturnTemperatureHistory.values().stream().mapToDouble(t -> t).average().orElse(0f);
     }
 }
