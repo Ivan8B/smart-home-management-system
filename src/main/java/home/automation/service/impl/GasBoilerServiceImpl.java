@@ -1,10 +1,16 @@
 package home.automation.service.impl;
 
 import java.text.DecimalFormat;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import home.automation.configuration.GasBoilerConfiguration;
@@ -22,6 +28,7 @@ import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -178,16 +185,88 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatusForLastDay() {
-        /* считаем, что можно рассчитать статистику имея данные за 23 часа работы котла */
-        if (gasBoilerStatusDailyHistory.isEmpty() || Collections.min(gasBoilerStatusDailyHistory.keySet())
-            .isAfter(Instant.now().minus(23, ChronoUnit.HOURS))) {
-            return "сведений о работе котла пока не достаточно";
+        if (gasBoilerStatusDailyHistory.isEmpty() || (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
+            && !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))) {
+            return "сведений о работе газового котла пока не достаточно";
         }
-        long countWorks = gasBoilerStatusDailyHistory.values().stream().filter(GasBoilerStatus.WORKS::equals).count();
-        long countIdle = gasBoilerStatusDailyHistory.values().stream().filter(GasBoilerStatus.IDLE::equals).count();
+        Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals();
 
-        DecimalFormat df = new DecimalFormat("#");
-        float percent = (float) countWorks / (countWorks + countIdle) * 100;
-        return "за последние сутки котел работал на отопление " + df.format(percent) + "% времени";
+        Pair<Float, Float> averageTimes = calculateAverageTimes(intervals);
+        float averageWorkTime = averageTimes.getLeft();
+        float averageIdleTime = averageTimes.getRight();
+
+        DecimalFormat df0 = new DecimalFormat("#");
+        DecimalFormat df1 = new DecimalFormat("#.#");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+
+        Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
+        String intro = oldestTimestampIntDataset.isBefore(Instant.now().minus(23, ChronoUnit.HOURS))
+            ? "за последние сутки газовый котел работал на отопление "
+            : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
+                + " газовый котел работал на отопление ";
+
+        return intro + df0.format(calculateWorkPercent(intervals)) + "% времени, среднее время работы/простоя " + df1.format(
+            averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин";
+    }
+
+    private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals() {
+        /* создаем shallow копию датасета и очищаем его от ненужных записей */
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistoryCleared = new HashMap<>(gasBoilerStatusDailyHistory);
+        gasBoilerStatusDailyHistoryCleared.entrySet()
+            .removeIf(entry -> (entry.getValue() != GasBoilerStatus.WORKS && entry.getValue() != GasBoilerStatus.IDLE));
+
+        /* для работы нужен отсортированный список времен */
+        List<Instant> timestamps = new ArrayList<>(gasBoilerStatusDailyHistoryCleared.keySet());
+        Collections.sort(timestamps);
+
+        List<Float> workIntervals = new ArrayList<>();
+        List<Float> idleIntervals = new ArrayList<>();
+
+        /* запоминаем начало интервала - первый элемент очищенного датасета */
+        Instant intervalBeginTimestamp = timestamps.get(0);
+        GasBoilerStatus intervalBeginStatus = gasBoilerStatusDailyHistoryCleared.get(intervalBeginTimestamp);
+        /* и убираем его, чтобы начать со второго */
+        gasBoilerStatusDailyHistoryCleared.remove(intervalBeginTimestamp);
+        timestamps.remove(intervalBeginTimestamp);
+
+        /* добавляем в списке интервалы */
+        for (Instant timestamp : timestamps) {
+            if (gasBoilerStatusDailyHistoryCleared.get(timestamp) != intervalBeginStatus) {
+                float durationInMinutes =
+                    (float) (Duration.between(intervalBeginTimestamp, timestamp).toSeconds() / 60);
+                if (intervalBeginStatus == GasBoilerStatus.IDLE) {
+                    idleIntervals.add(durationInMinutes);
+                }
+                if (intervalBeginStatus == GasBoilerStatus.WORKS) {
+                    workIntervals.add(durationInMinutes);
+                }
+                intervalBeginTimestamp = timestamp;
+                intervalBeginStatus = gasBoilerStatusDailyHistoryCleared.get(timestamp);
+            }
+        }
+        /* если последний интервал не закрыт - закрываем вручную */
+        if (intervalBeginTimestamp != null) {
+            float durationInMinutes =
+                (float) (Duration.between(intervalBeginTimestamp, Instant.now()).toSeconds() / 60);
+            if (intervalBeginStatus == GasBoilerStatus.IDLE) {
+                idleIntervals.add(durationInMinutes);
+            }
+            if (intervalBeginStatus == GasBoilerStatus.WORKS) {
+                workIntervals.add(durationInMinutes);
+            }
+        }
+        return Pair.of(workIntervals, idleIntervals);
+    }
+
+    private float calculateWorkPercent(Pair<List<Float>, List<Float>> intervals) {
+        float countWorks = (float) intervals.getLeft().stream().mapToDouble(t -> t).sum();
+        float countIdle = (float) intervals.getRight().stream().mapToDouble(t -> t).sum();
+        return countWorks / (countWorks + countIdle) * 100;
+    }
+
+    private Pair<Float, Float> calculateAverageTimes(Pair<List<Float>, List<Float>> intervals) {
+        float averageWorkTime = (float) intervals.getLeft().stream().mapToDouble(t -> t).average().orElse(0f);
+        float averageIdleTime = (float) intervals.getRight().stream().mapToDouble(t -> t).average().orElse(0f);
+        return Pair.of(averageWorkTime, averageIdleTime);
     }
 }

@@ -1,6 +1,11 @@
 package home.automation;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
 
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.BypassRelayStatus;
@@ -11,6 +16,7 @@ import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.TemperatureSensorsService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,7 +42,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     @MockBean
     FloorHeatingService floorHeatingService;
 
-    private void invokeScheduledMethod() {
+    private void invokeCalculateStatusMethod() {
         try {
             Method method = gasBoilerService.getClass().getDeclaredMethod("calculateStatus");
             method.setAccessible(true);
@@ -56,11 +62,11 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeScheduledMethod();
+        invokeCalculateStatusMethod();
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeScheduledMethod();
+        invokeCalculateStatusMethod();
 
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
     }
@@ -75,13 +81,111 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeScheduledMethod();
+        invokeCalculateStatusMethod();
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeScheduledMethod();
+        invokeCalculateStatusMethod();
 
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
+    private void invokePutGasBoilerStatusToDailyHistoryMethod(GasBoilerStatus calculatedStatus) {
+        try {
+            Method method = gasBoilerService.getClass()
+                .getDeclaredMethod("putGasBoilerStatusToDailyHistory", GasBoilerStatus.class);
+            method.setAccessible(true);
+            method.invoke(gasBoilerService, calculatedStatus);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод добавления статуса газового котла в датасет", e);
+        }
+    }
+
+    private Map<Instant, GasBoilerStatus> getGasBoilerStatusDailyHistory() {
+        try {
+            Field field = gasBoilerService.getClass().getDeclaredField("gasBoilerStatusDailyHistory");
+            field.setAccessible(true);
+            return (Map<Instant, GasBoilerStatus>) field.get(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось обратиться к датасету", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка очистки старых записей из истории")
+    void checkGasBoilerStatusHistoryClean() {
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
+        invokePutGasBoilerStatusToDailyHistoryMethod(GasBoilerStatus.IDLE);
+        assertEquals(1, gasBoilerStatusDailyHistory.size());
+    }
+
+    private Pair<List<Float>, List<Float>> invokeCalculateWorkIdleIntervalsMethod() {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateWorkIdleIntervals");
+            method.setAccessible(true);
+            return (Pair<List<Float>, List<Float>>) method.invoke(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод расчета интервалов", e);
+        }
+    }
+
+    private float invokeCalculateWorkPercentMethod(Pair<List<Float>, List<Float>> intervals) {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateWorkPercent", Pair.class);
+            method.setAccessible(true);
+            return (float) method.invoke(gasBoilerService, intervals);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод расчета процента работы газового котла", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка расчета процента работы на отопление")
+    void checkCalculateWorkPercent() {
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(7, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(6, ChronoUnit.MINUTES), GasBoilerStatus.ERROR);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(4, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        assertEquals(33.333, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+        gasBoilerStatusDailyHistory.clear();
+    }
+
+    private Pair<Float, Float> invokeCalculateAverageTimesMethod(Pair<List<Float>, List<Float>> intervals) {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateAverageTimes", Pair.class);
+            method.setAccessible(true);
+            return (Pair<Float, Float>) method.invoke(gasBoilerService, intervals);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод расчета среднего времени работы газового котла", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка расчета среднего времени работы на отопление")
+    void checkCalculateAverageTimes() {
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(7, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(6, ChronoUnit.MINUTES), GasBoilerStatus.ERROR);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(4, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        assertEquals(Pair.of(1f, 1.5f), invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod()));
+        gasBoilerStatusDailyHistory.clear();
+    }
 }
