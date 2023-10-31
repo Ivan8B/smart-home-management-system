@@ -93,12 +93,14 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         logger.debug("Получено событие о расчете статуса реле байпаса");
         switch (event.getStatus()) {
             case OPEN -> {
+                logger.info("Есть запрос на тепло от радиаторов");
                 heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
             }
             case CLOSED -> {
                 /* проверяем, нужно ли теплым полам тепло, если нет - гасим котел */
                 if (floorHeatingService.getStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
                     heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
+                    logger.info("Запроса на тепло нет");
                 }
             }
         }
@@ -109,11 +111,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         logger.debug("Получено событие о расчете запроса тепла в полы");
         switch (event.getStatus()) {
             case NEED_HEAT -> {
+                logger.info("Есть запрос на тепло от теплых полов");
                 heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
             }
             case NO_NEED_HEAT -> {
                 /* проверяем, нужно ли радиаторам тепло, если нет - гасим котел */
                 if (bypassRelayService.getStatus() == BypassRelayStatus.CLOSED) {
+                    logger.info("Запроса на тепло нет");
                     heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
                 }
             }
@@ -128,6 +132,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private void turnOn() {
         try {
+            logger.info("Включаем газовый котел");
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
             relayStatus = GasBoilerRelayStatus.NEED_HEAT;
             oldHeatRequestStatus = heatRequestStatus;
@@ -140,6 +145,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private void turnOff() {
         try {
+            logger.info("Отключаем газовый котел");
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
             relayStatus = GasBoilerRelayStatus.NO_NEED_HEAT;
             oldHeatRequestStatus = heatRequestStatus;
@@ -195,19 +201,21 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         GasBoilerStatus newCalculatedStatus;
 
         if (newDirectTemperature > lastDirectTemperature + 0.1) {
-            logger.debug("Котел работает");
+            logger.info("Статус газового котла - работает");
             newCalculatedStatus = GasBoilerStatus.WORKS;
         } else {
-            logger.debug("Котел не работает");
+            logger.info("Статус газового котла - не работает");
             newCalculatedStatus = GasBoilerStatus.IDLE;
         }
 
         putGasBoilerStatusToDailyHistory(calculatedStatus);
         if (calculatedStatus == GasBoilerStatus.IDLE && newCalculatedStatus == GasBoilerStatus.WORKS) {
+            logger.info("Газовый котел только что включился");
             putGasBoilerReturnTemperatureToDailyHistory(temperatureSensorsService.getCurrentTemperatureForSensor(
                 TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE));
         }
         if (calculatedStatus == GasBoilerStatus.WORKS && newCalculatedStatus == GasBoilerStatus.IDLE) {
+            logger.info("Газовый котел только что отключился");
             turnOffTimestamp = Instant.now();
         }
 
