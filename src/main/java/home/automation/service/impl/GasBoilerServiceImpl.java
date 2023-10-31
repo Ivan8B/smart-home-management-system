@@ -194,7 +194,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         GasBoilerStatus newCalculatedStatus;
 
-        if (newDirectTemperature >= lastDirectTemperature) {
+        if (newDirectTemperature > lastDirectTemperature + 0.1) {
             logger.debug("Котел работает");
             newCalculatedStatus = GasBoilerStatus.WORKS;
         } else {
