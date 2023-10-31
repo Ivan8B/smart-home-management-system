@@ -170,7 +170,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         putGasBoilerStatusToDailyHistory(calculatedStatus);
         if (calculatedStatus == GasBoilerStatus.IDLE && newCalculatedStatus == GasBoilerStatus.WORKS) {
-            putGasBoilerReturnTemperatureToDailyHistory();
+            putGasBoilerReturnTemperatureToDailyHistory(temperatureSensorsService.getCurrentTemperatureForSensor(
+                TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE));
         }
 
         lastDirectTemperature = newDirectTemperature;
@@ -183,11 +184,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
-    private void putGasBoilerReturnTemperatureToDailyHistory() {
-        gasBoilerReturnTemperatureHistory.put(
-            Instant.now(),
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE)
-        );
+    private void putGasBoilerReturnTemperatureToDailyHistory(Float temperature) {
+        if (temperature != null) {
+            gasBoilerReturnTemperatureHistory.put(Instant.now(), temperature);
+        }
         gasBoilerReturnTemperatureHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }

@@ -110,12 +110,12 @@ public class GasBoilerServiceTest extends AbstractTest {
             field.setAccessible(true);
             return (Map<Instant, GasBoilerStatus>) field.get(gasBoilerService);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось обратиться к датасету", e);
+            throw new RuntimeException("Не удалось обратиться к датасету статусов котла", e);
         }
     }
 
     @Test
-    @DisplayName("Проверка очистки старых записей из истории")
+    @DisplayName("Проверка очистки старых записей статусов из датасета")
     void checkGasBoilerStatusHistoryClean() {
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
@@ -195,6 +195,36 @@ public class GasBoilerServiceTest extends AbstractTest {
         } catch (Exception e) {
             throw new RuntimeException("Не удалось вызвать метод расчета средней температуры обратки при включении", e);
         }
+    }
+
+    private void invokePutGasBoilerReturnTemperatureToDailyHistoryMethod(Float temperature) {
+        try {
+            Method method = gasBoilerService.getClass()
+                .getDeclaredMethod("putGasBoilerReturnTemperatureToDailyHistory", Float.class);
+            method.setAccessible(true);
+            method.invoke(gasBoilerService, temperature);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод добавления температуры обратки газового котла в датасет", e);
+        }
+    }
+
+    private Map<Instant, Float> getGasBoilerReturnTemperatureHistory() {
+        try {
+            Field field = gasBoilerService.getClass().getDeclaredField("gasBoilerReturnTemperatureHistory");
+            field.setAccessible(true);
+            return (Map<Instant, Float>) field.get(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось обратиться к датасету температур обратки", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка очистки старых записей температур обратки из датасета")
+    void checkGasBoilerReturnTemperatureHistoryClean() {
+        Map<Instant, Float> gasBoilerReturnTemperatureHistory = getGasBoilerReturnTemperatureHistory();
+        gasBoilerReturnTemperatureHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), 40f);
+        invokePutGasBoilerReturnTemperatureToDailyHistoryMethod(30f);
+        assertEquals(1, gasBoilerReturnTemperatureHistory.size());
     }
 
     @Test
