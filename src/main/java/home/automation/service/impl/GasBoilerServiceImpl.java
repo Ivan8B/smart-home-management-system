@@ -16,6 +16,7 @@ import java.util.Map;
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
+import home.automation.enums.GasBoilerHeatRequestStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
@@ -61,6 +62,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
 
+    private Instant turnOffTimestamp;
+
+    private GasBoilerHeatRequestStatus heatRequestStatus = GasBoilerHeatRequestStatus.INIT;
+
+    private GasBoilerHeatRequestStatus oldHeatRequestStatus;
+
     private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
 
     private Float lastDirectTemperature;
@@ -85,11 +92,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     public void onApplicationEvent(BypassRelayStatusCalculatedEvent event) {
         logger.debug("Получено событие о расчете статуса реле байпаса");
         switch (event.getStatus()) {
-            case OPEN -> turnOn();
+            case OPEN -> {
+                heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
+            }
             case CLOSED -> {
-                // проверяем, нужно ли теплым полам тепло, если нет - гасим котел
+                /* проверяем, нужно ли теплым полам тепло, если нет - гасим котел */
                 if (floorHeatingService.getStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
-                    turnOff();
+                    heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
                 }
             }
         }
@@ -99,20 +108,29 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     public void onApplicationEvent(FloorHeatingStatusCalculatedEvent event) {
         logger.debug("Получено событие о расчете запроса тепла в полы");
         switch (event.getStatus()) {
-            case NEED_HEAT -> turnOn();
+            case NEED_HEAT -> {
+                heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
+            }
             case NO_NEED_HEAT -> {
-                // проверяем, нужно ли радиаторам тепло, если нет - гасим котел
+                /* проверяем, нужно ли радиаторам тепло, если нет - гасим котел */
                 if (bypassRelayService.getStatus() == BypassRelayStatus.CLOSED) {
-                    turnOff();
+                    heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
                 }
             }
         }
+    }
+
+    private boolean ifGasBoilerCanBeTurnedOn() {
+        /* проверяем можно ли уже включать котел (прошло ли достаточно времени после прошлого выключения) */
+        return turnOffTimestamp == null
+            || Duration.between(turnOffTimestamp, Instant.now()).compareTo(configuration.getDelayBetweenTurnOn()) > 0;
     }
 
     private void turnOn() {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
             relayStatus = GasBoilerRelayStatus.NEED_HEAT;
+            oldHeatRequestStatus = heatRequestStatus;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
@@ -124,10 +142,26 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         try {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
             relayStatus = GasBoilerRelayStatus.NO_NEED_HEAT;
+            oldHeatRequestStatus = heatRequestStatus;
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
             relayStatus = GasBoilerRelayStatus.ERROR;
+        }
+    }
+
+    @Scheduled(fixedRateString = "${gasBoiler.relay.updateInterval}")
+    private void manageBoilerRelay() {
+        if (heatRequestStatus != oldHeatRequestStatus) {
+            if (heatRequestStatus == GasBoilerHeatRequestStatus.NEED_HEAT) {
+                if (ifGasBoilerCanBeTurnedOn()) {
+                    turnOn();
+                } else {
+                    logger.info("Газовый котел не может быть включен на отопление по политике тактования");
+                }
+            } else if (heatRequestStatus == GasBoilerHeatRequestStatus.NO_NEED_HEAT) {
+                turnOff();
+            }
         }
     }
 
@@ -172,6 +206,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         if (calculatedStatus == GasBoilerStatus.IDLE && newCalculatedStatus == GasBoilerStatus.WORKS) {
             putGasBoilerReturnTemperatureToDailyHistory(temperatureSensorsService.getCurrentTemperatureForSensor(
                 TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE));
+        }
+        if (calculatedStatus == GasBoilerStatus.WORKS && newCalculatedStatus == GasBoilerStatus.IDLE) {
+            turnOffTimestamp = Instant.now();
         }
 
         lastDirectTemperature = newDirectTemperature;

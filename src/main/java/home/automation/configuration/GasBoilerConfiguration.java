@@ -1,5 +1,7 @@
 package home.automation.configuration;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,11 +13,18 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.relay.coil}")
     private Integer coil;
 
+    @Value("${gasBoiler.delayBetweenTurnOn}")
+    private Duration delayBetweenTurnOn;
+
     public Integer getAddress() {
         return address;
     }
 
     public Integer getCoil() {
         return coil;
+    }
+
+    public Duration getDelayBetweenTurnOn() {
+        return delayBetweenTurnOn;
     }
 }
