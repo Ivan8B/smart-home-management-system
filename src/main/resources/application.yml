@@ -15,7 +15,6 @@ modbus:
 
 # Настройки опроса реле байпаса
 bypass:
-  # Реле подключено к CHINALCTECH (bestep) 2IN-2OUT
   relay:
     # Modbus slaveId
     address: 2
@@ -38,7 +37,7 @@ temperatureSensorsBoard:
 
 # Настройки управления газовым котлом
 gasBoiler:
-  # Настройки управления реле газового котла, подключено к CHINALCTECH (bestep) 2IN-2OUT
+  # Настройки управления реле газового котла
   relay:
     # Modbus slaveId
     address: 2
@@ -51,6 +50,15 @@ gasBoiler:
     pollInterval: PT1M
   # Задержка, через которую котел можно снова включить на отопление после отключения
   delayBetweenTurnOn: PT20M
+
+# Настройки управления электрическим котлом
+electricBoiler:
+  # Настройки управления реле электрического котла
+  relay:
+    # Modbus slaveId
+    address: 4
+    # Coil в который пишется значение (F05), нумерация с 0
+    coil: 0
 
 # Настройки управления теплым полом
 floorHeating:
@@ -89,15 +97,14 @@ floorHeating:
       # Coil в который пишется значение (F05), нумерация с 0
       coil: 0
 
-
 # Настройки управления уличным освещением
 streetLight:
   # Настройки реле, управляющего освещением
   relay:
     # Modbus slaveId
-    address: 6
+    address: 4
     # Coil в который пишется значение (F05), нумерация с 0
-    coil: 0
+    coil: 1
   # Периодичность расчета необходимости освещения
   controlInterval: PT5M
   # Широта и долгота места, для которого рассчитывается время суток
@@ -109,7 +116,7 @@ funnelHeating:
   # Настройки реле, управляющего обогревом
   relay:
     # Modbus slaveId
-    address: 6
+    address: 2
     # Coil в который пишется значение (F05), нумерация с 0
     coil: 1
   # Периодичность расчета необходимости обогрева
