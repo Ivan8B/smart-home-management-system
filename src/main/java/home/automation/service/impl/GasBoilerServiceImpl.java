@@ -241,7 +241,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatusForLastDay() {
-        if (gasBoilerStatusDailyHistory.isEmpty() || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
+        if (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
             || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
             || gasBoilerReturnTemperatureHistory.isEmpty()) {
             return "сведений о работе газового котла пока не достаточно";
