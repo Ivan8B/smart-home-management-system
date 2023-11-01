@@ -173,11 +173,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     @Scheduled(fixedRateString = "${gasBoiler.direct.pollInterval}")
     private void calculateStatus() {
         logger.debug("Запущена задача расчета статуса газового котла");
-        if (GasBoilerRelayStatus.NO_NEED_HEAT == relayStatus) {
-            logger.debug("Реле котла не замкнуто, значит газовый котел не работает");
-            calculatedStatus = GasBoilerStatus.IDLE;
-            return;
-        }
 
         Float newDirectTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(waterDirectGasBoilerTemperature);
