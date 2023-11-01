@@ -10,9 +10,11 @@ import java.util.Map;
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
+import home.automation.enums.GasBoilerHeatRequestStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.info.BypassRelayStatusCalculatedEvent;
+import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.TemperatureSensorsService;
@@ -91,6 +93,88 @@ public class GasBoilerServiceTest extends AbstractTest {
         invokeCalculateStatusMethod();
 
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
+    }
+
+    private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
+        try {
+            Field field = gasBoilerService.getClass().getDeclaredField("heatRequestStatus");
+            field.setAccessible(true);
+            field.set(gasBoilerService, status);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось установить статус запроса на тепло газового котла", e);
+        }
+    }
+
+    private void setTurnOffTimestampField(Instant timestamp) {
+        try {
+            Field field = gasBoilerService.getClass().getDeclaredField("turnOffTimestamp");
+            field.setAccessible(true);
+            field.set(gasBoilerService, timestamp);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось установить время отключения газового котла", e);
+        }
+    }
+
+    private void invokeManageBoilerRelayMethod() {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("manageBoilerRelay");
+            method.setAccessible(true);
+            method.invoke(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод управления реле котла", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка правильного управления реле котла с учетом тактования")
+    void checkManageBoilerRelay() throws ModbusException {
+        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(1))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+
+        /* вызываем метод снова, чтобы проверить, что реле не сработает второй раз */
+        Mockito.clearInvocations(modbusService);
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(0))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+
+        /* имитируем рост температуры - включение котла */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45F);
+        invokeCalculateStatusMethod();
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(47F);
+        invokeCalculateStatusMethod();
+
+        /* убираем запрос на тепло */
+        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NO_NEED_HEAT);
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(1))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+
+        Mockito.clearInvocations(modbusService);
+
+        /* снова даем запрос и предполагаем, что котел отключился по подаче */
+        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(47F);
+        invokeCalculateStatusMethod();
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45F);
+        invokeCalculateStatusMethod();
+
+        /* снова включаем котел и он не должен включиться */
+        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(0))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+
+        /* теперь подкручиваем время последнего выключения и он должен включиться */
+        setTurnOffTimestampField(Instant.now().minus(21, ChronoUnit.MINUTES));
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(1))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
     }
 
     private void invokePutGasBoilerStatusToDailyHistoryMethod(GasBoilerStatus calculatedStatus) {
@@ -204,7 +288,9 @@ public class GasBoilerServiceTest extends AbstractTest {
             method.setAccessible(true);
             method.invoke(gasBoilerService, temperature);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод добавления температуры обратки газового котла в датасет", e);
+            throw new RuntimeException("Не удалось вызвать метод добавления температуры обратки газового котла в датасет",
+                e
+            );
         }
     }
 
