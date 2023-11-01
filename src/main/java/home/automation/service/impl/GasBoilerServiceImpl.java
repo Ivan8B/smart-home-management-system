@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import home.automation.configuration.GasBoilerConfiguration;
+import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.BypassRelayStatus;
 import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerHeatRequestStatus;
@@ -40,26 +41,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class GasBoilerServiceImpl implements GasBoilerService {
     private static final Logger logger = LoggerFactory.getLogger(GasBoilerServiceImpl.class);
-
     private final TemperatureSensor waterDirectGasBoilerTemperature =
         TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
-
     private final GasBoilerConfiguration configuration;
-
+    private final GeneralConfiguration generalConfiguration;
     private final ModbusService modbusService;
-
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final TemperatureSensorsService temperatureSensorsService;
-
     private final BypassRelayService bypassRelayService;
-
     private final FloorHeatingService floorHeatingService;
-
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
-
     private final Map<Instant, Float> gasBoilerReturnTemperatureHistory = new HashMap<>();
-
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
 
     private Instant turnOffTimestamp;
@@ -72,6 +64,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     public GasBoilerServiceImpl(
         GasBoilerConfiguration configuration,
+        GeneralConfiguration generalConfiguration,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
         TemperatureSensorsService temperatureSensorsService,
@@ -79,6 +72,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         FloorHeatingService floorHeatingService
     ) {
         this.configuration = configuration;
+        this.generalConfiguration = generalConfiguration;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.temperatureSensorsService = temperatureSensorsService;
@@ -125,7 +119,33 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private boolean ifGasBoilerCanBeTurnedOn() {
         /* проверяем можно ли уже включать котел (прошло ли достаточно времени после прошлого выключения) */
         return turnOffTimestamp == null
-            || Duration.between(turnOffTimestamp, Instant.now()).compareTo(configuration.getDelayBetweenTurnOn()) > 0;
+            || Duration.between(turnOffTimestamp, Instant.now()).compareTo(calculateDelayBetweenTurnOn()) > 0;
+    }
+
+    private Duration calculateDelayBetweenTurnOn() {
+        Float outsideTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+
+        if (outsideTemperature == null) {
+            return Duration.of(configuration.getClockingDelayMin(), ChronoUnit.MINUTES);
+        }
+
+        if (outsideTemperature > generalConfiguration.getTargetTemperature()) {
+            return Duration.of(configuration.getClockingDelayMax(), ChronoUnit.MINUTES);
+        }
+        if (outsideTemperature < generalConfiguration.getOutsideMin()) {
+            return Duration.of(configuration.getClockingDelayMin(), ChronoUnit.MINUTES);
+        }
+
+        float temperatureDelta = generalConfiguration.getTargetTemperature() - outsideTemperature;
+        float temperatureMinMaxDelta =
+            generalConfiguration.getTargetTemperature() - generalConfiguration.getOutsideMin();
+        float minMaxDelayDelta = configuration.getClockingDelayMax() - configuration.getClockingDelayMin();
+
+        float duration =
+            configuration.getClockingDelayMin() + minMaxDelayDelta * temperatureDelta / temperatureMinMaxDelta;
+
+        return Duration.of(Math.round(duration), ChronoUnit.MINUTES);
     }
 
     private void turnOn() {

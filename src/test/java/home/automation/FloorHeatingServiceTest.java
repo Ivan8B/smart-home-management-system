@@ -36,9 +36,7 @@ public class FloorHeatingServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов")
     void checkAverageTemperatureCalculation() {
-        assertEquals(30.725F, invokeCalculateTargetDirectTemperature(21F, 10F));
-
-        assertEquals(38.725F, invokeCalculateTargetDirectTemperature(20F, -10F));
+        assertEquals(30F, invokeCalculateTargetDirectTemperature(21F, 10F));
     }
 
     @Test

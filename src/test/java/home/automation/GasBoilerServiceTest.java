@@ -2,6 +2,7 @@ package home.automation;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -95,7 +96,33 @@ public class GasBoilerServiceTest extends AbstractTest {
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
-    private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
+    private Duration invokeCalculateDelayBetweenTurnOnMethod() {
+        try {
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateDelayBetweenTurnOn");
+            method.setAccessible(true);
+            return (Duration) method.invoke(gasBoilerService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод расчета задержки включения котла", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка правильного управления реле котла с учетом тактования")
+    void checkCalculateDelayBetweenTurnOn() {
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(-40f);
+        assertEquals(Duration.of(10, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(0f);
+        assertEquals(Duration.of(19, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(40f);
+        assertEquals(Duration.of(30, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+    }
+
+        private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
         try {
             Field field = gasBoilerService.getClass().getDeclaredField("heatRequestStatus");
             field.setAccessible(true);
@@ -128,6 +155,8 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильного управления реле котла с учетом тактования")
     void checkManageBoilerRelay() throws ModbusException {
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)).thenReturn(2f);
+
         setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(1))

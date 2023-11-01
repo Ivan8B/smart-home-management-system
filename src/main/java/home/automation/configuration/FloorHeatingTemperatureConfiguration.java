@@ -5,8 +5,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class FloorHeatingTemperatureConfiguration {
-    @Value("${floorHeating.temperature.target}")
-    private Float targetTemperature;
 
     @Value("${floorHeating.temperature.direct.min}")
     private Float directMinTemperature;
@@ -16,10 +14,6 @@ public class FloorHeatingTemperatureConfiguration {
 
     @Value("${floorHeating.temperature.k}")
     private Float k;
-
-    public Float getTargetTemperature() {
-        return targetTemperature;
-    }
 
     public Float getDirectMinTemperature() {
         return directMinTemperature;

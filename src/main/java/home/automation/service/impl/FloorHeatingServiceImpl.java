@@ -6,6 +6,7 @@ import java.util.Set;
 import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
+import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
@@ -21,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -38,6 +38,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final FloorHeatingValveDacConfiguration dacConfiguration;
 
+    private final GeneralConfiguration generalConfiguration;
+
     private final TemperatureSensorsService temperatureSensorsService;
 
     private final GasBoilerService gasBoilerService;
@@ -52,6 +54,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
         FloorHeatingValveDacConfiguration dacConfiguration,
+        GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
         ModbusService modbusService,
@@ -60,6 +63,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.temperatureConfiguration = temperatureConfiguration;
         this.relayConfiguration = relayConfiguration;
         this.dacConfiguration = dacConfiguration;
+        this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
         this.modbusService = modbusService;
@@ -89,7 +93,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        if (averageInternalTemperature > temperatureConfiguration.getDirectMinTemperature()) {
+        if (averageInternalTemperature > generalConfiguration.getTargetTemperature()) {
             logger.debug("Средняя температура в помещениях больше целевой, отправляем отказ от тепла в теплые полы");
             calculatedStatus = FloorHeatingStatus.NO_NEED_HEAT;
             publishCalculatedEvent(calculatedStatus);
@@ -178,8 +182,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Запущена задача расчета целевой температуры подачи в полы");
         /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
         float calculated =
-            (temperatureConfiguration.getTargetTemperature() - outsideTemperature) * temperatureConfiguration.getK()
-                + temperatureConfiguration.getTargetTemperature() + (temperatureConfiguration.getTargetTemperature()
+            (generalConfiguration.getTargetTemperature() - outsideTemperature) * temperatureConfiguration.getK()
+                + generalConfiguration.getTargetTemperature() + (generalConfiguration.getTargetTemperature()
                 - averageInternalTemperature);
 
         if (calculated < temperatureConfiguration.getDirectMinTemperature()) {
