@@ -55,9 +55,9 @@ gasBoiler:
   direct:
     pollInterval: PT1M
   # Минимальная задержка включения котла после его отключения (минут)
-  clockingDelayMin: 10
+  clockingDelayMin: 15
   # Максимальная задержка включения котла после его отключения (минут)
-  clockingDelayMax: 30
+  clockingDelayMax: 45
 
 # Настройки управления электрическим котлом
 electricBoiler:

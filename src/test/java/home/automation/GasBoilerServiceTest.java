@@ -111,15 +111,15 @@ public class GasBoilerServiceTest extends AbstractTest {
     void checkCalculateDelayBetweenTurnOn() {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-40f);
-        assertEquals(Duration.of(10, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+        assertEquals(Duration.of(15, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(0f);
-        assertEquals(Duration.of(19, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+        assertEquals(Duration.of(28, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(40f);
-        assertEquals(Duration.of(30, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
+        assertEquals(Duration.of(45, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
     }
 
         private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
@@ -200,7 +200,7 @@ public class GasBoilerServiceTest extends AbstractTest {
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         /* теперь подкручиваем время последнего выключения и он должен включиться */
-        setTurnOffTimestampField(Instant.now().minus(21, ChronoUnit.MINUTES));
+        setTurnOffTimestampField(Instant.now().minus(29, ChronoUnit.MINUTES));
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
