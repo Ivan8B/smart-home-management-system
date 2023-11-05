@@ -7,15 +7,16 @@ Configuration:
         Pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
     RollingFile:
       - name: RollingFile
-        fileName: "/tmp/home-automation.log"
-        filePattern: "logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz"
+        fileName: "/var/log/home-automation/home-automation.log"
+        filePattern: "/var/log/home-automation/archive/%d{yyyy-MM-dd}.log"
         PatternLayout:
           pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
         Policies:
-          SizeBasedTriggeringPolicy:
-            size: 10MB
+          TimeBasedTriggeringPolicy:
+            interval: 1
+            modulate: true
         DefaultRollOverStrategy:
-          max: 10
+          max: 30
   Loggers:
     Root:
       level: info
