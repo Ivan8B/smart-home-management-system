@@ -27,9 +27,17 @@ public enum TemperatureSensor {
             "обратка в газовый котел"
         ),
 
-    WATER_DIRECT_FLOOR_TEMPERATURE
+    OUTSIDE_TEMPERATURE
         (
             3,
+            FIRST_BOARD_NAME,
+            "температура на улице",
+            true
+        ),
+
+    WATER_DIRECT_FLOOR_TEMPERATURE
+        (
+            4,
             FIRST_BOARD_NAME,
             "подача в теплые полы",
             true
@@ -37,17 +45,9 @@ public enum TemperatureSensor {
 
     WATER_RETURN_FLOOR_TEMPERATURE
         (
-            4,
-            FIRST_BOARD_NAME,
-            "обратка из теплых полов",
-            true
-        ),
-
-    OUTSIDE_TEMPERATURE
-        (
             5,
             FIRST_BOARD_NAME,
-            "температура на улице",
+            "обратка из теплых полов",
             true
         ),
 
