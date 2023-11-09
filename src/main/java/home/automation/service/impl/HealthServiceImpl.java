@@ -78,7 +78,9 @@ public class HealthServiceImpl implements HealthService {
             .filter(sensor -> sensor.isCritical() && sensor.getMinimalTemperature() != null).forEach(sensor -> {
                 Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
                 if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimalTemperature()) {
-                    logger.warn(sensor.getTemplate() + " - слишком низкая температура!");
+                    logger.warn(sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
+                    logger.debug("Сразу же нотифицируем");
+                    botService.notify("Внимание! " + sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
                     logger.debug("Отправляем событие о низкой температуре");
                     applicationEventPublisher.publishEvent(new MinimalTemperatureLowEvent(this, sensor));
                 }
