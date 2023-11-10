@@ -107,7 +107,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     }
 
     @Test
-    @DisplayName("Проверка правильного управления реле котла с учетом тактования")
+    @DisplayName("Проверка расчета задержки тактования котла")
     void checkCalculateDelayBetweenTurnOn() {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-40f);
