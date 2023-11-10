@@ -17,6 +17,9 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.clockingDelayMax}")
     private Integer clockingDelayMax;
 
+    @Value("${gasBoiler.waterFlow}")
+    private Float waterFlow;
+
     public Integer getAddress() {
         return address;
     }
@@ -31,5 +34,9 @@ public class GasBoilerConfiguration {
 
     public Integer getClockingDelayMax() {
         return clockingDelayMax;
+    }
+
+    public Float getWaterFlow() {
+        return waterFlow;
     }
 }

@@ -292,8 +292,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals();
 
         Pair<Float, Float> averageTimes = calculateAverageTimes(intervals);
+
         float averageWorkTime = averageTimes.getLeft();
         float averageIdleTime = averageTimes.getRight();
+        float workPercent = calculateWorkPercent(intervals);
+        float averageTemperatureDeltaWhenWorks = calculateAverageTemperatureDeltaWhenWorks();
+        float averageGasBoilerReturnAtTurnOnTemperature = calculateAverageGasBoilerReturnAtTurnOnTemperature();
+        float averagePowerInkW = calculateAveragePowerInkW(averageTemperatureDeltaWhenWorks, workPercent);
 
         DecimalFormat df0 = new DecimalFormat("#");
         DecimalFormat df1 = new DecimalFormat("#.#");
@@ -305,12 +310,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
                 + " котел работал на отопление ";
 
-        return intro + df0.format(calculateWorkPercent(intervals)) + "% времени\n* среднее время работы/простоя "
-            + df1.format(averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n"
-            + "* средняя температура обратки при запуске " + df1.format(
-            calculateAverageGasBoilerReturnAtTurnOnTemperature()) + " C° \n"
-            + "* средняя дельта подачи/обратки при работе " + df1.format(calculateAverageTemperatureDeltaWhenWorks())
-            + " C°";
+        return intro + df0.format(workPercent) + "% времени\n* среднее время работы/простоя " + df1.format(
+            averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n"
+            + "* средняя температура обратки при запуске " + df1.format(averageGasBoilerReturnAtTurnOnTemperature)
+            + " C° \n" + "* средняя дельта подачи/обратки при работе " + df1.format(averageTemperatureDeltaWhenWorks)
+            + " C° \n" + "* среднесуточная мощность " + df1.format(averagePowerInkW) + " кВт";
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals() {
@@ -387,5 +391,16 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
                 .getAsDouble());
         return averageDirect - averageReturn;
+    }
+
+    private float calculateAveragePowerInkW(float averageDelta, float workPercent) {
+        if (workPercent == 0) {
+            return 0f;
+        }
+        /* формула расчета мощности Q = m * с * ΔT, где m - масса теплоносителя, а c его теплоемкость.
+        Теплоемкость воды 4200 Вт/°C), масса теплоносителя считается в кубометрах в час, поэтому формула выглядит так:
+        Q = (1000/3600 * m м3/ч) * (4200 Вт/°C) * ΔT °C = 1.163 кВт/°C * m м3/ч * ΔT °C */
+        float powerWhenWorks = (float) (1.163 * configuration.getWaterFlow() * averageDelta);
+        return powerWhenWorks * workPercent / 100;
     }
 }
