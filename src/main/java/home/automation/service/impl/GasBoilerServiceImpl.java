@@ -301,9 +301,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
         String intro = oldestTimestampIntDataset.isBefore(Instant.now().minus(23, ChronoUnit.HOURS))
-            ? "за последние сутки газовый котел работал на отопление "
+            ? "за последние сутки котел работал на отопление "
             : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
-                + " газовый котел работал на отопление ";
+                + " котел работал на отопление ";
 
         return intro + df0.format(calculateWorkPercent(intervals)) + "% времени\n* среднее время работы/простоя "
             + df1.format(averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n"
