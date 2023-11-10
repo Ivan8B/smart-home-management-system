@@ -41,8 +41,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class GasBoilerServiceImpl implements GasBoilerService {
     private static final Logger logger = LoggerFactory.getLogger(GasBoilerServiceImpl.class);
-    private final TemperatureSensor waterDirectGasBoilerTemperature =
-        TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE;
     private final GasBoilerConfiguration configuration;
     private final GeneralConfiguration generalConfiguration;
     private final ModbusService modbusService;
@@ -51,15 +49,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private final BypassRelayService bypassRelayService;
     private final FloorHeatingService floorHeatingService;
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
-    private final Map<Instant, Float> gasBoilerReturnTemperatureHistory = new HashMap<>();
+    private final Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory = new HashMap<>();
+    private final Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory = new HashMap<>();
+    private final Map<Instant, Float> gasBoilerReturnAtTurnOnTemperatureHistory = new HashMap<>();
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
-
     private Instant turnOffTimestamp;
-
     private GasBoilerHeatRequestStatus heatRequestStatus = GasBoilerHeatRequestStatus.INIT;
-
     private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
-
     private Float lastDirectTemperature;
 
     public GasBoilerServiceImpl(
@@ -195,7 +191,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         logger.debug("Запущена задача расчета статуса газового котла");
 
         Float newDirectTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(waterDirectGasBoilerTemperature);
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
+        Float newReturnTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
         if (newDirectTemperature == null) {
             logger.warn("Не удалось вычислить статус газового котла");
@@ -217,6 +215,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         if (newDirectTemperature > lastDirectTemperature + 0.1) {
             logger.info("Статус газового котла - работает");
             newCalculatedStatus = GasBoilerStatus.WORKS;
+            putGasBoilerDirectWhenWorkTemperatureToDailyHistory(newDirectTemperature);
+            if (newReturnTemperature != null) {
+                putGasBoilerReturnWhenWorkTemperatureToDailyHistory(newReturnTemperature);
+            }
         } else {
             logger.info("Статус газового котла - не работает");
             newCalculatedStatus = GasBoilerStatus.IDLE;
@@ -225,8 +227,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         putGasBoilerStatusToDailyHistory(calculatedStatus);
         if (calculatedStatus == GasBoilerStatus.IDLE && newCalculatedStatus == GasBoilerStatus.WORKS) {
             logger.info("Газовый котел только что включился");
-            putGasBoilerReturnTemperatureToDailyHistory(temperatureSensorsService.getCurrentTemperatureForSensor(
-                TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE));
+            if (newReturnTemperature != null) {
+                putGasBoilerReturnAtTurnOnTemperatureToDailyHistory(newReturnTemperature);
+            }
         }
         if (calculatedStatus == GasBoilerStatus.WORKS && newCalculatedStatus == GasBoilerStatus.IDLE) {
             logger.info("Газовый котел только что отключился");
@@ -243,11 +246,27 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
-    private void putGasBoilerReturnTemperatureToDailyHistory(Float temperature) {
+    private void putGasBoilerDirectWhenWorkTemperatureToDailyHistory(Float temperature) {
         if (temperature != null) {
-            gasBoilerReturnTemperatureHistory.put(Instant.now(), temperature);
+            gasBoilerDirectWhenWorkTemperatureHistory.put(Instant.now(), temperature);
         }
-        gasBoilerReturnTemperatureHistory.entrySet()
+        gasBoilerDirectWhenWorkTemperatureHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+    }
+
+    private void putGasBoilerReturnWhenWorkTemperatureToDailyHistory(Float temperature) {
+        if (temperature != null) {
+            gasBoilerReturnWhenWorkTemperatureHistory.put(Instant.now(), temperature);
+        }
+        gasBoilerReturnWhenWorkTemperatureHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+    }
+
+    private void putGasBoilerReturnAtTurnOnTemperatureToDailyHistory(Float temperature) {
+        if (temperature != null) {
+            gasBoilerReturnAtTurnOnTemperatureHistory.put(Instant.now(), temperature);
+        }
+        gasBoilerReturnAtTurnOnTemperatureHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
@@ -265,7 +284,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     public String getFormattedStatusForLastDay() {
         if (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
             || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
-            || gasBoilerReturnTemperatureHistory.isEmpty()) {
+            || gasBoilerDirectWhenWorkTemperatureHistory.isEmpty()
+            || gasBoilerReturnWhenWorkTemperatureHistory.isEmpty()
+            || gasBoilerReturnAtTurnOnTemperatureHistory.isEmpty()) {
             return "сведений о работе газового котла пока не достаточно";
         }
         Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals();
@@ -285,9 +306,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 + " газовый котел работал на отопление ";
 
         return intro + df0.format(calculateWorkPercent(intervals)) + "% времени\n* среднее время работы/простоя "
-            + df1.format(averageWorkTime) + "/" + df1.format(averageIdleTime)
-            + " мин\n* средняя температура обратки при запуске "
-            + df1.format(calculateAverageGasBoilerReturnTemperature()) + " C°";
+            + df1.format(averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n"
+            + "* средняя температура обратки при запуске " + df1.format(
+            calculateAverageGasBoilerReturnAtTurnOnTemperature()) + " C° \n"
+            + "* средняя дельта подачи/обратки при работе " + df1.format(calculateAverageTemperatureDeltaWhenWorks())
+            + " C°";
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals() {
@@ -351,7 +374,18 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         return Pair.of(averageWorkTime, averageIdleTime);
     }
 
-    private float calculateAverageGasBoilerReturnTemperature() {
-        return (float) gasBoilerReturnTemperatureHistory.values().stream().mapToDouble(t -> t).average().orElse(0f);
+    private float calculateAverageGasBoilerReturnAtTurnOnTemperature() {
+        return (float) gasBoilerReturnAtTurnOnTemperatureHistory.values().stream().mapToDouble(t -> t).average()
+            .orElse(0f);
+    }
+
+    private float calculateAverageTemperatureDeltaWhenWorks() {
+        float averageDirect =
+            (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
+                .getAsDouble());
+        float averageReturn =
+            (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
+                .getAsDouble());
+        return averageDirect - averageReturn;
     }
 }
