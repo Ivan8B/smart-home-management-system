@@ -2,6 +2,7 @@ package home.automation;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -272,6 +273,29 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         assertEquals(33.333, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        assertEquals(50, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        assertEquals(50, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+    }
+
+    @Test
+    @DisplayName("Проверка расчета процента работы на отопление на отсутствие NaN")
+    void checkCalculateWorkPercentNan() {
+        /* чтобы не выдавало "не число" когда первый опрос был менее минуты назад */
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(30, ChronoUnit.SECONDS), GasBoilerStatus.IDLE);
+
+        float workPercent = invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod());
+
+        DecimalFormat df0 = new DecimalFormat("#");
+        assertEquals("0",df0.format(workPercent));
     }
 
     private Pair<Float, Float> invokeCalculateAverageTimesMethod(Pair<List<Float>, List<Float>> intervals) {

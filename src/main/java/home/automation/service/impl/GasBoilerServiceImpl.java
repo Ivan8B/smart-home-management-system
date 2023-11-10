@@ -369,7 +369,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private float calculateWorkPercent(Pair<List<Float>, List<Float>> intervals) {
         float countWorks = (float) intervals.getLeft().stream().mapToDouble(t -> t).sum();
         float countIdle = (float) intervals.getRight().stream().mapToDouble(t -> t).sum();
-        return countWorks / (countWorks + countIdle) * 100;
+        /* подпираем для ситуаций когда котел только что был опрошен в первый раз и не прошло еще минуты */
+        float result = countWorks / (countWorks + countIdle) * 100;
+        if (!Float.isNaN(result))  {
+            return result;
+        } else {
+            return 0;
+        }
     }
 
     private Pair<Float, Float> calculateAverageTimes(Pair<List<Float>, List<Float>> intervals) {
