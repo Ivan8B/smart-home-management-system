@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -23,6 +24,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.generics.BotSession;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 @Service
@@ -45,11 +47,14 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final FloorHeatingService floorHeatingService;
 
+    private BotSession session;
+
     public BotServiceImpl(
         TelegramBotConfiguration telegramBotConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
-        BypassRelayService bypassRelayService, @Lazy HealthService healthService,
+        BypassRelayService bypassRelayService,
+        @Lazy HealthService healthService,
         StreetLightService streetLightService,
         FunnelHeatingService funnelHeatingService,
         FloorHeatingService floorHeatingService
@@ -66,14 +71,31 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     }
 
     @EventListener({ContextRefreshedEvent.class})
-    public void init() throws TelegramApiException {
-        TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+    public void init() {
         try {
-            telegramBotsApi.registerBot(this);
+            connect();
             notify("Система была перезагружена, на связи");
         } catch (TelegramApiException e) {
             logger.error("Ошибка подключения к telegram");
         }
+    }
+
+    @Scheduled(fixedRateString = "${bot.sessionCheckInterval}")
+    private void checkSessionAndReconnect() {
+        logger.debug("Проверка связи");
+        if (session == null || !session.isRunning()) {
+            try {
+                connect();
+                notify("Связь восстановлена");
+            } catch (TelegramApiException e) {
+                logger.error("Ошибка подключения к telegram");
+            }
+        }
+    }
+
+    private void connect() throws TelegramApiException {
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+        session = telegramBotsApi.registerBot(this);
     }
 
     @Override

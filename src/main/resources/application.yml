@@ -6,6 +6,8 @@ bot:
   validUserIds: ${BOT_VALID_USER_IDS}
   # Идентификаторы чатов, в которые бот будет слать рассылки
   chatIds: ${BOT_CHAT_IDS}
+  # Периодичность запуска таски, которая проверяет статус сессии и пытается переподключиться
+  sessionCheckInterval: PT1M
 
 modbus:
   tcpHost: dr302
