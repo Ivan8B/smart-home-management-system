@@ -62,7 +62,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
             return sensor.getTemplate() + " - ошибка опроса!";
         }
         DecimalFormat df = new DecimalFormat("#.#");
-        return sensor.getTemplate() + "  " + df.format(temperature) + " C°";
+        return sensor.getTemplate() + " " + df.format(temperature) + "C°";
     }
 
     @Override
