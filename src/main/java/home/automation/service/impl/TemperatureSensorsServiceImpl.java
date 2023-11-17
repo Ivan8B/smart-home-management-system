@@ -47,6 +47,10 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
                 throw new ModbusException(
                     "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " + sensor.getRegisterId());
             }
+            /* такая логика работы R4DCB08, смотри документацию */
+            if (rawTemperature >= Integer.parseInt("FF00", 16)) {
+                rawTemperature = rawTemperature - Integer.parseInt("10000", 16);
+            }
             return (float) rawTemperature / 10;
         } catch (ModbusException e) {
             logger.error("{} - ошибка опроса, адрес {}", sensor.getTemplate(), sensor.getRegisterId());
