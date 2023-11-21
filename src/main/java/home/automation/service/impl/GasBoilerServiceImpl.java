@@ -78,11 +78,17 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         this.bypassRelayService = bypassRelayService;
         this.floorHeatingService = floorHeatingService;
 
-        Gauge.builder("gas_boiler", this::getNumericStatus).
-            tag("component", "status").
-            tag("system", "home_automation").
-            description("Статус газового котла").
-            register(meterRegistry);
+        Gauge.builder("gas_boiler", this::getNumericStatus)
+            .tag("component", "status")
+            .tag("system", "home_automation")
+            .description("Статус газового котла")
+            .register(meterRegistry);
+
+        Gauge.builder("gas_boiler", this::getTemperatureDeltaIfWorks)
+            .tag("component", "delta")
+            .tag("system", "home_automation")
+            .description("Дельта подачи/обратки при работе")
+            .register(meterRegistry);
     }
 
     @EventListener
@@ -261,6 +267,19 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private int getNumericStatus() {
         return calculatedStatus.getNumericStatus();
+    }
+
+    private Float getTemperatureDeltaIfWorks() {
+        Float gasBoilerDirectTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
+        Float gasBoilerReturnTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
+
+        if (getStatus() != GasBoilerStatus.WORKS || gasBoilerDirectTemperature == null || gasBoilerReturnTemperature == null) {
+            return null;
+        } else {
+            return gasBoilerDirectTemperature - gasBoilerReturnTemperature;
+        }
     }
 
     @Override

@@ -3,7 +3,6 @@ package home.automation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.DecimalFormat;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -262,7 +261,7 @@ public class GasBoilerServiceTest extends AbstractTest {
         float workPercent = invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod());
 
         DecimalFormat df0 = new DecimalFormat("#");
-        assertEquals("0",df0.format(workPercent));
+        assertEquals("0", df0.format(workPercent));
     }
 
     private Pair<Float, Float> invokeCalculateAverageTimesMethod(Pair<List<Float>, List<Float>> intervals) {
