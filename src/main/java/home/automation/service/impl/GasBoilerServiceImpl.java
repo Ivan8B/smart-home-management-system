@@ -30,6 +30,8 @@ import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +54,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private final Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnAtTurnOnTemperatureHistory = new HashMap<>();
+
     private GasBoilerStatus calculatedStatus = GasBoilerStatus.INIT;
-    private Instant turnOffTimestamp;
     private GasBoilerHeatRequestStatus heatRequestStatus = GasBoilerHeatRequestStatus.INIT;
     private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
     private Float lastDirectTemperature;
@@ -65,7 +67,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         ApplicationEventPublisher applicationEventPublisher,
         TemperatureSensorsService temperatureSensorsService,
         BypassRelayService bypassRelayService,
-        FloorHeatingService floorHeatingService
+        FloorHeatingService floorHeatingService,
+        MeterRegistry meterRegistry
     ) {
         this.configuration = configuration;
         this.generalConfiguration = generalConfiguration;
@@ -74,6 +77,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         this.temperatureSensorsService = temperatureSensorsService;
         this.bypassRelayService = bypassRelayService;
         this.floorHeatingService = floorHeatingService;
+
+        Gauge.builder("gas_boiler", this::getNumericStatus).
+            tag("component", "status").
+            tag("system", "home_automation").
+            description("Статус газового котла").
+            register(meterRegistry);
     }
 
     @EventListener
@@ -114,7 +123,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     private boolean ifGasBoilerCanBeTurnedOn() {
         /* проверяем можно ли уже включать котел по температуре обратки */
-        Float returnTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
+        Float returnTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
         return returnTemperature == null || returnTemperature < configuration.getReturnMinTemperature();
     }
@@ -208,7 +218,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
         if (calculatedStatus == GasBoilerStatus.WORKS && newCalculatedStatus == GasBoilerStatus.IDLE) {
             logger.info("Газовый котел только что отключился");
-            turnOffTimestamp = Instant.now();
         }
 
         lastDirectTemperature = newDirectTemperature;
@@ -248,6 +257,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     @Override
     public GasBoilerStatus getStatus() {
         return calculatedStatus;
+    }
+
+    private int getNumericStatus() {
+        return calculatedStatus.getNumericStatus();
     }
 
     @Override

@@ -1,3 +1,16 @@
+server:
+  port: 9080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus
+      base-path: /
+  metrics:
+    enable:
+      executor: false
+
 bot:
   # Параметры подключения к чатботу.
   name: ${BOT_NAME}
@@ -144,4 +157,3 @@ health:
 
 logging:
   config: classpath:log4j2.yml
-

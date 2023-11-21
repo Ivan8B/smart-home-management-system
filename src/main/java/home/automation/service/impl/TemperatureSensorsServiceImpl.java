@@ -2,6 +2,8 @@ package home.automation.service.impl;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import home.automation.configuration.TemperatureSensorsBoardsConfiguration;
@@ -10,6 +12,8 @@ import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,20 +33,33 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     public TemperatureSensorsServiceImpl(
         ApplicationEventPublisher applicationEventPublisher,
         TemperatureSensorsBoardsConfiguration configuration,
-        ModbusService modbusService
+        ModbusService modbusService,
+        MeterRegistry meterRegistry
     ) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.configuration = configuration;
         this.modbusService = modbusService;
+
+        for (TemperatureSensor sensor : TemperatureSensor.values()) {
+            Gauge.builder("temperature", bind(this::getCurrentTemperatureForSensor, sensor))
+                .tag("system", "home_automation")
+                .tag("component", sensor.name())
+                .description(sensor.getTemplate())
+                .register(meterRegistry);
+        }
+    }
+
+    private <T, R> Supplier<R> bind(Function<T, R> fn, T val) {
+        return () -> fn.apply(val);
     }
 
     @Override
     public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
-            int rawTemperature = modbusService.readHoldingRegister(
-                configuration.getAddressByName(sensor.getBoardName()),
-                sensor.getRegisterId()
-            );
+            int rawTemperature =
+                modbusService.readHoldingRegister(configuration.getAddressByName(sensor.getBoardName()),
+                    sensor.getRegisterId()
+                );
             if (rawTemperature == TEMPERATURE_SENSOR_ERROR_VALUE) {
                 throw new ModbusException(
                     "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " + sensor.getRegisterId());
@@ -66,7 +83,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
             return sensor.getTemplate() + " - ошибка опроса!";
         }
         DecimalFormat df = new DecimalFormat("#.#");
-        return sensor.getTemplate() + " " + df.format(temperature) + "C°";
+        return sensor.getTemplate() + " " + df.format(temperature) + " C°";
     }
 
     @Override
