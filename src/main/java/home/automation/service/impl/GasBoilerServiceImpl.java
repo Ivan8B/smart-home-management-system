@@ -113,35 +113,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private boolean ifGasBoilerCanBeTurnedOn() {
-        /* проверяем можно ли уже включать котел (прошло ли достаточно времени после прошлого выключения) */
-        return turnOffTimestamp == null
-            || Duration.between(turnOffTimestamp, Instant.now()).compareTo(calculateDelayBetweenTurnOn()) > 0;
-    }
+        /* проверяем можно ли уже включать котел по температуре обратки */
+        Float returnTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
-    private Duration calculateDelayBetweenTurnOn() {
-        Float outsideTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
-
-        if (outsideTemperature == null) {
-            return Duration.of(configuration.getClockingDelayMin(), ChronoUnit.MINUTES);
-        }
-
-        if (outsideTemperature > generalConfiguration.getTargetTemperature()) {
-            return Duration.of(configuration.getClockingDelayMax(), ChronoUnit.MINUTES);
-        }
-        if (outsideTemperature < generalConfiguration.getOutsideMin()) {
-            return Duration.of(configuration.getClockingDelayMin(), ChronoUnit.MINUTES);
-        }
-
-        float temperatureDelta = generalConfiguration.getTargetTemperature() - outsideTemperature;
-        float temperatureMinMaxDelta =
-            generalConfiguration.getTargetTemperature() - generalConfiguration.getOutsideMin();
-        float minMaxDelayDelta = configuration.getClockingDelayMax() - configuration.getClockingDelayMin();
-
-        float duration =
-            configuration.getClockingDelayMin() + minMaxDelayDelta * temperatureDelta / temperatureMinMaxDelta;
-
-        return Duration.of(Math.round(duration), ChronoUnit.MINUTES);
+        return returnTemperature == null || returnTemperature < configuration.getReturnMinTemperature();
     }
 
     private void turnOn() {

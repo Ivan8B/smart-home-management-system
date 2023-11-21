@@ -97,32 +97,6 @@ public class GasBoilerServiceTest extends AbstractTest {
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
-    private Duration invokeCalculateDelayBetweenTurnOnMethod() {
-        try {
-            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateDelayBetweenTurnOn");
-            method.setAccessible(true);
-            return (Duration) method.invoke(gasBoilerService);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод расчета задержки включения котла", e);
-        }
-    }
-
-    @Test
-    @DisplayName("Проверка расчета задержки тактования котла")
-    void checkCalculateDelayBetweenTurnOn() {
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(-40f);
-        assertEquals(Duration.of(15, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(0f);
-        assertEquals(Duration.of(28, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(40f);
-        assertEquals(Duration.of(45, ChronoUnit.MINUTES), invokeCalculateDelayBetweenTurnOnMethod());
-    }
-
     private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
         try {
             Field field = gasBoilerService.getClass().getDeclaredField("heatRequestStatus");
@@ -130,16 +104,6 @@ public class GasBoilerServiceTest extends AbstractTest {
             field.set(gasBoilerService, status);
         } catch (Exception e) {
             throw new RuntimeException("Не удалось установить статус запроса на тепло газового котла", e);
-        }
-    }
-
-    private void setTurnOffTimestampField(Instant timestamp) {
-        try {
-            Field field = gasBoilerService.getClass().getDeclaredField("turnOffTimestamp");
-            field.setAccessible(true);
-            field.set(gasBoilerService, timestamp);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось установить время отключения газового котла", e);
         }
     }
 
@@ -195,14 +159,17 @@ public class GasBoilerServiceTest extends AbstractTest {
             .thenReturn(45F);
         invokeCalculateStatusMethod();
 
-        /* снова включаем котел и он не должен включиться */
+        /* снова включаем котел и он не должен включиться по теплой обратке */
         setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45F);
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(0))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
-        /* теперь подкручиваем время последнего выключения и он должен включиться */
-        setTurnOffTimestampField(Instant.now().minus(29, ChronoUnit.MINUTES));
+        /* теперь даем обратке остыть и включение должно быть разрешено */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(30F);
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);

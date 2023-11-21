@@ -11,11 +11,8 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.relay.coil}")
     private Integer coil;
 
-    @Value("${gasBoiler.clockingDelayMin}")
-    private Integer clockingDelayMin;
-
-    @Value("${gasBoiler.clockingDelayMax}")
-    private Integer clockingDelayMax;
+    @Value("${gasBoiler.return.minTemperature}")
+    private Float returnMinTemperature;
 
     @Value("${gasBoiler.waterFlow}")
     private Float waterFlow;
@@ -28,12 +25,8 @@ public class GasBoilerConfiguration {
         return coil;
     }
 
-    public Integer getClockingDelayMin() {
-        return clockingDelayMin;
-    }
-
-    public Integer getClockingDelayMax() {
-        return clockingDelayMax;
+    public Float getReturnMinTemperature() {
+        return returnMinTemperature;
     }
 
     public Float getWaterFlow() {
