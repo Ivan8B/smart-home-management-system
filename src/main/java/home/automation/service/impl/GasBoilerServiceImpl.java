@@ -346,7 +346,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         float countIdle = (float) intervals.getRight().stream().mapToDouble(t -> t).sum();
         /* подпираем для ситуаций когда котел только что был опрошен в первый раз и не прошло еще минуты */
         float result = countWorks / (countWorks + countIdle) * 100;
-        if (!Float.isNaN(result))  {
+        if (!Float.isNaN(result)) {
             return result;
         } else {
             return 0;
