@@ -204,11 +204,11 @@ public class GasBoilerServiceTest extends AbstractTest {
         assertEquals(1, gasBoilerStatusDailyHistory.size());
     }
 
-    private Pair<List<Float>, List<Float>> invokeCalculateWorkIdleIntervalsMethod() {
+    private Pair<List<Float>, List<Float>> invokeCalculateWorkIdleIntervalsMethod(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
         try {
-            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateWorkIdleIntervals");
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateWorkIdleIntervals", Map.class);
             method.setAccessible(true);
-            return (Pair<List<Float>, List<Float>>) method.invoke(gasBoilerService);
+            return (Pair<List<Float>, List<Float>>) method.invoke(gasBoilerService, gasBoilerStatusHistory);
         } catch (Exception e) {
             throw new RuntimeException("Не удалось вызвать метод расчета интервалов", e);
         }
@@ -238,17 +238,26 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        assertEquals(33.333, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+        assertEquals(33.333,
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
+            0.001
+        );
 
         gasBoilerStatusDailyHistory.clear();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
-        assertEquals(50, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+        assertEquals(50,
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
+            0.001
+        );
 
         gasBoilerStatusDailyHistory.clear();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        assertEquals(50, invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod()), 0.001);
+        assertEquals(50,
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
+            0.001
+        );
     }
 
     @Test
@@ -258,7 +267,8 @@ public class GasBoilerServiceTest extends AbstractTest {
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
         gasBoilerStatusDailyHistory.put(Instant.now().minus(30, ChronoUnit.SECONDS), GasBoilerStatus.IDLE);
 
-        float workPercent = invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod());
+        float workPercent =
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory));
 
         DecimalFormat df0 = new DecimalFormat("#");
         assertEquals("0", df0.format(workPercent));
@@ -288,14 +298,23 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        assertEquals(Pair.of(1f, 1.5f), invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod()));
+        assertEquals(Pair.of(1f, 1.5f),
+            invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory))
+        );
     }
 
-    private float invokeCalculateAverageTemperatureDeltaWhenWorksMethod() {
+    private float invokeCalculateAverageTemperatureDeltaWhenWorkMethod(
+        Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory,
+        Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory
+    ) {
         try {
-            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateAverageTemperatureDeltaWhenWorks");
+            Method method = gasBoilerService.getClass()
+                .getDeclaredMethod("calculateAverageTemperatureDeltaWhenWork", Map.class, Map.class);
             method.setAccessible(true);
-            return (float) method.invoke(gasBoilerService);
+            return (float) method.invoke(gasBoilerService,
+                gasBoilerDirectWhenWorkTemperatureHistory,
+                gasBoilerReturnWhenWorkTemperatureHistory
+            );
         } catch (Exception e) {
             throw new RuntimeException("Не удалось вызвать метод расчета дельты при работе", e);
         }
@@ -303,7 +322,8 @@ public class GasBoilerServiceTest extends AbstractTest {
 
     private Map<Instant, Float> getGasBoilerDirectWhenWorkTemperatureToDailyHistory() {
         try {
-            Field field = gasBoilerService.getClass().getDeclaredField("gasBoilerDirectWhenWorkTemperatureHistory");
+            Field field =
+                gasBoilerService.getClass().getDeclaredField("gasBoilerDirectWhenWorkTemperatureDailyHistory");
             field.setAccessible(true);
             return (Map<Instant, Float>) field.get(gasBoilerService);
         } catch (Exception e) {
@@ -326,7 +346,8 @@ public class GasBoilerServiceTest extends AbstractTest {
 
     private Map<Instant, Float> getGasBoilerReturnWhenWorkTemperatureToDailyHistory() {
         try {
-            Field field = gasBoilerService.getClass().getDeclaredField("gasBoilerReturnWhenWorkTemperatureHistory");
+            Field field =
+                gasBoilerService.getClass().getDeclaredField("gasBoilerReturnWhenWorkTemperatureDailyHistory");
             field.setAccessible(true);
             return (Map<Instant, Float>) field.get(gasBoilerService);
         } catch (Exception e) {
@@ -419,7 +440,10 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         invokeCalculateStatusMethod();
 
-        assertEquals(5f, invokeCalculateAverageTemperatureDeltaWhenWorksMethod());
+        assertEquals(5f, invokeCalculateAverageTemperatureDeltaWhenWorkMethod(
+            getGasBoilerDirectWhenWorkTemperatureToDailyHistory(),
+            getGasBoilerReturnWhenWorkTemperatureToDailyHistory()
+        ));
     }
 
     private float invokeCalculateAverageGasBoilerReturnAtTurnOnTemperatureMethod() {
@@ -446,9 +470,10 @@ public class GasBoilerServiceTest extends AbstractTest {
         }
     }
 
-    private Map<Instant, Float> getGasBoilerReturnAtTurnOnTemperatureHistory() {
+    private Map<Instant, Float> getGasBoilerReturnAtTurnOnTemperatureDailyHistory() {
         try {
-            Field field = gasBoilerService.getClass().getDeclaredField("gasBoilerReturnAtTurnOnTemperatureHistory");
+            Field field =
+                gasBoilerService.getClass().getDeclaredField("gasBoilerReturnAtTurnOnTemperatureDailyHistory");
             field.setAccessible(true);
             return (Map<Instant, Float>) field.get(gasBoilerService);
         } catch (Exception e) {
@@ -459,7 +484,8 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка очистки старых записей температур обратки при при запуске из датасета")
     void checkGasBoilerReturnAtTurnTemperatureHistoryClean() {
-        Map<Instant, Float> gasBoilerReturnAtTurnTemperatureHistory = getGasBoilerReturnAtTurnOnTemperatureHistory();
+        Map<Instant, Float> gasBoilerReturnAtTurnTemperatureHistory =
+            getGasBoilerReturnAtTurnOnTemperatureDailyHistory();
         gasBoilerReturnAtTurnTemperatureHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), 40f);
         invokePutGasBoilerReturnAtTurnOnTemperatureToDailyHistoryMethod(30f);
         assertEquals(1, gasBoilerReturnAtTurnTemperatureHistory.size());
