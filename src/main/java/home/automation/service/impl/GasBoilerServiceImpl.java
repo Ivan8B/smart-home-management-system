@@ -87,10 +87,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .description("Дельта подачи/обратки при работе")
             .register(meterRegistry);
 
-        Gauge.builder("gas_boiler", this::getAverageHourlyPower)
-            .tag("component", "average_hourly_power")
+        Gauge.builder("gas_boiler", this::getAverage3HourlyPower)
+            .tag("component", "average_3_hour_power")
             .tag("system", "home_automation")
-            .description("Среднечасовая мощность")
+            .description("Средняя мощность за 3 часа")
             .register(meterRegistry);
     }
 
@@ -286,7 +286,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
     }
 
-    private Float getAverageHourlyPower() {
+    private Float getAverage3HourlyPower() {
         if (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
             || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
             || gasBoilerDirectWhenWorkTemperatureDailyHistory.isEmpty()
@@ -296,7 +296,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
         Map<Instant, GasBoilerStatus> gasBoilerStatusHourlyHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-            .filter(status -> status.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+            .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals(gasBoilerStatusHourlyHistory);
@@ -305,11 +305,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         /* аналогично для расчета среднечасовой дельты */
         Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHourlyHistory =
             gasBoilerDirectWhenWorkTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHourlyHistory =
             gasBoilerReturnWhenWorkTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         float delta = calculateAverageTemperatureDeltaWhenWork(gasBoilerDirectWhenWorkTemperatureHourlyHistory,
             gasBoilerReturnWhenWorkTemperatureHourlyHistory
