@@ -106,6 +106,16 @@ public class GasBoilerServiceTest extends AbstractTest {
         }
     }
 
+    private void setStatusChangedAtField(Instant statusChangedAt) {
+        try {
+            Field field = gasBoilerService.getClass().getDeclaredField("statusChangedAt");
+            field.setAccessible(true);
+            field.set(gasBoilerService, statusChangedAt);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось установить время последнего изменения статуса газового котла", e);
+        }
+    }
+
     private void invokeManageBoilerRelayMethod() {
         try {
             Method method = gasBoilerService.getClass().getDeclaredMethod("manageBoilerRelay");
@@ -141,13 +151,17 @@ public class GasBoilerServiceTest extends AbstractTest {
             .thenReturn(47F);
         invokeCalculateStatusMethod();
 
-        /* убираем запрос на тепло */
+        /* убираем запрос на тепло и убеждаемся, что реле не отключится сразу */
         setHeatRequestStatusField(GasBoilerHeatRequestStatus.NO_NEED_HEAT);
+        invokeManageBoilerRelayMethod();
+        Mockito.verify(modbusService, Mockito.times(0))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+
+        /* подкручиваем время последнего включения и он должен отключиться */
+        setStatusChangedAtField(Instant.now().minus(3, ChronoUnit.MINUTES));
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
-
-        Mockito.clearInvocations(modbusService);
 
         /* снова даем запрос и предполагаем, что котел отключился по подаче */
         setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
@@ -168,7 +182,7 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         /* теперь даем обратке остыть и включение должно быть разрешено */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(30F);
+            .thenReturn(25F);
         invokeManageBoilerRelayMethod();
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
@@ -444,97 +458,5 @@ public class GasBoilerServiceTest extends AbstractTest {
             getGasBoilerDirectWhenWorkTemperatureToDailyHistory(),
             getGasBoilerReturnWhenWorkTemperatureToDailyHistory()
         ));
-    }
-
-    private float invokeCalculateAverageGasBoilerReturnAtTurnOnTemperatureMethod() {
-        try {
-            Method method =
-                gasBoilerService.getClass().getDeclaredMethod("calculateAverageGasBoilerReturnAtTurnOnTemperature");
-            method.setAccessible(true);
-            return (float) method.invoke(gasBoilerService);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод расчета средней температуры обратки при включении", e);
-        }
-    }
-
-    private void invokePutGasBoilerReturnAtTurnOnTemperatureToDailyHistoryMethod(Float temperature) {
-        try {
-            Method method = gasBoilerService.getClass()
-                .getDeclaredMethod("putGasBoilerReturnAtTurnOnTemperatureToDailyHistory", Float.class);
-            method.setAccessible(true);
-            method.invoke(gasBoilerService, temperature);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод добавления температуры обратки газового котла при включении в датасет",
-                e
-            );
-        }
-    }
-
-    private Map<Instant, Float> getGasBoilerReturnAtTurnOnTemperatureDailyHistory() {
-        try {
-            Field field =
-                gasBoilerService.getClass().getDeclaredField("gasBoilerReturnAtTurnOnTemperatureDailyHistory");
-            field.setAccessible(true);
-            return (Map<Instant, Float>) field.get(gasBoilerService);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось обратиться к датасету температур обратки при включении", e);
-        }
-    }
-
-    @Test
-    @DisplayName("Проверка очистки старых записей температур обратки при при запуске из датасета")
-    void checkGasBoilerReturnAtTurnTemperatureHistoryClean() {
-        Map<Instant, Float> gasBoilerReturnAtTurnTemperatureHistory =
-            getGasBoilerReturnAtTurnOnTemperatureDailyHistory();
-        gasBoilerReturnAtTurnTemperatureHistory.put(Instant.now().minus(25, ChronoUnit.HOURS), 40f);
-        invokePutGasBoilerReturnAtTurnOnTemperatureToDailyHistoryMethod(30f);
-        assertEquals(1, gasBoilerReturnAtTurnTemperatureHistory.size());
-    }
-
-    @Test
-    @DisplayName("Проверка правильного расчета средней температуры обратки при запуске")
-    void checkCalculationAverageGasBoilerReturnAtTurnTemperature() {
-        /* в радиаторы нужно тепло */
-        applicationEventPublisher.publishEvent(new BypassRelayStatusCalculatedEvent(this, BypassRelayStatus.CLOSED));
-        /* состояние теплых полов неважно */
-        Mockito.when(floorHeatingService.getStatus()).thenReturn(FloorHeatingStatus.NO_NEED_HEAT);
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(40F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(35F);
-        invokeCalculateStatusMethod();
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(45F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(40F);
-        invokeCalculateStatusMethod();
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(41F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(38F);
-        invokeCalculateStatusMethod();
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(46F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(41F);
-        invokeCalculateStatusMethod();
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(42F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(39F);
-        invokeCalculateStatusMethod();
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(47F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(42F);
-        invokeCalculateStatusMethod();
-
-        assertEquals(41.5f, invokeCalculateAverageGasBoilerReturnAtTurnOnTemperatureMethod());
     }
 }
