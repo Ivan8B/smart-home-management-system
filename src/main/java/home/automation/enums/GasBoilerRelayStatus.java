@@ -1,22 +1,26 @@
 package home.automation.enums;
 
 public enum GasBoilerRelayStatus {
+    NEED_HEAT("статус реле газового котла - есть запрос на тепло", 1),
 
-    INIT("статус реле газового котла - неизвестный статус!"),
+    NO_NEED_HEAT("статус реле газового котла - нет запроса на тепло", 0),
 
-    NEED_HEAT("статус реле газового котла - есть запрос на тепло"),
-
-    NO_NEED_HEAT("статус реле газового котла - нет запроса на тепло"),
-
-    ERROR("статус реле газового котла - ошибка!");
+    ERROR("статус реле газового котла - ошибка!", -1);
 
     private final String template;
 
-    GasBoilerRelayStatus(String template) {
+    private final Integer numericStatus;
+
+    GasBoilerRelayStatus(String template, Integer numericStatus) {
         this.template = template;
+        this.numericStatus = numericStatus;
     }
 
     public String getTemplate() {
         return template;
+    }
+
+    public Integer getNumericStatus() {
+        return numericStatus;
     }
 }

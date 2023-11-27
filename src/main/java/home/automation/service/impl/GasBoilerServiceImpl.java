@@ -53,10 +53,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private final Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureDailyHistory = new HashMap<>();
     private GasBoilerStatus status = GasBoilerStatus.INIT;
-    private Instant statusChangedAt = Instant.now();
+    private Float lastDirectTemperature = null;
+    private Float maxDirectTemperatureForPeriod = null;
     private GasBoilerHeatRequestStatus heatRequestStatus = GasBoilerHeatRequestStatus.INIT;
-    private GasBoilerRelayStatus relayStatus = GasBoilerRelayStatus.INIT;
-    private Float lastDirectTemperature;
 
     public GasBoilerServiceImpl(
         GasBoilerConfiguration configuration,
@@ -91,6 +90,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .tag("system", "home_automation")
             .description("Средняя мощность за 3 часа")
             .register(meterRegistry);
+
+        Gauge.builder("gas_boiler", this::getGasBoilerRelayNumericStatus)
+            .tag("component", "relay_status")
+            .tag("system", "home_automation")
+            .description("Статус реле газового котла")
+            .register(meterRegistry);
     }
 
     @EventListener
@@ -102,7 +107,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
             }
             case CLOSED -> {
-                /* проверяем, нужно ли теплым полам тепло, если нет - гасим котел */
+                /* проверяем, нужно ли теплым полам тепло, если нет - убираем запрос на тепло */
                 if (floorHeatingService.getStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
                     heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
                     logger.info("Запроса на тепло нет");
@@ -120,7 +125,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
             }
             case NO_NEED_HEAT -> {
-                /* проверяем, нужно ли радиаторам тепло, если нет - гасим котел */
+                /* проверяем, нужно ли радиаторам тепло, если нет - убираем запрос на тепло */
                 if (bypassRelayService.getStatus() == BypassRelayStatus.CLOSED) {
                     logger.info("Запроса на тепло нет");
                     heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
@@ -130,6 +135,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private boolean ifGasBoilerCanBeTurnedOn() {
+        /* если котел уже работает, то включать его реле можно */
+        if (status == GasBoilerStatus.WORKS) {
+            return true;
+        }
         /* проверяем можно ли уже включать котел по температуре обратки */
         Float returnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
@@ -138,44 +147,59 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private void turnOn() {
-        if (relayStatus != GasBoilerRelayStatus.NEED_HEAT) {
-            try {
-                logger.info("Включаем газовый котел");
-                modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
-                relayStatus = GasBoilerRelayStatus.NEED_HEAT;
-            } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
-                applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
-                relayStatus = GasBoilerRelayStatus.ERROR;
-            }
+        try {
+            logger.info("Включаем газовый котел");
+            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+        } catch (ModbusException e) {
+            logger.error("Ошибка переключения статуса реле");
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
 
     private void turnOff() {
-        if (relayStatus != GasBoilerRelayStatus.NO_NEED_HEAT) {
-            try {
-                logger.info("Отключаем газовый котел");
-                modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
-                relayStatus = GasBoilerRelayStatus.NO_NEED_HEAT;
-            } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
-                applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
-                relayStatus = GasBoilerRelayStatus.ERROR;
-            }
+        try {
+            logger.info("Отключаем газовый котел");
+            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+        } catch (ModbusException e) {
+            logger.error("Ошибка переключения статуса реле");
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
 
+    private GasBoilerRelayStatus getGasBoilerRelayStatus() {
+        try {
+            boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
+            if (pollResult.length < 1) {
+                throw new ModbusException("Опрос катушек вернул пустой массив");
+            }
+            if (pollResult[configuration.getCoil()]) {
+                return GasBoilerRelayStatus.NEED_HEAT;
+            } else {
+                return GasBoilerRelayStatus.NO_NEED_HEAT;
+            }
+
+        } catch (ModbusException e) {
+            logger.error("Ошибка получения статуса реле газового котла", e);
+            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            return GasBoilerRelayStatus.ERROR;
+        }
+    }
+
+    private int getGasBoilerRelayNumericStatus() {
+        return getGasBoilerRelayStatus().getNumericStatus();
+    }
+
     @Scheduled(fixedRateString = "${gasBoiler.relay.updateInterval}")
-    private void manageBoilerRelay() {
-        if (heatRequestStatus == GasBoilerHeatRequestStatus.NEED_HEAT) {
+    private void manageGasBoilerRelay() {
+        if (heatRequestStatus == GasBoilerHeatRequestStatus.NEED_HEAT && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NEED_HEAT)  {
             if (ifGasBoilerCanBeTurnedOn()) {
                 turnOn();
             } else {
                 logger.info("Газовый котел не может быть включен на отопление по политике тактования");
-                turnOff();
             }
-        } else if (heatRequestStatus == GasBoilerHeatRequestStatus.NO_NEED_HEAT
-            && statusChangedAt.isBefore(Instant.now().minus(configuration.getTurnOffDelay()))) {
+            return;
+        }
+        if (heatRequestStatus == GasBoilerHeatRequestStatus.NO_NEED_HEAT && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NO_NEED_HEAT) {
             turnOff();
         }
     }
@@ -184,37 +208,51 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private void calculateStatus() {
         logger.debug("Запущена задача расчета статуса газового котла");
 
-        Float newDirectTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
-        Float newReturnTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
-
-        if (lastDirectTemperature == null) {
-            logger.debug("Появилась температура, но статус котла пока неизвестен");
-            lastDirectTemperature = newDirectTemperature;
+        /* если реле отключено - статус котла считать не имеет смысла */
+        if (getGasBoilerRelayStatus() == GasBoilerRelayStatus.NO_NEED_HEAT) {
+            setStatus(GasBoilerStatus.IDLE);
             return;
         }
+
+        Float newDirectTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
 
         if (newDirectTemperature == null) {
             logger.warn("Не удалось вычислить статус газового котла");
             setStatus(GasBoilerStatus.ERROR);
             lastDirectTemperature = null;
+            maxDirectTemperatureForPeriod = null;
             /* Можно сделать событие о невозможности рассчитать статус газового котла. Но зачем оно? */
             return;
         }
 
-        if (newDirectTemperature > lastDirectTemperature + 0.1) {
+        if (lastDirectTemperature == null) {
+            logger.debug("Появилась температура, но статус котла пока неизвестен");
+            status = GasBoilerStatus.INIT;
+            lastDirectTemperature = newDirectTemperature;
+            return;
+        }
+
+        /* считаем, что котел работает когда температура подачи растет либо не слишком сильно упала относительно максимума за период работы */
+        if (newDirectTemperature > lastDirectTemperature
+            || ((maxDirectTemperatureForPeriod != null && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta()))) {
             logger.info("Статус газового котла - работает");
             setStatus(GasBoilerStatus.WORKS);
+
+            if (maxDirectTemperatureForPeriod == null || newDirectTemperature > maxDirectTemperatureForPeriod) {
+                maxDirectTemperatureForPeriod = newDirectTemperature;
+            }
             putGasBoilerDirectWhenWorkTemperatureToDailyHistory(newDirectTemperature);
+            Float newReturnTemperature =
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
             if (newReturnTemperature != null) {
                 putGasBoilerReturnWhenWorkTemperatureToDailyHistory(newReturnTemperature);
             }
         } else {
             logger.info("Статус газового котла - не работает");
             setStatus(GasBoilerStatus.IDLE);
+            maxDirectTemperatureForPeriod = null;
         }
-
         lastDirectTemperature = newDirectTemperature;
     }
 
@@ -257,7 +295,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             }
 
             status = newStatus;
-            statusChangedAt = Instant.now();
         }
     }
 
@@ -287,7 +324,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             return null;
         }
 
-        /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
+        /* история работы котла собирается за сутки, а нам нужно за три часа, поэтому отрезаем лишнее */
         Map<Instant, GasBoilerStatus> gasBoilerStatusHourlyHistory = gasBoilerStatusDailyHistory.entrySet().stream()
             .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
