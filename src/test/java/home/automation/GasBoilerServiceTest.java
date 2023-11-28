@@ -50,11 +50,11 @@ public class GasBoilerServiceTest extends AbstractTest {
         try {
             if (status == GasBoilerRelayStatus.NO_NEED_HEAT) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{false, false});
+                    .thenReturn(new boolean[]{true, false});
             }
             if (status == GasBoilerRelayStatus.NEED_HEAT) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{true, false});
+                    .thenReturn(new boolean[]{false, false});
             }
             Method method = gasBoilerService.getClass().getDeclaredMethod("calculateStatus");
             method.setAccessible(true);
@@ -186,11 +186,11 @@ public class GasBoilerServiceTest extends AbstractTest {
         try {
             if (status == GasBoilerRelayStatus.NO_NEED_HEAT) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{false, false});
+                    .thenReturn(new boolean[]{true, false});
             }
             if (status == GasBoilerRelayStatus.NEED_HEAT) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{true, false});
+                    .thenReturn(new boolean[]{false, false});
             }
             Method method = gasBoilerService.getClass().getDeclaredMethod("manageGasBoilerRelay");
             method.setAccessible(true);

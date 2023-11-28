@@ -173,9 +173,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 throw new ModbusException("Опрос катушек вернул пустой массив");
             }
             if (pollResult[configuration.getCoil()]) {
-                return GasBoilerRelayStatus.NEED_HEAT;
-            } else {
                 return GasBoilerRelayStatus.NO_NEED_HEAT;
+            } else {
+                return GasBoilerRelayStatus.NEED_HEAT;
             }
 
         } catch (ModbusException e) {
