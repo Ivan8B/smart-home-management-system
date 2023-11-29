@@ -191,7 +191,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Scheduled(fixedRateString = "${gasBoiler.relay.updateInterval}")
     private void manageGasBoilerRelay() {
-        if (heatRequestStatus == GasBoilerHeatRequestStatus.NEED_HEAT && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NEED_HEAT)  {
+        if (heatRequestStatus == GasBoilerHeatRequestStatus.NEED_HEAT
+            && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NEED_HEAT) {
             if (ifGasBoilerCanBeTurnedOn()) {
                 turnOn();
             } else {
@@ -199,7 +200,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             }
             return;
         }
-        if (heatRequestStatus == GasBoilerHeatRequestStatus.NO_NEED_HEAT && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NO_NEED_HEAT) {
+        if (heatRequestStatus == GasBoilerHeatRequestStatus.NO_NEED_HEAT
+            && getGasBoilerRelayStatus() != GasBoilerRelayStatus.NO_NEED_HEAT) {
             turnOff();
         }
     }
@@ -234,8 +236,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
 
         /* считаем, что котел работает когда температура подачи растет либо не слишком сильно упала относительно максимума за период работы */
-        if (newDirectTemperature > lastDirectTemperature
-            || ((maxDirectTemperatureForPeriod != null && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta()))) {
+        if (newDirectTemperature > lastDirectTemperature || ((maxDirectTemperatureForPeriod != null
+            && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta()))) {
             logger.info("Статус газового котла - работает");
             setStatus(GasBoilerStatus.WORKS);
 
@@ -341,8 +343,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             gasBoilerReturnWhenWorkTemperatureDailyHistory.entrySet().stream()
                 .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        float delta = calculateAverageTemperatureDeltaWhenWork(
-            gasBoilerDirectWhenWorkTemperatureHourlyHistory,
+        float delta = calculateAverageTemperatureDeltaWhenWork(gasBoilerDirectWhenWorkTemperatureHourlyHistory,
             gasBoilerReturnWhenWorkTemperatureHourlyHistory
         );
 
