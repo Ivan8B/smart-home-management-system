@@ -387,7 +387,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 + " котел работал на отопление ";
 
         return intro + df0.format(workPercent) + "% времени\n* среднее время работы/простоя " + df1.format(
-            averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n" + " C° \n"
+            averageWorkTime) + "/" + df1.format(averageIdleTime) + " мин\n"
             + "* средняя дельта подачи/обратки при работе " + df1.format(averageTemperatureDeltaWhenWorks) + " C° \n"
             + "* среднесуточная мощность " + df1.format(averagePowerInkW) + " кВт";
     }
