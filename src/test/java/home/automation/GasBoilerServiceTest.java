@@ -338,6 +338,22 @@ public class GasBoilerServiceTest extends AbstractTest {
             invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
             0.001
         );
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        assertEquals(0,
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
+            0.001
+        );
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        assertEquals(100,
+            invokeCalculateWorkPercentMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory)),
+            0.001
+        );
     }
 
     @Test
@@ -379,6 +395,22 @@ public class GasBoilerServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
         assertEquals(Pair.of(1f, 1.5f),
+            invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory))
+        );
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        assertEquals(Pair.of(0f, 2f),
+            invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory))
+        );
+
+        gasBoilerStatusDailyHistory.clear();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        assertEquals(Pair.of(2f, 0f),
             invokeCalculateAverageTimesMethod(invokeCalculateWorkIdleIntervalsMethod(gasBoilerStatusDailyHistory))
         );
     }

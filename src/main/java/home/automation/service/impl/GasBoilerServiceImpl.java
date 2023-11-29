@@ -319,8 +319,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private Float getAverage3HourlyPower() {
-        if (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-            || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
+        if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
+            || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
             || gasBoilerDirectWhenWorkTemperatureDailyHistory.isEmpty()
             || gasBoilerReturnWhenWorkTemperatureDailyHistory.isEmpty()) {
             return null;
@@ -357,8 +357,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatusForLastDay() {
-        if (!gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-            || !gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS)
+        if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
+            || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
             || gasBoilerDirectWhenWorkTemperatureDailyHistory.isEmpty()
             || gasBoilerReturnWhenWorkTemperatureDailyHistory.isEmpty()) {
             return "сведений о работе газового котла пока не достаточно";
