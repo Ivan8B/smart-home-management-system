@@ -293,7 +293,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 logger.info("Газовый котел только что включился");
             }
             if (status == GasBoilerStatus.WORKS && newStatus == GasBoilerStatus.IDLE) {
-                logger.info("Газовый котел только что отключился");
+                logger.info("Газовый котел только что отключился, блокируем реле");
+                turnOff();
             }
 
             status = newStatus;
