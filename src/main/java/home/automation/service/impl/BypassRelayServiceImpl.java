@@ -11,6 +11,8 @@ import home.automation.event.info.BypassRelayStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.BypassRelayService;
 import home.automation.service.ModbusService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,25 +22,33 @@ import org.springframework.stereotype.Service;
 @Service
 public class BypassRelayServiceImpl implements BypassRelayService {
     private static final Logger logger = LoggerFactory.getLogger(BypassRelayServiceImpl.class);
-
-    private BypassRelayStatus calculatedStatus = BypassRelayStatus.INIT;
-
     private final Map<Instant, BypassRelayStatus> pollingResults = new ConcurrentHashMap<>();
-
     private final BypassRelayConfiguration bypassRelayConfiguration;
-
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final ModbusService modbusService;
+    private BypassRelayStatus calculatedStatus = BypassRelayStatus.INIT;
 
     public BypassRelayServiceImpl(
         BypassRelayConfiguration bypassRelayConfiguration,
         ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+        ModbusService modbusService,
+        MeterRegistry meterRegistry
     ) {
         this.bypassRelayConfiguration = bypassRelayConfiguration;
         this.applicationEventPublisher = applicationEventPublisher;
         this.modbusService = modbusService;
+
+        Gauge.builder("bypass_relay", this::getRawNumericStatus)
+            .tag("component", "status_raw")
+            .tag("system", "home_automation")
+            .description("Статус реле байпаса (текущий)")
+            .register(meterRegistry);
+
+        Gauge.builder("bypass_relay", this::getCalculatedNumericStatus)
+            .tag("component", "status_calculated")
+            .tag("system", "home_automation")
+            .description("Статус реле байпаса (рассчитанный)")
+            .register(meterRegistry);
     }
 
     @Override
@@ -51,37 +61,26 @@ public class BypassRelayServiceImpl implements BypassRelayService {
         return calculatedStatus.getTemplate();
     }
 
-    @Scheduled(fixedRateString = "${bypass.pollInterval}")
-    private void pollBypassRelay() {
-        logger.debug("Запущена задача опроса реле байпаса");
-        try {
-            BypassRelayStatus currentPollResult;
-            boolean[] pollResult = modbusService.readAllDiscreteInputsFromZero(bypassRelayConfiguration.getAddress());
-
-            if (pollResult.length < 1) {
-                throw new ModbusException("Опрос реле байпаса вернул пустой массив");
-            }
-
-            if (pollResult[bypassRelayConfiguration.getDiscreteInput()]) {
-                currentPollResult = BypassRelayStatus.CLOSED;
-                logger.debug("Статус реле байпаса - замкнуто");
-            } else {
-                currentPollResult = BypassRelayStatus.OPEN;
-                logger.debug("Статус реле байпаса - разомкнуто");
-            }
-
-            logger.debug("Запущен расчет статуса реле");
-            calculateStatus(Instant.now(), currentPollResult);
-
-        } catch (ModbusException e) {
-            logger.error("Ошибка опроса реле байпаса", e);
-            logger.debug("Отправляем событие об ошибке поллинга реле байпаса");
-            calculatedStatus = BypassRelayStatus.ERROR;
-            publishPollErrorEvent();
-        }
+    private Number getCalculatedNumericStatus() {
+        return calculatedStatus.getNumericStatus();
     }
 
-    private void calculateStatus(Instant timestamp, BypassRelayStatus currentPollResult) {
+    private Number getRawNumericStatus() {
+        return calculatedStatus.getNumericStatus();
+    }
+
+    @Scheduled(fixedRateString = "${bypass.pollInterval}")
+    private void calculateBypassRelayStatus() {
+        logger.debug("Запущена задача опроса реле байпаса");
+        BypassRelayStatus currentPollResult = pollBypassRelay();
+
+        if (currentPollResult == BypassRelayStatus.ERROR) {
+            logger.debug("Не удается расчитать статус реле - ошибка опроса");
+            calculatedStatus = BypassRelayStatus.ERROR;
+            return;
+        }
+
+        logger.debug("Запущен расчет статуса реле");
         if (pollingResults.size() >= bypassRelayConfiguration.getPollCountInPeriod()) {
             int open_count = 0;
             for (BypassRelayStatus result : pollingResults.values()) {
@@ -109,8 +108,31 @@ public class BypassRelayServiceImpl implements BypassRelayService {
 
             pollingResults.clear();
         } else {
-            pollingResults.put(timestamp, currentPollResult);
+            pollingResults.put(Instant.now(), currentPollResult);
             logger.debug("Расчет завершен, в пуле пока мало данных");
+        }
+    }
+
+    private BypassRelayStatus pollBypassRelay() {
+        try {
+            boolean[] pollResult = modbusService.readAllDiscreteInputsFromZero(bypassRelayConfiguration.getAddress());
+
+            if (pollResult.length < 1) {
+                throw new ModbusException("Опрос реле байпаса вернул пустой массив");
+            }
+
+            if (pollResult[bypassRelayConfiguration.getDiscreteInput()]) {
+                logger.debug("Статус реле байпаса - замкнуто");
+                return BypassRelayStatus.CLOSED;
+            } else {
+                logger.debug("Статус реле байпаса - разомкнуто");
+                return BypassRelayStatus.OPEN;
+            }
+        } catch (ModbusException e) {
+            logger.error("Ошибка опроса реле байпаса", e);
+            logger.debug("Отправляем событие об ошибке поллинга реле байпаса");
+            publishPollErrorEvent();
+            return BypassRelayStatus.ERROR;
         }
     }
 

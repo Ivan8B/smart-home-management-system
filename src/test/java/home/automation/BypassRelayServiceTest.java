@@ -28,11 +28,11 @@ public class BypassRelayServiceTest extends AbstractTest {
 
     private void invokeScheduledMethod() {
         try {
-            Method method = bypassRelayService.getClass().getDeclaredMethod("pollBypassRelay");
+            Method method = bypassRelayService.getClass().getDeclaredMethod("calculateBypassRelayStatus");
             method.setAccessible(true);
             method.invoke(bypassRelayService);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод опроса реле", e);
+            throw new RuntimeException("Не удалось вызвать метод подсчета статуса реле", e);
         }
     }
 
