@@ -1,8 +1,6 @@
 package home.automation.enums;
 
 public enum StreetLightStatus {
-    INIT("статус уличного освещения - неизвестен!"),
-
     TURNED_ON("статус уличного освещения - включено"),
 
     TURNED_OFF("статус уличного освещения - отключено"),
