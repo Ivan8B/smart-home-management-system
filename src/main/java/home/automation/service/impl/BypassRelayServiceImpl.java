@@ -23,18 +23,18 @@ import org.springframework.stereotype.Service;
 public class BypassRelayServiceImpl implements BypassRelayService {
     private static final Logger logger = LoggerFactory.getLogger(BypassRelayServiceImpl.class);
     private final Map<Instant, BypassRelayStatus> pollingResults = new ConcurrentHashMap<>();
-    private final BypassRelayConfiguration bypassRelayConfiguration;
+    private final BypassRelayConfiguration configuration;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ModbusService modbusService;
     private BypassRelayStatus calculatedStatus = BypassRelayStatus.INIT;
 
     public BypassRelayServiceImpl(
-        BypassRelayConfiguration bypassRelayConfiguration,
+        BypassRelayConfiguration configuration,
         ApplicationEventPublisher applicationEventPublisher,
         ModbusService modbusService,
         MeterRegistry meterRegistry
     ) {
-        this.bypassRelayConfiguration = bypassRelayConfiguration;
+        this.configuration = configuration;
         this.applicationEventPublisher = applicationEventPublisher;
         this.modbusService = modbusService;
 
@@ -81,7 +81,7 @@ public class BypassRelayServiceImpl implements BypassRelayService {
         }
 
         logger.debug("Запущен расчет статуса реле");
-        if (pollingResults.size() >= bypassRelayConfiguration.getPollCountInPeriod()) {
+        if (pollingResults.size() >= configuration.getPollCountInPeriod()) {
             int open_count = 0;
             for (BypassRelayStatus result : pollingResults.values()) {
                 if (result == BypassRelayStatus.OPEN) {
@@ -93,10 +93,10 @@ public class BypassRelayServiceImpl implements BypassRelayService {
                 "За период было {} опросов, из них в открытом состоянии реле байпаса было {} раз при пороге {} процентов",
                 pollingResults.size(),
                 open_count,
-                bypassRelayConfiguration.getOpenThreshold()
+                configuration.getOpenThreshold()
             );
 
-            if (open_count / pollingResults.size() * 100 >= bypassRelayConfiguration.getOpenThreshold()) {
+            if (open_count / pollingResults.size() * 100 >= configuration.getOpenThreshold()) {
                 calculatedStatus = BypassRelayStatus.OPEN;
             } else {
                 calculatedStatus = BypassRelayStatus.CLOSED;
@@ -115,13 +115,13 @@ public class BypassRelayServiceImpl implements BypassRelayService {
 
     private BypassRelayStatus pollBypassRelay() {
         try {
-            boolean[] pollResult = modbusService.readAllDiscreteInputsFromZero(bypassRelayConfiguration.getAddress());
+            boolean[] pollResult = modbusService.readAllDiscreteInputsFromZero(configuration.getAddress());
 
             if (pollResult.length < 1) {
                 throw new ModbusException("Опрос реле байпаса вернул пустой массив");
             }
 
-            if (pollResult[bypassRelayConfiguration.getDiscreteInput()]) {
+            if (pollResult[configuration.getDiscreteInput()]) {
                 logger.debug("Статус реле байпаса - замкнуто");
                 return BypassRelayStatus.CLOSED;
             } else {
