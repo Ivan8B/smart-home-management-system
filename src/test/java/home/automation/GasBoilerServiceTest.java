@@ -568,7 +568,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     void checkCalculateMinReturnTemperatureMethod() {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-30F);
-        assertEquals(55f, invokeCalculateMinReturnTemperatureMethod());
+        assertEquals(45f, invokeCalculateMinReturnTemperatureMethod());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(22F);
@@ -576,7 +576,7 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-19.9F);
-        assertEquals(55f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
+        assertEquals(45f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(16.9F);
@@ -584,11 +584,19 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-1.5F);
-        assertEquals(40f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
+        assertEquals(35f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(-10F);
+        assertEquals(40f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(10F);
+        assertEquals(29f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-19F);
-        assertEquals(54f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(44f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(16F);
