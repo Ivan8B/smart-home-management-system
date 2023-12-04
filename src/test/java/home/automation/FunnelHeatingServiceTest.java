@@ -14,21 +14,26 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
 public class FunnelHeatingServiceTest extends AbstractTest {
     @Autowired
     FunnelHeatingService funnelHeatingService;
-
     @Autowired
     FunnelHeatingConfiguration configuration;
-
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 
-    private void invokeScheduledMethod() {
+    private void invokeScheduledMethod(FunnelHeatingStatus status) {
         try {
+            if (status == FunnelHeatingStatus.TURNED_ON) {
+                Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
+                    .thenReturn(new boolean[]{false, true});
+            }
+            if (status == FunnelHeatingStatus.TURNED_OFF) {
+                Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
+                    .thenReturn(new boolean[]{false, false});
+            }
             Method method = funnelHeatingService.getClass().getDeclaredMethod("control");
             method.setAccessible(true);
             method.invoke(funnelHeatingService);
@@ -42,16 +47,14 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkDisable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-10F);
-        invokeScheduledMethod();
+        invokeScheduledMethod(FunnelHeatingStatus.TURNED_ON);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(10F);
-        invokeScheduledMethod();
+        invokeScheduledMethod(FunnelHeatingStatus.TURNED_ON);
 
         Mockito.verify(modbusService, Mockito.times(2))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
-
-        assertEquals(FunnelHeatingStatus.TURNED_OFF, funnelHeatingService.getStatus());
     }
 
     @Test
@@ -59,10 +62,9 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkEnable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(0F);
-        invokeScheduledMethod();
+        invokeScheduledMethod(FunnelHeatingStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
-        assertEquals(FunnelHeatingStatus.TURNED_ON, funnelHeatingService.getStatus());
     }
 
     @Test
@@ -70,8 +72,7 @@ public class FunnelHeatingServiceTest extends AbstractTest {
     void checkError() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(null);
-        invokeScheduledMethod();
+        invokeScheduledMethod(FunnelHeatingStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.never()).writeCoil(any(int.class), any(int.class), any(boolean.class));
-        assertEquals(FunnelHeatingStatus.ERROR, funnelHeatingService.getStatus());
     }
 }

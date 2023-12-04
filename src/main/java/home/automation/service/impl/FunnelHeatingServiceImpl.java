@@ -28,8 +28,6 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
 
     private final ModbusService modbusService;
 
-    private FunnelHeatingStatus status = FunnelHeatingStatus.INIT;
-
     public FunnelHeatingServiceImpl(
         FunnelHeatingConfiguration configuration,
         TemperatureSensorsService temperatureSensorsService,
@@ -52,7 +50,6 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
             logger.error("Ошибка получения температуры на улице");
             logger.debug("Отправляем событие по отказу работы с обогревом воронок");
             applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
-            status = FunnelHeatingStatus.ERROR;
             return;
         }
 
@@ -67,34 +64,49 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     }
 
     private void turnOn() {
-        try {
-            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
-            status = FunnelHeatingStatus.TURNED_ON;
-        } catch (ModbusException e) {
-            logger.error("Ошибка переключения статуса реле");
-            status = FunnelHeatingStatus.ERROR;
-            applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
+        if (getStatus() != FunnelHeatingStatus.TURNED_ON) {
+            try {
+                modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+            } catch (ModbusException e) {
+                logger.error("Ошибка переключения статуса реле");
+                applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
+            }
         }
     }
 
     private void turnOff() {
-        try {
-            modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
-            status = FunnelHeatingStatus.TURNED_OFF;
-        } catch (ModbusException e) {
-            logger.error("Ошибка переключения статуса реле");
-            status = FunnelHeatingStatus.ERROR;
-            applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
+        if (getStatus() != FunnelHeatingStatus.TURNED_OFF) {
+            try {
+                modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+            } catch (ModbusException e) {
+                logger.error("Ошибка переключения статуса реле");
+                applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
+            }
         }
     }
 
     @Override
     public FunnelHeatingStatus getStatus() {
-        return status;
+        try {
+            boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
+            if (pollResult.length < 1) {
+                throw new ModbusException("Опрос катушек вернул пустой массив");
+            }
+            if (pollResult[configuration.getCoil()]) {
+                return FunnelHeatingStatus.TURNED_ON;
+            } else {
+                return FunnelHeatingStatus.TURNED_OFF;
+            }
+
+        } catch (ModbusException e) {
+            logger.error("Ошибка получения статуса реле обогрева воронок", e);
+            applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
+            return FunnelHeatingStatus.ERROR;
+        }
     }
 
     @Override
     public String getFormattedStatus() {
-        return status.getTemplate();
+        return getStatus().getTemplate();
     }
 }

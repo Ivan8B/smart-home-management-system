@@ -1,8 +1,6 @@
 package home.automation.enums;
 
 public enum FunnelHeatingStatus {
-    INIT("статус обогрева воронок - неизвестен!"),
-
     TURNED_ON("статус обогрева воронок - включен"),
 
     TURNED_OFF("статус обогрева воронок - отключен"),
