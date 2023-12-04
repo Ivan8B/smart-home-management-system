@@ -4,7 +4,6 @@ import java.util.Calendar;
 
 import home.automation.configuration.StreetLightConfiguration;
 import home.automation.enums.StreetLightStatus;
-import home.automation.event.error.GasBoilerRelaySetFailEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
@@ -19,13 +18,9 @@ import static ca.rmen.sunrisesunset.SunriseSunset.getSunriseSunset;
 
 @Service
 public class StreetLightServiceImpl implements StreetLightService {
-
     private static final Logger logger = LoggerFactory.getLogger(StreetLightServiceImpl.class);
-
     private final StreetLightConfiguration configuration;
-
     private final ModbusService modbusService;
-
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public StreetLightServiceImpl(
@@ -97,7 +92,7 @@ public class StreetLightServiceImpl implements StreetLightService {
 
         } catch (ModbusException e) {
             logger.error("Ошибка получения статуса реле уличного освещения", e);
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
             return StreetLightStatus.ERROR;
         }
     }
