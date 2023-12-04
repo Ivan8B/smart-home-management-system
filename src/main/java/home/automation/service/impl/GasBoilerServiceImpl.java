@@ -143,7 +143,57 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         Float returnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
-        return returnTemperature == null || returnTemperature < configuration.getReturnMinTemperature();
+        return returnTemperature == null || returnTemperature < calculateMinReturnTemperature();
+    }
+
+    private float calculateMinReturnTemperature() {
+        /* рассчитываем температуру обратки в зависимости от температуры на улице (линейная функция) */
+        /* в котле BAXI ПЗА устанавливается кривой, каждая кривая имеет свои границы, эти границы и будут координатами нашей прямой по оси X */
+        Float outsideTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+
+        if (outsideTemperature == null) {
+            float targetReturnTemperature = configuration.getTemperatureReturnMax();
+            logger.info(
+                "Нет информации о температуре на улице, расчетная температура обратки для включения {} C°",
+                targetReturnTemperature
+            );
+            return targetReturnTemperature;
+        }
+
+        if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
+            float targetReturnTemperature = configuration.getTemperatureReturnMax();
+            logger.info(
+                "Температура на улице ниже минимальной температуры климатической кривой, расчетная температура обратки для включения {} C°",
+                targetReturnTemperature
+            );
+            return targetReturnTemperature;
+        }
+
+        if (outsideTemperature >= configuration.getTemperatureWeatherCurveMax()) {
+            float targetReturnTemperature = configuration.getTemperatureReturnMin();
+            logger.info(
+                "Температура на улице выше максимальной температуры климатической кривой, расчетная температура обратки для включения {} C°",
+                targetReturnTemperature
+            );
+            return targetReturnTemperature;
+        }
+
+        /* решаем задачу нахождения функции для прямой проходящей через 2 точки, по оси X температура на улице, по оси Y температура обратки */
+
+        /* коэффициент наклона прямой */
+        float m = (configuration.getTemperatureReturnMin() - configuration.getTemperatureReturnMax()) / (
+            configuration.getTemperatureWeatherCurveMax() - configuration.getTemperatureWeatherCurveMin());
+
+        /* свободный член уравнения*/
+        float b = configuration.getTemperatureReturnMax() - m * configuration.getTemperatureWeatherCurveMin();
+
+        float targetReturnTemperature = m * outsideTemperature + b;
+        logger.info(
+            "Температура на улице в пределах климатической кривой, расчетная температура обратки для включения {} C°",
+            targetReturnTemperature
+        );
+        return targetReturnTemperature;
     }
 
     private void turnOn() {

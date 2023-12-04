@@ -14,8 +14,17 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.relay.turnOffDirectDelta}")
     private Float turnOffDirectDelta;
 
-    @Value("${gasBoiler.return.minTemperature}")
-    private Float returnMinTemperature;
+    @Value("${gasBoiler.temperature.return.min}")
+    private Float temperatureReturnMin;
+
+    @Value("${gasBoiler.temperature.return.max}")
+    private Float temperatureReturnMax;
+
+    @Value("${gasBoiler.temperature.weatherCurve.min}")
+    private Float temperatureWeatherCurveMin;
+
+    @Value("${gasBoiler.temperature.weatherCurve.max}")
+    private Float temperatureWeatherCurveMax;
 
     @Value("${gasBoiler.waterFlow}")
     private Float waterFlow;
@@ -32,8 +41,20 @@ public class GasBoilerConfiguration {
         return turnOffDirectDelta;
     }
 
-    public Float getReturnMinTemperature() {
-        return returnMinTemperature;
+    public Float getTemperatureReturnMin() {
+        return temperatureReturnMin;
+    }
+
+    public Float getTemperatureReturnMax() {
+        return temperatureReturnMax;
+    }
+
+    public Float getTemperatureWeatherCurveMin() {
+        return temperatureWeatherCurveMin;
+    }
+
+    public Float getTemperatureWeatherCurveMax() {
+        return temperatureWeatherCurveMax;
     }
 
     public Float getWaterFlow() {
