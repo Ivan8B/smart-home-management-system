@@ -10,11 +10,13 @@ import java.util.stream.Collectors;
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.BypassRelayPollErrorEvent;
+import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.event.error.FunnelHeatingErrorEvent;
 import home.automation.event.error.GasBoilerRelaySetFailEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
+import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.service.BotService;
 import home.automation.service.HealthService;
@@ -34,6 +36,8 @@ public class HealthServiceImpl implements HealthService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final List<BypassRelayPollErrorEvent> bypassRelayPollErrorEvents = new ArrayList<>();
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
+    private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
+    private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
     private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents =
         new ArrayList<>();
     private final List<StreetLightErrorEvent> streetLightErrorEvents = new ArrayList<>();
@@ -103,6 +107,16 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
+    public void onElectricBoilerErrorEvent(ElectricBoilerErrorEvent event) {
+        electricBoilerErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onElectricBoilerTurnedOnEvent(ElectricBoilerTurnedOnEvent event) {
+        electricBoilerTurnedOnEvents.add(event);
+    }
+
+    @EventListener
     public void onMinimalTemperatureLowEvent(MinimalTemperatureLowEvent event) {
         minimalTemperatureLowEvents.add(event.getSensor());
     }
@@ -133,7 +147,7 @@ public class HealthServiceImpl implements HealthService {
 
     private SelfMonitoringStatus calculateStatus() {
         if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()
-            || !gasBoilerRelayIsOk() || !floorHeatingIsOk()) {
+            || !gasBoilerRelayIsOk() || !floorHeatingIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()) {
             return SelfMonitoringStatus.EMERGENCY;
         }
         if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
@@ -148,6 +162,14 @@ public class HealthServiceImpl implements HealthService {
 
     private boolean gasBoilerRelayIsOk() {
         return gasBoilerRelaySetFailEvents.isEmpty();
+    }
+
+    private boolean electricBoilerIsOk() {
+        return electricBoilerErrorEvents.isEmpty();
+    }
+
+    private boolean electricBoilerIsTurnedOff() {
+        return electricBoilerTurnedOnEvents.isEmpty();
     }
 
     private boolean floorHeatingIsOk() {
@@ -177,6 +199,8 @@ public class HealthServiceImpl implements HealthService {
     private void clear() {
         bypassRelayPollErrorEvents.clear();
         gasBoilerRelaySetFailEvents.clear();
+        electricBoilerErrorEvents.clear();
+        electricBoilerTurnedOnEvents.clear();
         floorHeatingErrorEvents.clear();
         streetLightErrorEvents.clear();
         funnelHeatingErrorEvents.clear();
@@ -192,6 +216,12 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!gasBoilerRelayIsOk()) {
             message.append("* отказ реле газового котла\n");
+        }
+        if (!electricBoilerIsOk()) {
+            message.append("* отказ реле электрического котла\n");
+        }
+        if (!electricBoilerIsTurnedOff()) {
+            message.append("* работает электрический котел\n");
         }
         if (!floorHeatingIsOk()) {
             message.append("* отказ управления теплым полом\n");
