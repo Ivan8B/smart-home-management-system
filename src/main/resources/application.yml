@@ -162,11 +162,8 @@ funnelHeating:
     max: 2.0
 
 health:
-  # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService)
-  controlInterval: PT30M
-  # Периодичность опроса критичных температурных сенсоров с минимальной температурой в temperatureService
-  minimalTemperature:
-    pollInterval: PT15M
+  # Периодиченость опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService и критичных температур)
+  controlInterval: PT15M
 
 logging:
   config: classpath:log4j2.yml

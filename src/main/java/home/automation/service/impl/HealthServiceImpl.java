@@ -38,14 +38,13 @@ public class HealthServiceImpl implements HealthService {
     private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
     private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
-    private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents =
-        new ArrayList<>();
+    private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents = new ArrayList<>();
     private final List<StreetLightErrorEvent> streetLightErrorEvents = new ArrayList<>();
     private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minimalTemperatureLowEvents = new HashSet<>();
-    private SelfMonitoringStatus status = SelfMonitoringStatus.OK;
+    private SelfMonitoringStatus lastStatus = SelfMonitoringStatus.OK;
 
     public HealthServiceImpl(
         BotService botService,
@@ -58,33 +57,47 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @Scheduled(fixedRateString = "${health.controlInterval}")
-    private void checkHealth() {
-        logger.debug("Запущена задача селфмониторинга");
-        SelfMonitoringStatus newStatus = calculateStatus();
-        if (!status.equals(newStatus)) {
-            if (SelfMonitoringStatus.EMERGENCY.equals(newStatus)) {
-                botService.notify(formatCriticalMessage());
-            }
-            if (SelfMonitoringStatus.MINOR_PROBLEMS.equals(newStatus)) {
-                botService.notify(formatMinorMessage());
-            }
-            if (SelfMonitoringStatus.OK.equals(newStatus)) {
-                botService.notify(formatOkMessage());
-            }
-            status = newStatus;
-        }
-        clear();
+    private void control() {
+        calculateHealthStatus();
     }
 
-    @Scheduled(fixedRateString = "${health.minimalTemperature.pollInterval}")
+    private SelfMonitoringStatus calculateHealthStatus() {
+        logger.debug("Запущена задача селфмониторинга");
+        checkMinimalTemperature();
+
+        SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
+
+        if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()
+            || !gasBoilerRelayIsOk() || !floorHeatingIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()) {
+            newStatus = SelfMonitoringStatus.EMERGENCY;
+        }
+        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
+            newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
+        }
+
+        if (newStatus != lastStatus) {
+            if (newStatus == SelfMonitoringStatus.EMERGENCY) {
+                botService.notify(formatCriticalMessage());
+            }
+            if (newStatus == SelfMonitoringStatus.MINOR_PROBLEMS) {
+                botService.notify(formatMinorMessage());
+            }
+            if (newStatus == SelfMonitoringStatus.OK) {
+                botService.notify(formatOkMessage());
+            }
+            lastStatus = newStatus;
+        }
+        clear();
+        return newStatus;
+    }
+
     private void checkMinimalTemperature() {
         Arrays.stream(TemperatureSensor.values())
             .filter(sensor -> sensor.isCritical() && sensor.getMinimalTemperature() != null).forEach(sensor -> {
                 Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
                 if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimalTemperature()) {
-                    logger.warn(sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
-                    logger.debug("Сразу же нотифицируем");
-                    botService.notify("Внимание, " + sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
+                    logger.warn(
+                        sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
                     logger.debug("Отправляем событие о низкой температуре");
                     applicationEventPublisher.publishEvent(new MinimalTemperatureLowEvent(this, sensor));
                 }
@@ -142,18 +155,7 @@ public class HealthServiceImpl implements HealthService {
 
     @Override
     public String getFormattedStatus() {
-        return status.getTemplate();
-    }
-
-    private SelfMonitoringStatus calculateStatus() {
-        if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()
-            || !gasBoilerRelayIsOk() || !floorHeatingIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()) {
-            return SelfMonitoringStatus.EMERGENCY;
-        }
-        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
-            return SelfMonitoringStatus.MINOR_PROBLEMS;
-        }
-        return SelfMonitoringStatus.OK;
+        return calculateHealthStatus().getTemplate();
     }
 
     private boolean bypassRelayIsOk() {
