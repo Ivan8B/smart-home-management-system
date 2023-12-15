@@ -17,10 +17,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @Service
+@CacheConfig(cacheNames = {"temperature_cache"})
 public class TemperatureSensorsServiceImpl implements TemperatureSensorsService {
     public static final Integer TEMPERATURE_SENSOR_ERROR_VALUE = 32768;
     private static final Logger logger = LoggerFactory.getLogger(TemperatureSensorsServiceImpl.class);
@@ -54,6 +57,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     }
 
     @Override
+    @Cacheable("temperature_cache")
     public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
             int rawTemperature =

@@ -11,6 +11,12 @@ management:
     enable:
       executor: false
 
+spring:
+  cache:
+    cache-names: temperature_cache
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=15s
+
 bot:
   # Параметры подключения к чатботу.
   name: ${BOT_NAME}
