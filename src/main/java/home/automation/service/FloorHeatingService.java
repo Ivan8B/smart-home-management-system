@@ -11,7 +11,7 @@ public interface FloorHeatingService {
     FloorHeatingStatus getStatus();
 
     /**
-     * Получение статуса статуса запроса тепла в пол текстом
+     * Получение статуса запроса тепла в пол текстом
      * @return сообщение для бота
      */
     String getFormattedStatus();
