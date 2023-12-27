@@ -18,8 +18,6 @@ import org.springframework.stereotype.Service;
 public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     private final Logger logger = LoggerFactory.getLogger(FunnelHeatingServiceImpl.class);
 
-    private final TemperatureSensor outsideTemperature = TemperatureSensor.OUTSIDE_TEMPERATURE;
-
     private final FunnelHeatingConfiguration configuration;
 
     private final TemperatureSensorsService temperatureSensorsService;
@@ -44,7 +42,7 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     private void control() {
         logger.debug("Запущена задача управления воронками обогрева");
         logger.debug("Опрашиваем сенсор уличной температуры");
-        Float currentTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(outsideTemperature);
+        Float currentTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
