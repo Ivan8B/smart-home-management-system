@@ -3,11 +3,10 @@ package home.automation.service.impl;
 import home.automation.configuration.TelegramBotConfiguration;
 import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
-import home.automation.service.BypassRelayService;
-import home.automation.service.FloorHeatingService;
 import home.automation.service.FunnelHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
 import org.jetbrains.annotations.Nullable;
@@ -37,37 +36,32 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final GasBoilerService gasBoilerService;
 
-    private final BypassRelayService bypassRelayService;
+    private final HeatRequestService heatRequestService;
 
     private final HealthService healthService;
 
     private final StreetLightService streetLightService;
 
     private final FunnelHeatingService funnelHeatingService;
-
-    private final FloorHeatingService floorHeatingService;
-
     private BotSession session;
 
     public BotServiceImpl(
         TelegramBotConfiguration telegramBotConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
-        BypassRelayService bypassRelayService,
+        HeatRequestService heatRequestService,
         @Lazy HealthService healthService,
         StreetLightService streetLightService,
-        FunnelHeatingService funnelHeatingService,
-        FloorHeatingService floorHeatingService
+        FunnelHeatingService funnelHeatingService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
-        this.bypassRelayService = bypassRelayService;
+        this.heatRequestService = heatRequestService;
         this.healthService = healthService;
         this.streetLightService = streetLightService;
         this.funnelHeatingService = funnelHeatingService;
-        this.floorHeatingService = floorHeatingService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -137,13 +131,12 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private String formatStatus() {
         StringBuilder message =
             new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(heatRequestService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n");
         message.append("* ").append(gasBoilerService.getFormattedStatusForLastDay()).append("\n\n");
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
-        message.append("* ").append(bypassRelayService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(funnelHeatingService.getFormattedStatus()).append("\n\n");
-        message.append("* ").append(floorHeatingService.getFormattedStatus()).append("\n\n");
         return message.toString();
     }
 

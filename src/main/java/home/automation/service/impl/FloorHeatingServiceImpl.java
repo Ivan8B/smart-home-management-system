@@ -7,14 +7,14 @@ import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GeneralConfiguration;
-import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerStatus;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
-import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import org.jetbrains.annotations.Nullable;
@@ -44,11 +44,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GasBoilerService gasBoilerService;
 
+    private final HeatRequestService heatRequestService;
+
     private final ModbusService modbusService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
-
-    private FloorHeatingStatus calculatedStatus = FloorHeatingStatus.INIT;
 
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
@@ -57,6 +57,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
+        HeatRequestService heatRequestService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher
     ) {
@@ -66,6 +67,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
+        this.heatRequestService = heatRequestService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
@@ -79,33 +81,28 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         Float outsideTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
+        if (outsideTemperature == null) {
+            logger.warn("Нет возможности определить уличную температуру, статус теплых полов ERROR");
+            logger.debug("Отправляем событие для селфмониторинга");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            return;
+        }
+
         if (averageInternalTemperature == null) {
             logger.warn("Нет возможности определить среднюю температуру в помещениях, статус теплых полов ERROR");
-            calculatedStatus = FloorHeatingStatus.ERROR;
-            publishFloorHeatingErrorEvent();
+            logger.debug("Отправляем событие для селфмониторинга");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
-        if (outsideTemperature == null) {
-            logger.warn("Нет возможности определить уличную температуру статус теплых полов ERROR");
-            calculatedStatus = FloorHeatingStatus.ERROR;
-            publishFloorHeatingErrorEvent();
+        logger.debug("Проверяем, есть ли запрос на тепло в дом");
+        if (heatRequestService.getStatus() != HeatRequestStatus.NEED_HEAT) {
+            logger.debug("Запроса на тепло нет, операций с клапаном теплого пола не производим");
             return;
         }
-
-        if (averageInternalTemperature > generalConfiguration.getTargetTemperature()) {
-            logger.debug("Средняя температура в помещениях больше целевой, отправляем отказ от тепла в теплые полы");
-            calculatedStatus = FloorHeatingStatus.NO_NEED_HEAT;
-            publishCalculatedEvent(calculatedStatus);
-            return;
-        }
-
-        logger.debug("Средняя температура в помещениях меньше целевой, отправляем запрос на тепло в теплые полы");
-        calculatedStatus = FloorHeatingStatus.NEED_HEAT;
-        publishCalculatedEvent(calculatedStatus);
 
         logger.debug("Проверяем, работает ли котел");
-        if (GasBoilerStatus.WORKS != gasBoilerService.getStatus()) {
+        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
             logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
             return;
         }
@@ -115,13 +112,12 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         if (openForDirectPercent == null) {
             logger.warn("Расчет процента открытия клапана не удался");
-            publishFloorHeatingErrorEvent();
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
         logger.debug("Выставляем клапан");
         setValveOnPercent(openForDirectPercent);
-
     }
 
     private @Nullable Float calculateAverageInternalTemperature() {
@@ -218,24 +214,5 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.error("Ошибка выставления напряжение на ШИМ");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         }
-    }
-
-    private void publishCalculatedEvent(FloorHeatingStatus status) {
-        FloorHeatingStatusCalculatedEvent event = new FloorHeatingStatusCalculatedEvent(this, status);
-        applicationEventPublisher.publishEvent(event);
-    }
-
-    private void publishFloorHeatingErrorEvent() {
-        applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-    }
-
-    @Override
-    public FloorHeatingStatus getStatus() {
-        return calculatedStatus;
-    }
-
-    @Override
-    public String getFormattedStatus() {
-        return calculatedStatus.getTemplate();
     }
 }

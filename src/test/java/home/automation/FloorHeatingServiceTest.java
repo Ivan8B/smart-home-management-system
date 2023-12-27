@@ -12,7 +12,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FloorHeatingServiceTest extends AbstractTest {
-
     @Autowired
     FloorHeatingService floorHeatingService;
 

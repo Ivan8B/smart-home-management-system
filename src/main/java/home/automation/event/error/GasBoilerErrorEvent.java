@@ -2,8 +2,8 @@ package home.automation.event.error;
 
 import org.springframework.context.ApplicationEvent;
 
-public class BypassRelayPollErrorEvent extends ApplicationEvent {
-    public BypassRelayPollErrorEvent(Object source) {
+public class GasBoilerErrorEvent extends ApplicationEvent {
+    public GasBoilerErrorEvent(Object source) {
         super(source);
     }
 }

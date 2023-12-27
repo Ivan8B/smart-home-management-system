@@ -9,11 +9,11 @@ import java.util.stream.Collectors;
 
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.error.BypassRelayPollErrorEvent;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.event.error.FunnelHeatingErrorEvent;
-import home.automation.event.error.GasBoilerRelaySetFailEvent;
+import home.automation.event.error.GasBoilerErrorEvent;
+import home.automation.event.error.HeatRequestErrorEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
@@ -34,8 +34,8 @@ public class HealthServiceImpl implements HealthService {
     private final BotService botService;
     private final TemperatureSensorsService temperatureSensorsService;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final List<BypassRelayPollErrorEvent> bypassRelayPollErrorEvents = new ArrayList<>();
-    private final List<GasBoilerRelaySetFailEvent> gasBoilerRelaySetFailEvents = new ArrayList<>();
+    private final List<HeatRequestErrorEvent> heatRequestErrorEvents = new ArrayList<>();
+    private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
     private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents = new ArrayList<>();
@@ -67,8 +67,8 @@ public class HealthServiceImpl implements HealthService {
 
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
-        if (!bypassRelayIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()
-            || !gasBoilerRelayIsOk() || !floorHeatingIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()) {
+        if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
+            || !floorHeatingIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
         }
         if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
@@ -105,18 +105,13 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onBypassRelayPollErrorEvent(BypassRelayPollErrorEvent event) {
-        bypassRelayPollErrorEvents.add(event);
+    public void onHeatRequestErrorEvent(HeatRequestErrorEvent event) {
+        heatRequestErrorEvents.add(event);
     }
 
     @EventListener
-    public void onFloorHeatingStatusCalculateErrorEvent(FloorHeatingErrorEvent event) {
-        floorHeatingErrorEvents.add(event);
-    }
-
-    @EventListener
-    public void onGasBoilerRelaySetFailEvent(GasBoilerRelaySetFailEvent event) {
-        gasBoilerRelaySetFailEvents.add(event);
+    public void onGasBoilerRelaySetFailEvent(GasBoilerErrorEvent event) {
+        gasBoilerErrorEvents.add(event);
     }
 
     @EventListener
@@ -130,8 +125,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onMinimalTemperatureLowEvent(MinimalTemperatureLowEvent event) {
-        minimalTemperatureLowEvents.add(event.getSensor());
+    public void onFloorHeatingErrorEvent(FloorHeatingErrorEvent event) {
+        floorHeatingErrorEvents.add(event);
     }
 
     @EventListener
@@ -153,17 +148,22 @@ public class HealthServiceImpl implements HealthService {
         }
     }
 
+    @EventListener
+    public void onMinimalTemperatureLowEvent(MinimalTemperatureLowEvent event) {
+        minimalTemperatureLowEvents.add(event.getSensor());
+    }
+
     @Override
     public String getFormattedStatus() {
         return calculateHealthStatus().getTemplate();
     }
 
-    private boolean bypassRelayIsOk() {
-        return bypassRelayPollErrorEvents.isEmpty();
+    private boolean heatRequestIsOk() {
+        return heatRequestErrorEvents.isEmpty();
     }
 
-    private boolean gasBoilerRelayIsOk() {
-        return gasBoilerRelaySetFailEvents.isEmpty();
+    private boolean gasBoilerIsOk() {
+        return gasBoilerErrorEvents.isEmpty();
     }
 
     private boolean electricBoilerIsOk() {
@@ -199,8 +199,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private void clear() {
-        bypassRelayPollErrorEvents.clear();
-        gasBoilerRelaySetFailEvents.clear();
+        heatRequestErrorEvents.clear();
+        gasBoilerErrorEvents.clear();
         electricBoilerErrorEvents.clear();
         electricBoilerTurnedOnEvents.clear();
         floorHeatingErrorEvents.clear();
@@ -213,10 +213,10 @@ public class HealthServiceImpl implements HealthService {
 
     private String formatCriticalMessage() {
         StringBuilder message = new StringBuilder("Аварийная ситуация:\n");
-        if (!bypassRelayIsOk()) {
-            message.append("* отказ реле байпаса\n");
+        if (!heatRequestIsOk()) {
+            message.append("* отказ расчета необходимости отопления\n");
         }
-        if (!gasBoilerRelayIsOk()) {
+        if (!gasBoilerIsOk()) {
             message.append("* отказ реле газового котла\n");
         }
         if (!electricBoilerIsOk()) {

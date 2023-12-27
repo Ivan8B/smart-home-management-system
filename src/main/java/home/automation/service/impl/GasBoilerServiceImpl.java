@@ -15,18 +15,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import home.automation.configuration.GasBoilerConfiguration;
-import home.automation.enums.BypassRelayStatus;
-import home.automation.enums.FloorHeatingStatus;
 import home.automation.enums.GasBoilerHeatRequestStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.error.GasBoilerRelaySetFailEvent;
-import home.automation.event.info.BypassRelayStatusCalculatedEvent;
-import home.automation.event.info.FloorHeatingStatusCalculatedEvent;
+import home.automation.event.error.GasBoilerErrorEvent;
+import home.automation.event.info.HeatRequestCalculatedEvent;
 import home.automation.exception.ModbusException;
-import home.automation.service.BypassRelayService;
-import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
@@ -47,8 +42,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private final ModbusService modbusService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TemperatureSensorsService temperatureSensorsService;
-    private final BypassRelayService bypassRelayService;
-    private final FloorHeatingService floorHeatingService;
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureDailyHistory = new HashMap<>();
@@ -62,16 +55,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
         TemperatureSensorsService temperatureSensorsService,
-        BypassRelayService bypassRelayService,
-        FloorHeatingService floorHeatingService,
         MeterRegistry meterRegistry
     ) {
         this.configuration = configuration;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.temperatureSensorsService = temperatureSensorsService;
-        this.bypassRelayService = bypassRelayService;
-        this.floorHeatingService = floorHeatingService;
 
         Gauge.builder("gas_boiler", this::getNumericStatus)
             .tag("component", "status")
@@ -99,37 +88,16 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     @EventListener
-    public void onApplicationEvent(BypassRelayStatusCalculatedEvent event) {
-        logger.debug("Получено событие о расчете статуса реле байпаса");
-        switch (event.getStatus()) {
-            case OPEN -> {
-                logger.info("Есть запрос на тепло от радиаторов");
-                heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
-            }
-            case CLOSED -> {
-                /* проверяем, нужно ли теплым полам тепло, если нет - убираем запрос на тепло */
-                if (floorHeatingService.getStatus() == FloorHeatingStatus.NO_NEED_HEAT) {
-                    heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
-                    logger.info("Запроса на тепло нет");
-                }
-            }
-        }
-    }
-
-    @EventListener
-    public void onApplicationEvent(FloorHeatingStatusCalculatedEvent event) {
-        logger.debug("Получено событие о расчете запроса тепла в полы");
+    public void onApplicationEvent(HeatRequestCalculatedEvent event) {
+        logger.debug("Получено событие о расчете статуса запроса тепла в дом");
         switch (event.getStatus()) {
             case NEED_HEAT -> {
-                logger.info("Есть запрос на тепло от теплых полов");
+                logger.debug("Есть запрос на тепло в дом");
                 heatRequestStatus = GasBoilerHeatRequestStatus.NEED_HEAT;
             }
             case NO_NEED_HEAT -> {
-                /* проверяем, нужно ли радиаторам тепло, если нет - убираем запрос на тепло */
-                if (bypassRelayService.getStatus() == BypassRelayStatus.CLOSED) {
-                    logger.info("Запроса на тепло нет");
-                    heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
-                }
+                heatRequestStatus = GasBoilerHeatRequestStatus.NO_NEED_HEAT;
+                logger.debug("Запроса на тепла в дом нет");
             }
         }
     }
@@ -202,7 +170,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле газового котла");
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
         }
     }
 
@@ -212,7 +180,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
         } catch (ModbusException e) {
             logger.error("Ошибка переключения статуса реле газового котла");
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
         }
     }
 
@@ -230,7 +198,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         } catch (ModbusException e) {
             logger.error("Ошибка получения статуса реле газового котла", e);
-            applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
+            applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
             return GasBoilerRelayStatus.ERROR;
         }
     }
