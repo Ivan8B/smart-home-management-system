@@ -1,55 +1,51 @@
 package home.automation.service.impl;
 
 import home.automation.configuration.HeatingPumpsRelayConfiguration;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.HeatingPumpsStatus;
 import home.automation.event.error.HeatingPumpsErrorEvent;
-import home.automation.event.info.HeatRequestCalculatedEvent;
 import home.automation.exception.ModbusException;
+import home.automation.service.HeatRequestService;
 import home.automation.service.HeatingPumpsService;
 import home.automation.service.ModbusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
 public class HeatingPumpsServiceImpl implements HeatingPumpsService {
     private final Logger logger = LoggerFactory.getLogger(HeatingPumpsServiceImpl.class);
-
     private final HeatingPumpsRelayConfiguration configuration;
-
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final ModbusService modbusService;
+    private final HeatRequestService heatRequestService;
 
     public HeatingPumpsServiceImpl(
         HeatingPumpsRelayConfiguration configuration,
         ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+        ModbusService modbusService,
+        HeatRequestService heatRequestService
     ) {
         this.configuration = configuration;
         this.applicationEventPublisher = applicationEventPublisher;
         this.modbusService = modbusService;
+        this.heatRequestService = heatRequestService;
     }
 
-    @EventListener
-    public void onApplicationEvent(HeatRequestCalculatedEvent event) {
-        logger.debug("Получено событие о расчете статуса запроса на тепло");
-        switch (event.getStatus()) {
-            case NEED_HEAT -> {
-                logger.info("Есть запрос на тепло в дом, включаем насосы");
-                turnOn();
-            }
-            case NO_NEED_HEAT -> {
-                logger.info("Нет запроса на тепло в дом, отключаем насосы");
-                turnOff();
-            }
-            case ERROR -> {
-                logger.info("Ошибка запроса тепло в дом, на всякий случай включаем насосы");
-                turnOn();
-            }
+    @Scheduled(fixedRateString = "${heatingPumps.relay.controlInterval}")
+    private void control() {
+        if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT
+            || heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
+            logger.info("Включаем насосы отопления");
+            turnOn();
         }
+        if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
+            logger.info("Отключаем насосы отопления");
+            turnOff();
+        }
+
     }
 
     private void turnOn() {

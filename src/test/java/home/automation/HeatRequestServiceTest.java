@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
-import home.automation.event.info.HeatRequestCalculatedEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.HeatRequestService;
 import home.automation.service.HeatingPumpsService;
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.event.ApplicationEvents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,9 +29,6 @@ public class HeatRequestServiceTest extends AbstractTest {
 
     @MockBean
     HeatingPumpsService heatingPumpsService;
-
-    @Autowired
-    private ApplicationEvents applicationEvents;
 
     private void invokeScheduledMethod() {
         try {
@@ -51,12 +46,7 @@ public class HeatRequestServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(configuration.getTargetTemperature() - configuration.getHysteresis() - 1F);
         invokeScheduledMethod();
-        assertEquals(
-            1,
-            applicationEvents.stream(HeatRequestCalculatedEvent.class)
-                .filter(event -> HeatRequestStatus.NEED_HEAT.equals(event.getStatus())).count()
-        );
-        applicationEvents.clear();
+        assertEquals(HeatRequestStatus.NEED_HEAT, heatRequestService.getStatus());
     }
 
     @Test
@@ -65,12 +55,7 @@ public class HeatRequestServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(configuration.getTargetTemperature() + 1F);
         invokeScheduledMethod();
-        assertEquals(
-            1,
-            applicationEvents.stream(HeatRequestCalculatedEvent.class)
-                .filter(event -> HeatRequestStatus.NO_NEED_HEAT.equals(event.getStatus())).count()
-        );
-        applicationEvents.clear();
+        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
     }
 
     @Test
@@ -79,26 +64,16 @@ public class HeatRequestServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(configuration.getTargetTemperature() + 1F);
         invokeScheduledMethod();
-        assertEquals(
-            1,
-            applicationEvents.stream(HeatRequestCalculatedEvent.class)
-                .filter(event -> HeatRequestStatus.NO_NEED_HEAT.equals(event.getStatus())).count()
-        );
-        applicationEvents.clear();
+        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(configuration.getTargetTemperature() - configuration.getHysteresis() + 0.1F);
         invokeScheduledMethod();
-        assertEquals(0, applicationEvents.stream(HeatRequestCalculatedEvent.class).count());
+        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(configuration.getTargetTemperature() - configuration.getHysteresis() - 1F);
         invokeScheduledMethod();
-        assertEquals(
-            1,
-            applicationEvents.stream(HeatRequestCalculatedEvent.class)
-                .filter(event -> HeatRequestStatus.NEED_HEAT.equals(event.getStatus())).count()
-        );
-        applicationEvents.clear();
+        assertEquals(HeatRequestStatus.NEED_HEAT, heatRequestService.getStatus());
     }
 }

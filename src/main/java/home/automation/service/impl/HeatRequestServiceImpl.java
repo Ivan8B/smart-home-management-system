@@ -4,7 +4,6 @@ import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.HeatRequestErrorEvent;
-import home.automation.event.info.HeatRequestCalculatedEvent;
 import home.automation.service.HeatRequestService;
 import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
@@ -50,31 +49,19 @@ public class HeatRequestServiceImpl implements HeatRequestService {
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
-            logger.debug("Отправляем событие по ошибке расчета статуса запроса на тепло в дом");
             applicationEventPublisher.publishEvent(new HeatRequestErrorEvent(this));
-            applicationEventPublisher.publishEvent(new HeatRequestCalculatedEvent(this, HeatRequestStatus.ERROR));
             calculatedStatus = HeatRequestStatus.ERROR;
             return;
         }
 
         if (currentTemperature < configuration.getTargetTemperature() - configuration.getHysteresis()) {
-            logger.debug("Есть запрос на тепло в дом, отправляем событие");
-            if (calculatedStatus != HeatRequestStatus.NEED_HEAT) {
-                applicationEventPublisher.publishEvent(new HeatRequestCalculatedEvent(this,
-                    HeatRequestStatus.NEED_HEAT
-                ));
-                calculatedStatus = HeatRequestStatus.NEED_HEAT;
-            }
+            logger.debug("Есть запрос на тепло в дом");
+            calculatedStatus = HeatRequestStatus.NEED_HEAT;
         }
 
         if (currentTemperature > configuration.getTargetTemperature()) {
-            logger.debug("Нет запроса на тепло в дом, отправляем событие");
-            if (calculatedStatus != HeatRequestStatus.NO_NEED_HEAT) {
-                applicationEventPublisher.publishEvent(new HeatRequestCalculatedEvent(this,
-                    HeatRequestStatus.NO_NEED_HEAT
-                ));
-                calculatedStatus = HeatRequestStatus.NO_NEED_HEAT;
-            }
+            logger.debug("Нет запроса на тепло в дом");
+            calculatedStatus = HeatRequestStatus.NO_NEED_HEAT;
         }
     }
 }

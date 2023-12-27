@@ -9,13 +9,14 @@ import java.util.List;
 import java.util.Map;
 
 import home.automation.configuration.GasBoilerConfiguration;
-import home.automation.enums.GasBoilerHeatRequestStatus;
 import home.automation.enums.GasBoilerRelayStatus;
 import home.automation.enums.GasBoilerStatus;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.TemperatureSensorsService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,9 @@ public class GasBoilerServiceTest extends AbstractTest {
 
     @MockBean
     FloorHeatingService floorHeatingService;
+
+    @MockBean
+    HeatRequestService heatRequestService;
 
     private void invokeCalculateStatusMethod(GasBoilerRelayStatus status) {
         try {
@@ -172,16 +176,6 @@ public class GasBoilerServiceTest extends AbstractTest {
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
-    private void setHeatRequestStatusField(GasBoilerHeatRequestStatus status) {
-        try {
-            Field field = gasBoilerService.getClass().getDeclaredField("heatRequestStatus");
-            field.setAccessible(true);
-            field.set(gasBoilerService, status);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось установить статус запроса на тепло газового котла", e);
-        }
-    }
-
     private void invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus status) {
         try {
             if (status == GasBoilerRelayStatus.NO_NEED_HEAT) {
@@ -203,7 +197,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильного управления реле котла с учетом тактования")
     void checkManageBoilerRelay() throws ModbusException {
-        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
 
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
@@ -224,13 +218,13 @@ public class GasBoilerServiceTest extends AbstractTest {
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
 
         /* убираем запрос на тепло и убеждаемся, что реле отключится у */
-        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NO_NEED_HEAT);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NO_NEED_HEAT);
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
         /* снова даем запрос и предполагаем, что котел отключился по подаче */
-        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
@@ -239,7 +233,7 @@ public class GasBoilerServiceTest extends AbstractTest {
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
 
         /* снова включаем котел и он не должен включиться по теплой обратке */
-        setHeatRequestStatusField(GasBoilerHeatRequestStatus.NEED_HEAT);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
