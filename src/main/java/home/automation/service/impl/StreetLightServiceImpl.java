@@ -60,7 +60,7 @@ public class StreetLightServiceImpl implements StreetLightService {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
             } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
+                logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
             }
         }
@@ -71,7 +71,7 @@ public class StreetLightServiceImpl implements StreetLightService {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
             } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
+                logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
             }
         }
@@ -82,7 +82,7 @@ public class StreetLightServiceImpl implements StreetLightService {
         try {
             boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
             if (pollResult.length < 1) {
-                throw new ModbusException("Опрос катушек вернул пустой массив");
+                throw new ModbusException("Опрос катушек реле уличного освещения вернул пустой массив");
             }
             if (pollResult[configuration.getCoil()]) {
                 return StreetLightStatus.TURNED_ON;

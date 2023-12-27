@@ -71,7 +71,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
             } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
+                logger.error("Ошибка переключения статуса реле электрического котла");
                 applicationEventPublisher.publishEvent(new ElectricBoilerErrorEvent(this));
             }
         }
@@ -82,7 +82,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
             } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле");
+                logger.error("Ошибка переключения статуса реле электрического котла");
                 applicationEventPublisher.publishEvent(new ElectricBoilerErrorEvent(this));
             }
         }
@@ -93,7 +93,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
         try {
             boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
             if (pollResult.length < 1) {
-                throw new ModbusException("Опрос катушек вернул пустой массив");
+                throw new ModbusException("Опрос катушек реле электрического котла вернул пустой массив");
             }
             if (pollResult[configuration.getCoil()]) {
                 return ElectricBoilerStatus.TURNED_ON;

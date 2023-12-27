@@ -201,7 +201,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             logger.info("Включаем газовый котел");
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
         } catch (ModbusException e) {
-            logger.error("Ошибка переключения статуса реле");
+            logger.error("Ошибка переключения статуса реле газового котла");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
@@ -211,7 +211,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             logger.info("Отключаем газовый котел");
             modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
         } catch (ModbusException e) {
-            logger.error("Ошибка переключения статуса реле");
+            logger.error("Ошибка переключения статуса реле газового котла");
             applicationEventPublisher.publishEvent(new GasBoilerRelaySetFailEvent(this));
         }
     }
@@ -220,7 +220,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         try {
             boolean[] pollResult = modbusService.readAllCoilsFromZero(configuration.getAddress());
             if (pollResult.length < 1) {
-                throw new ModbusException("Опрос катушек вернул пустой массив");
+                throw new ModbusException("Опрос катушек реле газового котла вернул пустой массив");
             }
             if (pollResult[configuration.getCoil()]) {
                 return GasBoilerRelayStatus.NO_NEED_HEAT;
