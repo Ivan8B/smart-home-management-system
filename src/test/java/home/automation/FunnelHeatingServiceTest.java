@@ -19,8 +19,10 @@ import static org.mockito.ArgumentMatchers.any;
 public class FunnelHeatingServiceTest extends AbstractTest {
     @Autowired
     FunnelHeatingService funnelHeatingService;
+
     @Autowired
     FunnelHeatingConfiguration configuration;
+
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 

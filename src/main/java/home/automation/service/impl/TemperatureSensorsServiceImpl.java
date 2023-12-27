@@ -28,9 +28,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     public static final Integer TEMPERATURE_SENSOR_ERROR_VALUE = 32768;
     private static final Logger logger = LoggerFactory.getLogger(TemperatureSensorsServiceImpl.class);
     private final ApplicationEventPublisher applicationEventPublisher;
-
     private final TemperatureSensorsBoardsConfiguration configuration;
-
     private final ModbusService modbusService;
 
     public TemperatureSensorsServiceImpl(

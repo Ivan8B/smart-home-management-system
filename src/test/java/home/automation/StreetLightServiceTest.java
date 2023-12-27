@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class StreetLightServiceTest extends AbstractTest {
     @Autowired
     StreetLightService streetLightService;
+
     @Autowired
     StreetLightConfiguration configuration;
 
