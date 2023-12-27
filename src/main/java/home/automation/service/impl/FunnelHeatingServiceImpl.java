@@ -65,6 +65,7 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
         if (getStatus() != FunnelHeatingStatus.TURNED_ON) {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                logger.info("Подогрева воронок включен");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле обогрева воронок");
                 applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
@@ -76,6 +77,7 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
         if (getStatus() != FunnelHeatingStatus.TURNED_OFF) {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                logger.info("Подогрева воронок отключен");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле обогрева воронок");
                 applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));

@@ -38,11 +38,9 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
     private void control() {
         if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT
             || heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
-            logger.info("Включаем насосы отопления");
             turnOn();
         }
         if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
-            logger.info("Отключаем насосы отопления");
             turnOff();
         }
 
@@ -53,6 +51,7 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
             try {
                 /* реле нормально закрытое, управление инвертировано */
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                logger.info("Насосы отопления включены");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле насосов отопления");
                 applicationEventPublisher.publishEvent(new HeatingPumpsErrorEvent(this));
@@ -64,6 +63,7 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
         if (getStatus() != HeatingPumpsStatus.TURNED_OFF) {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                logger.info("Насосы отопления отключены");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле насосов отопления");
                 applicationEventPublisher.publishEvent(new HeatingPumpsErrorEvent(this));

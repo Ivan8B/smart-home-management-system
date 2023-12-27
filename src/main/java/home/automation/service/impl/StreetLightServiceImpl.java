@@ -59,6 +59,7 @@ public class StreetLightServiceImpl implements StreetLightService {
         if (getStatus() != StreetLightStatus.TURNED_ON) {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                logger.info("Уличное освещение включено");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
@@ -70,6 +71,7 @@ public class StreetLightServiceImpl implements StreetLightService {
         if (getStatus() != StreetLightStatus.TURNED_OFF) {
             try {
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                logger.info("Уличное освещение отключено");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));

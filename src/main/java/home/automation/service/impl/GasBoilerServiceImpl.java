@@ -95,7 +95,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             if (ifGasBoilerCanBeTurnedOn()) {
                 turnOn();
             } else {
-                logger.info("Газовый котел не может быть включен на отопление по политике тактования");
+                logger.debug("Газовый котел не может быть включен на отопление по политике тактования");
             }
             return;
         }
@@ -136,7 +136,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         /* считаем, что котел работает когда температура подачи растет либо не слишком сильно упала относительно максимума за период работы */
         if (newDirectTemperature > lastDirectTemperature || ((maxDirectTemperatureForPeriod != null
             && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta()))) {
-            logger.info("Статус газового котла - работает");
+            logger.debug("Статус газового котла - работает");
             setStatus(GasBoilerStatus.WORKS);
 
             if (maxDirectTemperatureForPeriod == null || newDirectTemperature > maxDirectTemperatureForPeriod) {
@@ -149,7 +149,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 putGasBoilerReturnWhenWorkTemperatureToDailyHistory(newReturnTemperature);
             }
         } else {
-            logger.info("Статус газового котла - не работает");
+            logger.debug("Статус газового котла - не работает");
             setStatus(GasBoilerStatus.IDLE);
             maxDirectTemperatureForPeriod = null;
         }
@@ -176,7 +176,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         if (outsideTemperature == null) {
             float targetReturnTemperature = configuration.getTemperatureReturnMax();
-            logger.info(
+            logger.debug(
                 "Нет информации о температуре на улице, расчетная температура обратки для включения {} C°",
                 targetReturnTemperature
             );
@@ -185,7 +185,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
             float targetReturnTemperature = configuration.getTemperatureReturnMax();
-            logger.info(
+            logger.debug(
                 "Температура на улице ниже минимальной температуры климатической кривой, расчетная температура обратки для включения {} C°",
                 targetReturnTemperature
             );
@@ -194,7 +194,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         if (outsideTemperature >= configuration.getTemperatureWeatherCurveMax()) {
             float targetReturnTemperature = configuration.getTemperatureReturnMin();
-            logger.info(
+            logger.debug(
                 "Температура на улице выше максимальной температуры климатической кривой, расчетная температура обратки для включения {} C°",
                 targetReturnTemperature
             );
@@ -211,7 +211,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         float b = configuration.getTemperatureReturnMax() - m * configuration.getTemperatureWeatherCurveMin();
 
         float targetReturnTemperature = m * outsideTemperature + b;
-        logger.info(
+        logger.debug(
             "Температура на улице в пределах климатической кривой, расчетная температура обратки для включения {} C°",
             targetReturnTemperature
         );
@@ -221,8 +221,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private void turnOn() {
         if (getGasBoilerRelayStatus() != GasBoilerRelayStatus.NEED_HEAT) {
             try {
-                logger.info("Включаем газовый котел");
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                logger.info("Включаем реле газового котла");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле газового котла");
                 applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
@@ -233,8 +233,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private void turnOff() {
         if (getGasBoilerRelayStatus() != GasBoilerRelayStatus.NO_NEED_HEAT) {
             try {
-                logger.info("Отключаем газовый котел");
                 modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                logger.info("Отключаем реле газового котла");
             } catch (ModbusException e) {
                 logger.error("Ошибка переключения статуса реле газового котла");
                 applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
