@@ -1,6 +1,6 @@
 package home.automation.service.impl;
 
-import home.automation.configuration.HeatRequestConfiguration;
+import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.HeatRequestErrorEvent;
@@ -16,13 +16,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class HeatRequestServiceImpl implements HeatRequestService {
     private static final Logger logger = LoggerFactory.getLogger(HeatRequestServiceImpl.class);
-    private final HeatRequestConfiguration configuration;
+    private final GeneralConfiguration configuration;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TemperatureSensorsService temperatureSensorsService;
     private HeatRequestStatus calculatedStatus = HeatRequestStatus.NEED_HEAT;
 
     public HeatRequestServiceImpl(
-        HeatRequestConfiguration configuration,
+        GeneralConfiguration configuration,
         ApplicationEventPublisher applicationEventPublisher,
         TemperatureSensorsService temperatureSensorsService
     ) {
@@ -57,7 +57,7 @@ public class HeatRequestServiceImpl implements HeatRequestService {
             return;
         }
 
-        if (currentTemperature < configuration.getTemperatureOutsideDisable() - configuration.getHysteresis()) {
+        if (currentTemperature < configuration.getTargetTemperature() - configuration.getHysteresis()) {
             logger.debug("Есть запрос на тепло в дом, отправляем событие");
             if (calculatedStatus != HeatRequestStatus.NEED_HEAT) {
                 applicationEventPublisher.publishEvent(new HeatRequestCalculatedEvent(this,
@@ -67,7 +67,7 @@ public class HeatRequestServiceImpl implements HeatRequestService {
             }
         }
 
-        if (currentTemperature > configuration.getTemperatureOutsideDisable()) {
+        if (currentTemperature > configuration.getTargetTemperature()) {
             logger.debug("Нет запроса на тепло в дом, отправляем событие");
             if (calculatedStatus != HeatRequestStatus.NO_NEED_HEAT) {
                 applicationEventPublisher.publishEvent(new HeatRequestCalculatedEvent(this,

@@ -11,11 +11,18 @@ public class GeneralConfiguration {
     @Value("${temperature.outsideMin}")
     private Float outsideMin;
 
+    @Value("${temperature.hysteresis}")
+    private Float hysteresis;
+
     public Float getTargetTemperature() {
         return targetTemperature;
     }
 
     public Float getOutsideMin() {
         return outsideMin;
+    }
+
+    public Float getHysteresis() {
+        return hysteresis;
     }
 }
