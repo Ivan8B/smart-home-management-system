@@ -19,8 +19,10 @@ import static org.mockito.ArgumentMatchers.any;
 public class ElectricBoilerServiceTest extends AbstractTest {
     @Autowired
     ElectricBoilerService electricBoilerService;
+
     @Autowired
     ElectricBoilerConfiguration configuration;
+
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 
