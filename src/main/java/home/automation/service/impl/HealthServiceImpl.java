@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
+import home.automation.event.error.CityPowerInputErrorEvent;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.event.error.FunnelHeatingErrorEvent;
@@ -16,6 +17,7 @@ import home.automation.event.error.GasBoilerErrorEvent;
 import home.automation.event.error.HeatRequestErrorEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
+import home.automation.event.info.CityPowerInputNoPowerEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.service.BotService;
@@ -38,6 +40,8 @@ public class HealthServiceImpl implements HealthService {
     private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
+    private final List<CityPowerInputErrorEvent> cityPowerInputErrorEvents = new ArrayList<>();
+    private final List<CityPowerInputNoPowerEvent> cityPowerInputNoPowerEvents = new ArrayList<>();
     private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents = new ArrayList<>();
     private final List<StreetLightErrorEvent> streetLightErrorEvents = new ArrayList<>();
     private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
@@ -68,7 +72,8 @@ public class HealthServiceImpl implements HealthService {
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
         if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
-            || !floorHeatingIsOk() || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()) {
+            || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
+            || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
         }
         if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
@@ -125,6 +130,16 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
+    public void onCityPowerInputErrorEvent(CityPowerInputErrorEvent event) {
+        cityPowerInputErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onCityPowerInputNoPowerEvent(CityPowerInputNoPowerEvent event) {
+        cityPowerInputNoPowerEvents.add(event);
+    }
+
+    @EventListener
     public void onFloorHeatingErrorEvent(FloorHeatingErrorEvent event) {
         floorHeatingErrorEvents.add(event);
     }
@@ -174,6 +189,14 @@ public class HealthServiceImpl implements HealthService {
         return electricBoilerTurnedOnEvents.isEmpty();
     }
 
+    private boolean cityPowerInputIsOk() {
+        return cityPowerInputErrorEvents.isEmpty();
+    }
+
+    private boolean cityPowerInputHasPower() {
+        return cityPowerInputNoPowerEvents.isEmpty();
+    }
+
     private boolean floorHeatingIsOk() {
         return floorHeatingErrorEvents.isEmpty();
     }
@@ -203,6 +226,8 @@ public class HealthServiceImpl implements HealthService {
         gasBoilerErrorEvents.clear();
         electricBoilerErrorEvents.clear();
         electricBoilerTurnedOnEvents.clear();
+        cityPowerInputErrorEvents.clear();
+        cityPowerInputNoPowerEvents.clear();
         floorHeatingErrorEvents.clear();
         streetLightErrorEvents.clear();
         funnelHeatingErrorEvents.clear();
@@ -224,6 +249,12 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!electricBoilerIsTurnedOff()) {
             message.append("* работает электрический котел\n");
+        }
+        if (!cityPowerInputIsOk()) {
+            message.append("* отказ реле напряжения на входе ИБП\n");
+        }
+        if (!cityPowerInputHasPower()) {
+            message.append("* нет напряжения на входе ИБП\n");
         }
         if (!floorHeatingIsOk()) {
             message.append("* отказ управления теплым полом\n");

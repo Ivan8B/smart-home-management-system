@@ -162,6 +162,16 @@ funnelHeating:
     min: -2.0
     max: 2.0
 
+# Настройки опроса напряжения на входе в ИБП
+cityPowerInput:
+  relay:
+    # Modbus slaveId
+    address: 2
+    # DiscreteInput к которому подключено реле электрической линии города
+    discreteInput: 0
+  # Периодичность опросов напряжения на входе в ИБП
+  controlInterval: PT1M
+
 health:
   # Периодичность опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService и критичных температур)
   controlInterval: PT15M

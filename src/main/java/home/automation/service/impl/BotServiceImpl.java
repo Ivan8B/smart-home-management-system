@@ -3,6 +3,7 @@ package home.automation.service.impl;
 import home.automation.configuration.TelegramBotConfiguration;
 import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
+import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
 import home.automation.service.FunnelHeatingService;
 import home.automation.service.GasBoilerService;
@@ -40,6 +41,8 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private final ElectricBoilerService electricBoilerService;
 
+    private final CityPowerInputService cityPowerInputService;
+
     private final HeatingPumpsService heatingPumpsService;
 
     private final HeatRequestService heatRequestService;
@@ -56,7 +59,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
         ElectricBoilerService electricBoilerService,
-        HeatingPumpsService heatingPumpsService,
+        CityPowerInputService cityPowerInputService, HeatingPumpsService heatingPumpsService,
         HeatRequestService heatRequestService,
         @Lazy HealthService healthService,
         StreetLightService streetLightService,
@@ -67,6 +70,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
         this.electricBoilerService = electricBoilerService;
+        this.cityPowerInputService = cityPowerInputService;
         this.heatingPumpsService = heatingPumpsService;
         this.heatRequestService = heatRequestService;
         this.healthService = healthService;
@@ -145,6 +149,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n");
         message.append("* ").append(gasBoilerService.getFormattedStatusForLastDay()).append("\n\n");
         message.append("* ").append(electricBoilerService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(cityPowerInputService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(heatingPumpsService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
