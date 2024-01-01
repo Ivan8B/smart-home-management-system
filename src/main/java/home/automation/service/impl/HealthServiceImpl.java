@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import home.automation.enums.CityPowerInputStatus;
+import home.automation.enums.ElectricBoilerStatus;
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.CityPowerInputErrorEvent;
@@ -21,6 +23,8 @@ import home.automation.event.info.CityPowerInputNoPowerEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.event.info.MinimalTemperatureLowEvent;
 import home.automation.service.BotService;
+import home.automation.service.CityPowerInputService;
+import home.automation.service.ElectricBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
@@ -35,6 +39,8 @@ public class HealthServiceImpl implements HealthService {
     private static final Logger logger = LoggerFactory.getLogger(HealthServiceImpl.class);
     private final BotService botService;
     private final TemperatureSensorsService temperatureSensorsService;
+    private final ElectricBoilerService electricBoilerService;
+    private final CityPowerInputService cityPowerInputService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final List<HeatRequestErrorEvent> heatRequestErrorEvents = new ArrayList<>();
     private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
@@ -53,10 +59,14 @@ public class HealthServiceImpl implements HealthService {
     public HealthServiceImpl(
         BotService botService,
         TemperatureSensorsService temperatureSensorsService,
+        ElectricBoilerService electricBoilerService,
+        CityPowerInputService cityPowerInputService,
         ApplicationEventPublisher applicationEventPublisher
     ) {
         this.botService = botService;
         this.temperatureSensorsService = temperatureSensorsService;
+        this.electricBoilerService = electricBoilerService;
+        this.cityPowerInputService = cityPowerInputService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -186,7 +196,7 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private boolean electricBoilerIsTurnedOff() {
-        return electricBoilerTurnedOnEvents.isEmpty();
+        return electricBoilerTurnedOnEvents.isEmpty() && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
     }
 
     private boolean cityPowerInputIsOk() {
@@ -194,7 +204,7 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private boolean cityPowerInputHasPower() {
-        return cityPowerInputNoPowerEvents.isEmpty();
+        return cityPowerInputNoPowerEvents.isEmpty() && cityPowerInputService.getStatus() == CityPowerInputStatus.POWER_ON;
     }
 
     private boolean floorHeatingIsOk() {
