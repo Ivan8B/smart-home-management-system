@@ -273,11 +273,13 @@ public class HealthServiceImpl implements HealthService {
             message.append("* отказ критичных температурных датчиков: ");
             message.append(criticalTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
                 .collect(Collectors.joining(", ")));
+            message.append("\n");;
         }
         if (!minimalTemperaturesAreOk()) {
             message.append("* слишком низкая температура датчиков: ");
             message.append(minimalTemperatureLowEvents.stream().map(TemperatureSensor::getTemplate)
                 .collect(Collectors.joining(", ")));
+            message.append("\n");;
         }
         return message.toString();
     }
