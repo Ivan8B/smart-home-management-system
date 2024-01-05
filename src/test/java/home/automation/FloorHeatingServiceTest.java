@@ -3,10 +3,14 @@ package home.automation;
 import java.lang.reflect.Method;
 
 import home.automation.configuration.FloorHeatingTemperatureConfiguration;
+import home.automation.enums.TemperatureSensor;
 import home.automation.service.FloorHeatingService;
+import home.automation.service.TemperatureSensorsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,12 +25,15 @@ public class FloorHeatingServiceTest extends AbstractTest {
     @Autowired
     ApplicationEventPublisher applicationEventPublisher;
 
-    private float invokeCalculateTargetDirectTemperature(float averageInternalTemperature, float outsideTemperature) {
+    @MockBean
+    TemperatureSensorsService temperatureSensorsService;
+
+    private float invokeCalculateTargetDirectTemperature() {
         try {
             Method method = floorHeatingService.getClass()
-                .getDeclaredMethod("calculateTargetDirectTemperature", float.class, float.class);
+                .getDeclaredMethod("calculateTargetDirectTemperature");
             method.setAccessible(true);
-            return (float) method.invoke(floorHeatingService, averageInternalTemperature, outsideTemperature);
+            return (float) method.invoke(floorHeatingService);
         } catch (Exception e) {
             throw new RuntimeException("Не удалось вызвать метод расчета целевой температуры теплых полов", e);
         }
@@ -35,14 +42,25 @@ public class FloorHeatingServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов")
     void checkAverageTemperatureCalculation() {
-        assertEquals(30F, invokeCalculateTargetDirectTemperature(21F, 10F));
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(10F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+            .thenReturn(21F);
+        assertEquals(30F, invokeCalculateTargetDirectTemperature());
     }
 
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов при граничных значениях")
     void checkAverageTemperatureCalculationLimits() {
-        assertEquals(40F, invokeCalculateTargetDirectTemperature(20F, -20F));
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+            .thenReturn(20F);
 
-        assertEquals(30F, invokeCalculateTargetDirectTemperature(20F, 23F));
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(-20F);
+        assertEquals(40F, invokeCalculateTargetDirectTemperature());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(23F);
+        assertEquals(30F, invokeCalculateTargetDirectTemperature());
     }
 }

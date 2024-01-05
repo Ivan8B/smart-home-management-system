@@ -35,17 +35,25 @@ public enum TemperatureSensor {
             true
         ),
 
-    WATER_DIRECT_FLOOR_TEMPERATURE
+    WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING
         (
             4,
             FIRST_BOARD_NAME,
-            "подача в теплые полы",
+            "подача в теплые полы до подмеса",
+            true
+        ),
+
+    WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING
+        (
+            5,
+            FIRST_BOARD_NAME,
+            "подача в теплые полы после подмеса",
             true
         ),
 
     WATER_RETURN_FLOOR_TEMPERATURE
         (
-            5,
+            6,
             FIRST_BOARD_NAME,
             "обратка из теплых полов",
             true
@@ -53,17 +61,9 @@ public enum TemperatureSensor {
 
     CHILD_BATHROOM_TEMPERATURE
         (
-            6,
-            FIRST_BOARD_NAME,
-            "температура в детском санузле"
-        ),
-
-    SECOND_FLOOR_BATHROOM_TEMPERATURE
-        (
             7,
             FIRST_BOARD_NAME,
-            "температура в санузле 2го этажа",
-            true
+            "температура в детском санузле"
         );
 
     private final Integer registerId;
