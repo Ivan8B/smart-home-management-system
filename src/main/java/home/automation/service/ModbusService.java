@@ -24,16 +24,22 @@ public interface ModbusService {
      * @param address modbus адрес реле
      * @param coilId id катушки
      * @param value новое значение катушки
-     * @throws ModbusException
      */
     void writeCoil(int address, int coilId, boolean value) throws ModbusException;
 
     /**
-     * Метод чтения состосяния Holding Register (F03)
+     * Метод чтения состояния Holding Register (F03)
      * @param address modbus адрес
      * @param registerId id регистра
      * @return одиночное значение
-     * @throws ModbusException
      */
     int readHoldingRegister(int address, int registerId) throws ModbusException;
+
+    /**
+     * Метод записи в Holding Register (F06)
+     * @param address modbus адрес
+     * @param registerId id регистра
+     * @param value значение
+     */
+    void writeHoldingRegister(int address, int registerId, int value) throws ModbusException;
 }

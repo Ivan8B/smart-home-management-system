@@ -8,13 +8,11 @@ import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GeneralConfiguration;
 import home.automation.enums.GasBoilerStatus;
-import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
-import home.automation.service.HeatRequestService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import org.jetbrains.annotations.Nullable;
@@ -44,8 +42,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GasBoilerService gasBoilerService;
 
-    private final HeatRequestService heatRequestService;
-
     private final ModbusService modbusService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -57,7 +53,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
-        HeatRequestService heatRequestService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher
     ) {
@@ -67,7 +62,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
-        this.heatRequestService = heatRequestService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
@@ -75,6 +69,12 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
     private void control() {
         logger.debug("Запущена джоба управления теплым полом");
+
+        logger.debug("Проверяем работает ли газовый котел");
+        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
+            logger.debug("Управлять теплым полом не нужно - котел не работает");
+            return;
+        }
 
         logger.debug("Опрашиваем датчики для расчета целевой температуры подачи");
         Float averageInternalTemperature = calculateAverageInternalTemperature();
@@ -95,12 +95,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        logger.debug("Проверяем, есть ли запрос на тепло в дом");
-        if (heatRequestService.getStatus() != HeatRequestStatus.NEED_HEAT) {
-            logger.debug("Запроса на тепло нет, операций с клапаном теплого пола не производим");
-            return;
-        }
-
         logger.debug("Проверяем, работает ли котел");
         if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
             logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
@@ -108,7 +102,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
 
         logger.debug("Запускаем расчет процента открытия клапана");
-        Float openForDirectPercent = calculateOpenForDirectPercent(averageInternalTemperature, outsideTemperature);
+        Integer openForDirectPercent = calculateOpenForDirectPercent(averageInternalTemperature, outsideTemperature);
 
         if (openForDirectPercent == null) {
             logger.warn("Расчет процента открытия клапана не удался");
@@ -143,7 +137,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
     }
 
-    private @Nullable Float calculateOpenForDirectPercent(float averageInternalTemperature, float outsideTemperature) {
+    private @Nullable Integer calculateOpenForDirectPercent(float averageInternalTemperature, float outsideTemperature) {
         float targetDirectTemperature =
             calculateTargetDirectTemperature(averageInternalTemperature, outsideTemperature);
 
@@ -162,16 +156,16 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         if (floorReturnTemperature > targetDirectTemperature || floorReturnTemperature > gasBoilerDirectTemperature) {
             logger.info("Слишком горячая обратка из пола, закрываем клапан");
-            return 0F;
+            return 0;
         }
 
         if (targetDirectTemperature > gasBoilerDirectTemperature) {
             logger.info("Слишком холодная подача из котла, открываем клапан полностью");
-            return 100F;
+            return 100;
         }
 
-        return 100 * (targetDirectTemperature - floorReturnTemperature) / (gasBoilerDirectTemperature
-            - floorReturnTemperature);
+        return Math.round(100 * (targetDirectTemperature - floorReturnTemperature) / (gasBoilerDirectTemperature
+            - floorReturnTemperature));
     }
 
     private float calculateTargetDirectTemperature(float averageInternalTemperature, float outsideTemperature) {
@@ -200,16 +194,37 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
     }
 
-    private void setValveOnPercent(Float openForDirectPercent) {
+    private void setValveOnPercent(int openForDirectPercent) {
         try {
+            logger.debug("Проверяем текущий процент открытия клапана");
+            int currentPercent =
+                modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getReadRegister())
+                    / 10;
+
+            if (Math.abs(currentPercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
+                logger.debug("Клапан установлен в пределах погрешности");
+                return;
+            }
+
             logger.debug("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
-            //TODO какой-то метод в modbus сервисе, но документации пока нет
+            logger.debug("Подаем управляющее напряжение");
+            modbusService.writeHoldingRegister(dacConfiguration.getAddress(),
+                dacConfiguration.getWriteRegister(),
+                openForDirectPercent * 10
+            );
+
+            modbusService.writeHoldingRegister(dacConfiguration.getAddress(),
+                dacConfiguration.getWriteRegister(),
+                openForDirectPercent * 10
+            );
 
             Thread.sleep(relayConfiguration.getDelay() * 1000);
             logger.debug("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
+
+            logger.info("Сервопривод был передвинут, новый процент открытия {}", openForDirectPercent);
         } catch (ModbusException | InterruptedException e) {
             logger.error("Ошибка выставления напряжение на ШИМ");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));

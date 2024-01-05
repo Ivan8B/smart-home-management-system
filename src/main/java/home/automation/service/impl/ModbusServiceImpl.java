@@ -126,6 +126,25 @@ public class ModbusServiceImpl implements ModbusService {
         return result;
     }
 
+    @Override
+    public void writeHoldingRegister(int address, int registerId, int value) throws ModbusException {
+        try {
+            init();
+            Future<int[]> future = executorService.submit(() -> writeHoldingRegistersWithDelay(address, registerId, value));
+            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с записью*/
+            future.get();
+        } catch (Exception e) {
+            logger.error("Ошибка записи в регистр", e);
+            throw new ModbusException();
+        }
+    }
+
+    private int[] writeHoldingRegistersWithDelay(Integer address, Integer registerId, int value) throws Exception {
+        modbusMaster.writeSingleRegister(address, registerId, value);
+        delay();
+        return new int[0];
+    }
+
     private void delay() {
         try {
             Thread.sleep(modbusConfiguration.getDelay());
