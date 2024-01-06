@@ -206,12 +206,12 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private void setValveOnPercent(int openForDirectPercent) {
         try {
-            logger.debug("Проверяем текущий процент открытия клапана");
-            float currentVoltageInV = (float) modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister()) / 100;
-            logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
-            int currentPercent = getPercentFromVoltageInV(currentVoltageInV);
+            Integer currentValvePercent = getCurrentValvePercent();
+            if (currentValvePercent == null) {
+                throw new ModbusException();
+            }
 
-            if (Math.abs(currentPercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
+            if (Math.abs(currentValvePercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
                 logger.debug("Клапан установлен в пределах погрешности");
                 return;
             }
@@ -221,7 +221,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
             logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
             int voltageIn10mv = Math.round(getVoltageInVFromPercent(openForDirectPercent) * 100);
-            logger.debug("Устанавливаемое напряжение на ЦАП {}V", voltageIn10mv / 100);
+            logger.debug("Устанавливаемое напряжение на ЦАП {}V", (float) voltageIn10mv / 100);
             modbusService.writeHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister(), voltageIn10mv);
 
             Thread.sleep(relayConfiguration.getDelay() * 1000);
