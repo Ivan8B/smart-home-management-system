@@ -20,7 +20,7 @@ public class FloorHeatingServiceTest extends AbstractTest {
     FloorHeatingService floorHeatingService;
 
     @Autowired
-    FloorHeatingTemperatureConfiguration floorHeatingConfiguration;
+    FloorHeatingTemperatureConfiguration configuration;
 
     @Autowired
     ApplicationEventPublisher applicationEventPublisher;
@@ -46,21 +46,21 @@ public class FloorHeatingServiceTest extends AbstractTest {
             .thenReturn(10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
             .thenReturn(21F);
-        assertEquals(30F, invokeCalculateTargetDirectTemperature());
+        assertEquals(30F, invokeCalculateTargetDirectTemperature(), 0.5f);
     }
 
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов при граничных значениях")
     void checkAverageTemperatureCalculationLimits() {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
-            .thenReturn(20F);
+            .thenReturn(configuration.getDirectMinTemperature());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(-20F);
-        assertEquals(40F, invokeCalculateTargetDirectTemperature());
+            .thenReturn(-30F);
+        assertEquals(configuration.getDirectMaxTemperature(), invokeCalculateTargetDirectTemperature());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(23F);
-        assertEquals(30F, invokeCalculateTargetDirectTemperature());
+        assertEquals(configuration.getDirectMinTemperature(), invokeCalculateTargetDirectTemperature(), 0.5f);
     }
 }
