@@ -8,11 +8,8 @@ public class FloorHeatingValveDacConfiguration {
     @Value("${floorHeating.valve.dac.address}")
     private Integer address;
 
-    @Value("${floorHeating.valve.dac.readRegister}")
-    private Integer readRegister;
-
-    @Value("${floorHeating.valve.dac.writeRegister}")
-    private Integer writeRegister;
+    @Value("${floorHeating.valve.dac.register}")
+    private Integer register;
 
     @Value("${floorHeating.valve.dac.accuracy}")
     private Float accuracy;
@@ -21,12 +18,8 @@ public class FloorHeatingValveDacConfiguration {
         return address;
     }
 
-    public Integer getReadRegister() {
-        return readRegister;
-    }
-
-    public Integer getWriteRegister() {
-        return writeRegister;
+    public Integer getRegister() {
+        return register;
     }
 
     public Float getAccuracy() {

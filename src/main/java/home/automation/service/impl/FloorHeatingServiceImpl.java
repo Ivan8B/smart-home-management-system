@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -206,9 +207,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private void setValveOnPercent(int openForDirectPercent) {
         try {
             logger.debug("Проверяем текущий процент открытия клапана");
-            int currentPercent =
-                modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getReadRegister())
-                    / 10;
+            float currentVoltageInV = (float) modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister()) / 100;
+            logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
+            int currentPercent = getPercentFromVoltageInV(currentVoltageInV);
 
             if (Math.abs(currentPercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
                 logger.debug("Клапан установлен в пределах погрешности");
@@ -218,22 +219,14 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.debug("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
-            logger.debug("Подаем управляющее напряжение");
-            modbusService.writeHoldingRegister(
-                dacConfiguration.getAddress(),
-                dacConfiguration.getWriteRegister(),
-                openForDirectPercent * 10
-            );
-
-            modbusService.writeHoldingRegister(
-                dacConfiguration.getAddress(),
-                dacConfiguration.getWriteRegister(),
-                openForDirectPercent * 10
-            );
+            logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
+            int voltageIn10mv = Math.round(getVoltageInVFromPercent(openForDirectPercent) * 100);
+            logger.debug("Устанавливаемое напряжение на ЦАП {}V", voltageIn10mv / 100);
+            modbusService.writeHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister(), voltageIn10mv);
 
             Thread.sleep(relayConfiguration.getDelay() * 1000);
             logger.debug("Выключаем питание сервопривода клапана");
-            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
+            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
 
             logger.info("Сервопривод был передвинут, новый процент открытия {}", openForDirectPercent);
         } catch (ModbusException | InterruptedException e) {
@@ -245,13 +238,29 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private Integer getCurrentValvePercent() {
         try {
             logger.debug("Проверяем текущий процент открытия клапана");
-            return
-                modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getReadRegister())
-                    / 10;
+            float currentVoltageInV = (float) modbusService.readHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister()) / 100;
+            logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
+            return getPercentFromVoltageInV(currentVoltageInV);
         } catch (ModbusException e) {
             logger.error("Ошибка чтения напряжение на ЦАП");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         }
         return null;
+    }
+
+    private int getPercentFromVoltageInV(float voltage) {
+        /* процент считается в интервале напряжений от 2 до 10 В */
+        if (voltage < 2) {
+            voltage = 2;
+        }
+        if (voltage > 10) {
+            voltage = 10;
+        }
+        return Math.round(((voltage - 2) / 8) * 100);
+    }
+
+    private float getVoltageInVFromPercent(int percent) {
+        /* процент считается в интервале напряжений от 2 до 10 В */
+        return 2f + 8f * percent / 100;
     }
 }
