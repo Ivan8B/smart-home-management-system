@@ -98,7 +98,7 @@ electricBoiler:
 # Настройки управления теплым полом
 floorHeating:
   # Периодичность запуска управления теплым полом
-  controlInterval: PT1M
+  controlInterval: PT3M
   temperature:
     # Минимальная и максимальная температура подачи в теплый пол
     direct:
@@ -115,7 +115,7 @@ floorHeating:
       # Coil в который пишется значение (F05), нумерация с 0
       coil: 1
       # Время, на которое подается питание на сервопривод (секунд). Не должно быть больше controlInterval!!
-      delay: 45
+      delay: 60
     # Цифро-аналоговый преобразователь
     dac:
       # Modbus slaveId
