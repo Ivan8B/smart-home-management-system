@@ -110,6 +110,37 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         setValveOnPercent(openForDirectPercent);
     }
 
+    private void setValveOnPercent(int openForDirectPercent) {
+        try {
+            Integer currentValvePercent = getCurrentValvePercent();
+            if (currentValvePercent == null) {
+                throw new ModbusException();
+            }
+
+            if (Math.abs(currentValvePercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
+                logger.debug("Клапан установлен в пределах погрешности");
+                return;
+            }
+
+            logger.debug("Включаем питание сервопривода клапана");
+            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
+
+            logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
+            int voltageIn10mv = Math.round(getVoltageInVFromPercent(openForDirectPercent) * 100);
+            logger.debug("Устанавливаемое напряжение на ЦАП {}V", (float) voltageIn10mv / 100);
+            modbusService.writeHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister(), voltageIn10mv);
+
+            Thread.sleep(relayConfiguration.getDelay() * 1000);
+            logger.debug("Выключаем питание сервопривода клапана");
+            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
+
+            logger.info("Сервопривод был передвинут, новый процент открытия {}", openForDirectPercent);
+        } catch (ModbusException | InterruptedException e) {
+            logger.error("Ошибка выставления напряжение на ЦАП");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+        }
+    }
+
     private @Nullable Integer calculateOpenForDirectPercent() {
         logger.debug("Получаем температуры подачи до подмеса и обратки из полов");
         Float floorDirectBeforeMixingTemperature =
@@ -201,37 +232,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 sum = sum + temperature;
             }
             return sum / polledTemperatures.size();
-        }
-    }
-
-    private void setValveOnPercent(int openForDirectPercent) {
-        try {
-            Integer currentValvePercent = getCurrentValvePercent();
-            if (currentValvePercent == null) {
-                throw new ModbusException();
-            }
-
-            if (Math.abs(currentValvePercent - openForDirectPercent) < dacConfiguration.getAccuracy()) {
-                logger.debug("Клапан установлен в пределах погрешности");
-                return;
-            }
-
-            logger.debug("Включаем питание сервопривода клапана");
-            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
-
-            logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
-            int voltageIn10mv = Math.round(getVoltageInVFromPercent(openForDirectPercent) * 100);
-            logger.debug("Устанавливаемое напряжение на ЦАП {}V", (float) voltageIn10mv / 100);
-            modbusService.writeHoldingRegister(dacConfiguration.getAddress(), dacConfiguration.getRegister(), voltageIn10mv);
-
-            Thread.sleep(relayConfiguration.getDelay() * 1000);
-            logger.debug("Выключаем питание сервопривода клапана");
-            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
-
-            logger.info("Сервопривод был передвинут, новый процент открытия {}", openForDirectPercent);
-        } catch (ModbusException | InterruptedException e) {
-            logger.error("Ошибка выставления напряжение на ЦАП");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         }
     }
 
