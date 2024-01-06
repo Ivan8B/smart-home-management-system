@@ -5,6 +5,7 @@ import home.automation.enums.BotCommands;
 import home.automation.service.BotService;
 import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
+import home.automation.service.FloorHeatingService;
 import home.automation.service.FunnelHeatingService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
@@ -52,6 +53,9 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private final StreetLightService streetLightService;
 
     private final FunnelHeatingService funnelHeatingService;
+
+    private final FloorHeatingService floorHeatingService;
+
     private BotSession session;
 
     public BotServiceImpl(
@@ -63,7 +67,8 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         HeatRequestService heatRequestService,
         @Lazy HealthService healthService,
         StreetLightService streetLightService,
-        FunnelHeatingService funnelHeatingService
+        FunnelHeatingService funnelHeatingService,
+        FloorHeatingService floorHeatingService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
@@ -76,6 +81,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.healthService = healthService;
         this.streetLightService = streetLightService;
         this.funnelHeatingService = funnelHeatingService;
+        this.floorHeatingService = floorHeatingService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -138,6 +144,11 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             logger.info("Получена команда на получение статуса системы");
             notify("Считаю статус системы...\n");
             return formatStatus();
+        }
+        if (BotCommands.CALIBRATE_FLOOR.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на калибровку теплого пола");
+            notify("Идет калибровка, подождите...\n");
+            notify(floorHeatingService.calibrate());
         }
         return null;
     }
