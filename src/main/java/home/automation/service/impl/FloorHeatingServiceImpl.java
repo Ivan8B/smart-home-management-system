@@ -239,9 +239,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return null;
         }
 
-        return currentValvePercent - Math.round(
+        return Math.round(
             100 * (targetDirectTemperature - floorReturnTemperature) / (floorDirectBeforeMixingTemperature
-                - floorReturnTemperature));
+                - floorReturnTemperature)) - currentValvePercent;
     }
 
     private void setValveOnPercent(int openForDirectPercent) {
