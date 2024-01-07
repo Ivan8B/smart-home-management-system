@@ -11,18 +11,11 @@ public class FloorHeatingValveDacConfiguration {
     @Value("${floorHeating.valve.dac.register}")
     private Integer register;
 
-    @Value("${floorHeating.valve.dac.accuracy}")
-    private Float accuracy;
-
     public Integer getAddress() {
         return address;
     }
 
     public Integer getRegister() {
         return register;
-    }
-
-    public Float getAccuracy() {
-        return accuracy;
     }
 }
