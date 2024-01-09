@@ -54,12 +54,12 @@ public class HeatRequestServiceImpl implements HeatRequestService {
             return;
         }
 
-        if (currentTemperature < configuration.getTargetTemperature() - configuration.getHysteresis()) {
+        if (currentTemperature < configuration.getOutsideMax() - configuration.getHysteresis()) {
             logger.debug("Есть запрос на тепло в дом");
             calculatedStatus = HeatRequestStatus.NEED_HEAT;
         }
 
-        if (currentTemperature > configuration.getTargetTemperature()) {
+        if (currentTemperature > configuration.getOutsideMax()) {
             logger.debug("Нет запроса на тепло в дом");
             calculatedStatus = HeatRequestStatus.NO_NEED_HEAT;
         }

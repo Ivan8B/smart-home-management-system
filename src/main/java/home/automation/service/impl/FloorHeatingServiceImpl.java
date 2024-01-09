@@ -145,8 +145,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
         float calculated =
-            (generalConfiguration.getTargetTemperature() - outsideTemperature) * temperatureConfiguration.getK()
-                + generalConfiguration.getTargetTemperature() + (generalConfiguration.getTargetTemperature()
+            (generalConfiguration.getInsideTarget() - outsideTemperature) * temperatureConfiguration.getK()
+                + generalConfiguration.getInsideTarget() + (generalConfiguration.getInsideTarget()
                 - averageInternalTemperature);
 
         if (calculated < temperatureConfiguration.getDirectMinTemperature()) {

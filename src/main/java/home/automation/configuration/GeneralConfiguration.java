@@ -5,8 +5,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class GeneralConfiguration {
-    @Value("${temperature.target}")
-    private Float targetTemperature;
+    @Value("${temperature.insideTarget}")
+    private Float insideTarget;
+
+    @Value("${temperature.outsideMax}")
+    private Float outsideMax;
 
     @Value("${temperature.outsideMin}")
     private Float outsideMin;
@@ -14,8 +17,12 @@ public class GeneralConfiguration {
     @Value("${temperature.hysteresis}")
     private Float hysteresis;
 
-    public Float getTargetTemperature() {
-        return targetTemperature;
+    public Float getInsideTarget() {
+        return insideTarget;
+    }
+
+    public Float getOutsideMax() {
+        return outsideMax;
     }
 
     public Float getOutsideMin() {
