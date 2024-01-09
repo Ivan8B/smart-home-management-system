@@ -51,8 +51,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    private Instant lastCalibrateTs;
-
     private Integer lastValvePercent;
 
     private Integer lastCorrection;
@@ -99,16 +97,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
     private void control() {
         logger.debug("Запущена джоба управления теплым полом");
-
-        logger.debug("Проверяем, нужно ли калибровать клапан");
-        if (lastCalibrateTs == null
-            || Duration.between(lastCalibrateTs, Instant.now()).compareTo(Duration.of(1, ChronoUnit.DAYS)) > 0) {
-            logger.info("Запущена задача калибровки сервопривода");
-            setValveOnPercent(100);
-            setValveOnPercent(0);
-            logger.info("Калибровка завершена");
-            lastCalibrateTs = Instant.now();
-        }
 
         logger.debug("Проверяем, работает ли котел");
         if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
