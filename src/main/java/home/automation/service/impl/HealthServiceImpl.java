@@ -21,7 +21,8 @@ import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.event.info.CityPowerInputNoPowerEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
-import home.automation.event.info.MinimalTemperatureLowEvent;
+import home.automation.event.info.MaximumTemperatureViolationEvent;
+import home.automation.event.info.MinimumTemperatureViolationEvent;
 import home.automation.service.BotService;
 import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
@@ -53,7 +54,8 @@ public class HealthServiceImpl implements HealthService {
     private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
-    private final Set<TemperatureSensor> minimalTemperatureLowEvents = new HashSet<>();
+    private final Set<TemperatureSensor> minimumTemperatureViolationEvents = new HashSet<>();
+    private final Set<TemperatureSensor> maximumTemperatureViolationEvents = new HashSet<>();
     private SelfMonitoringStatus lastStatus = SelfMonitoringStatus.OK;
 
     public HealthServiceImpl(
@@ -77,16 +79,18 @@ public class HealthServiceImpl implements HealthService {
 
     private SelfMonitoringStatus calculateHealthStatus() {
         logger.debug("Запущена задача селфмониторинга");
-        checkMinimalTemperature();
+        checkMinimumTemperature();
+        checkMaximumTemperature();
 
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
         if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
             || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
-            || !criticalTemperatureSensorsAreOk() || !minimalTemperaturesAreOk()) {
+            || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
         }
-        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()) {
+        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()
+            || !maximumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
         }
 
@@ -106,15 +110,28 @@ public class HealthServiceImpl implements HealthService {
         return newStatus;
     }
 
-    private void checkMinimalTemperature() {
+    private void checkMinimumTemperature() {
         Arrays.stream(TemperatureSensor.values())
-            .filter(sensor -> sensor.isCritical() && sensor.getMinimalTemperature() != null).forEach(sensor -> {
+            .filter(sensor -> sensor.isCritical() && sensor.getMinimumTemperature() != null).forEach(sensor -> {
                 Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
-                if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimalTemperature()) {
+                if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimumTemperature()) {
                     logger.warn(
                         sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
                     logger.debug("Отправляем событие о низкой температуре");
-                    applicationEventPublisher.publishEvent(new MinimalTemperatureLowEvent(this, sensor));
+                    applicationEventPublisher.publishEvent(new MinimumTemperatureViolationEvent(this, sensor));
+                }
+            });
+    }
+
+    private void checkMaximumTemperature() {
+        Arrays.stream(TemperatureSensor.values())
+            .filter(sensor -> sensor.isCritical() && sensor.getMaximumTemperature() != null).forEach(sensor -> {
+                Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
+                if (currentTemperatureForSensor != null && currentTemperatureForSensor > sensor.getMaximumTemperature()) {
+                    logger.warn(
+                        sensor.getTemplate() + " - слишком высокая температура - " + currentTemperatureForSensor + " C°!");
+                    logger.debug("Отправляем событие о высокой температуре");
+                    applicationEventPublisher.publishEvent(new MaximumTemperatureViolationEvent(this, sensor));
                 }
             });
     }
@@ -174,8 +191,13 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
-    public void onMinimalTemperatureLowEvent(MinimalTemperatureLowEvent event) {
-        minimalTemperatureLowEvents.add(event.getSensor());
+    public void onMinimumTemperatureViolationEvent(MinimumTemperatureViolationEvent event) {
+        minimumTemperatureViolationEvents.add(event.getSensor());
+    }
+
+    @EventListener
+    public void onMaximumTemperatureLowEvent(MaximumTemperatureViolationEvent event) {
+        maximumTemperatureViolationEvents.add(event.getSensor());
     }
 
     @Override
@@ -196,7 +218,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private boolean electricBoilerIsTurnedOff() {
-        return electricBoilerTurnedOnEvents.isEmpty() && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
+        return electricBoilerTurnedOnEvents.isEmpty()
+            && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
     }
 
     private boolean cityPowerInputIsOk() {
@@ -204,7 +227,8 @@ public class HealthServiceImpl implements HealthService {
     }
 
     private boolean cityPowerInputHasPower() {
-        return cityPowerInputNoPowerEvents.isEmpty() && cityPowerInputService.getStatus() == CityPowerInputStatus.POWER_ON;
+        return cityPowerInputNoPowerEvents.isEmpty()
+            && cityPowerInputService.getStatus() == CityPowerInputStatus.POWER_ON;
     }
 
     private boolean floorHeatingIsOk() {
@@ -227,8 +251,12 @@ public class HealthServiceImpl implements HealthService {
         return minorTemperatureSensorFailEvents.isEmpty();
     }
 
-    private boolean minimalTemperaturesAreOk() {
-        return minimalTemperatureLowEvents.isEmpty();
+    private boolean minimumTemperaturesAreOk() {
+        return minimumTemperatureViolationEvents.isEmpty();
+    }
+
+    private boolean maximumTemperaturesAreOk() {
+        return maximumTemperatureViolationEvents.isEmpty();
     }
 
     private void clear() {
@@ -243,7 +271,8 @@ public class HealthServiceImpl implements HealthService {
         funnelHeatingErrorEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();
-        minimalTemperatureLowEvents.clear();
+        minimumTemperatureViolationEvents.clear();
+        maximumTemperatureViolationEvents.clear();
     }
 
     private String formatCriticalMessage() {
@@ -273,13 +302,14 @@ public class HealthServiceImpl implements HealthService {
             message.append("* отказ критичных температурных датчиков: ");
             message.append(criticalTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
                 .collect(Collectors.joining(", ")));
-            message.append("\n");;
+            message.append("\n");
         }
-        if (!minimalTemperaturesAreOk()) {
+        if (!minimumTemperaturesAreOk()) {
             message.append("* слишком низкая температура датчиков: ");
-            message.append(minimalTemperatureLowEvents.stream().map(TemperatureSensor::getTemplate)
+            message.append(minimumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
                 .collect(Collectors.joining(", ")));
-            message.append("\n");;
+            message.append("\n");
+            ;
         }
         return message.toString();
     }
@@ -296,6 +326,12 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!funnelHeatingIsOk()) {
             message.append("* отказ обогрева воронок\n");
+        }
+        if (!maximumTemperaturesAreOk()) {
+            message.append("* слишком высокая температура датчиков: ");
+            message.append(maximumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
+                .collect(Collectors.joining(", ")));
+            message.append("\n");
         }
         return message.toString();
     }

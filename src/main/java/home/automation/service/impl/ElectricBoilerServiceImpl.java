@@ -53,14 +53,14 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             return;
         }
 
-        if (currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature()) {
+        if (currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature()) {
             logger.debug("Требуется включение электрического котла, включаем");
             turnOn();
             applicationEventPublisher.publishEvent(new ElectricBoilerTurnedOnEvent(this));
             return;
         }
         if (currentTemperature
-            > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature() + configuration.getHysteresis()) {
+            > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
             logger.debug("Работа электрического котла не требуется, выключаем");
             turnOff();
         }

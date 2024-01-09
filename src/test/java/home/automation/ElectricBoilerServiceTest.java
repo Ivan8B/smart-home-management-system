@@ -48,7 +48,7 @@ public class ElectricBoilerServiceTest extends AbstractTest {
     @DisplayName("Проверка включения электрокотла при низкой температуре в котельной")
     void checkEnable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
-            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature() - 1F);
+            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() - 1F);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
@@ -59,7 +59,7 @@ public class ElectricBoilerServiceTest extends AbstractTest {
     void checkDisable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
             .thenReturn(
-                TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature() + configuration.getHysteresis()
+                TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()
                     + 0.1F);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
@@ -70,12 +70,12 @@ public class ElectricBoilerServiceTest extends AbstractTest {
     @DisplayName("Проверка того, что реле не переключается при температуре выше минимальной, но ниже гистерезиса")
     void checkHysteresis() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
-            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature() + 0.1F);
+            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + 0.1F);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.never()).writeCoil(any(int.class), any(int.class), any(boolean.class));
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
-            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimalTemperature() + 0.1F);
+            .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + 0.1F);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.never()).writeCoil(any(int.class), any(int.class), any(boolean.class));
     }

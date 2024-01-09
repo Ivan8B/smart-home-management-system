@@ -9,7 +9,8 @@ public enum TemperatureSensor {
             FIRST_BOARD_NAME,
             "температура в котельной",
             true,
-            15F
+            15F,
+            null
         ),
 
     WATER_DIRECT_GAS_BOILER_TEMPERATURE
@@ -17,14 +18,19 @@ public enum TemperatureSensor {
             1,
             FIRST_BOARD_NAME,
             "подача из газового котла",
-            true
+            true,
+            null,
+            null
         ),
 
     WATER_RETURN_GAS_BOILER_TEMPERATURE
         (
             2,
             FIRST_BOARD_NAME,
-            "обратка в газовый котел"
+            "обратка в газовый котел",
+            false,
+            null,
+            null
         ),
 
     OUTSIDE_TEMPERATURE
@@ -32,7 +38,9 @@ public enum TemperatureSensor {
             3,
             FIRST_BOARD_NAME,
             "температура на улице",
-            true
+            true,
+            null,
+            null
         ),
 
     WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING
@@ -40,7 +48,9 @@ public enum TemperatureSensor {
             4,
             FIRST_BOARD_NAME,
             "подача в теплые полы до подмеса",
-            true
+            true,
+            null,
+            null
         ),
 
     WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING
@@ -48,7 +58,9 @@ public enum TemperatureSensor {
             5,
             FIRST_BOARD_NAME,
             "подача в теплые полы после подмеса",
-            true
+            true,
+            null,
+            45f
         ),
 
     WATER_RETURN_FLOOR_TEMPERATURE
@@ -56,14 +68,19 @@ public enum TemperatureSensor {
             6,
             FIRST_BOARD_NAME,
             "обратка из теплых полов",
-            true
+            true,
+            null,
+            null
         ),
 
     CHILD_BATHROOM_TEMPERATURE
         (
             7,
             FIRST_BOARD_NAME,
-            "температура в детском санузле"
+            "температура в детском санузле",
+            true,
+            null,
+            null
         );
 
     private final Integer registerId;
@@ -74,30 +91,17 @@ public enum TemperatureSensor {
 
     private final boolean isCritical;
 
-    private final Float minimalTemperature;
+    private final Float minimumTemperature;
 
-    TemperatureSensor(Integer registerId, String boardName, String template) {
-        this.registerId = registerId;
-        this.boardName = boardName;
-        this.template = template;
-        this.isCritical = false;
-        this.minimalTemperature = null;
-    }
+    private final Float maximumTemperature;
 
-    TemperatureSensor(Integer registerId, String boardName, String template, Boolean isCritical) {
+    TemperatureSensor(Integer registerId, String boardName, String template, Boolean isCritical, Float minimumTemperature, Float maximumTemperature) {
         this.registerId = registerId;
         this.boardName = boardName;
         this.template = template;
         this.isCritical = isCritical;
-        this.minimalTemperature = null;
-    }
-
-    TemperatureSensor(Integer registerId, String boardName, String template, Boolean isCritical, Float minimalTemperature) {
-        this.registerId = registerId;
-        this.boardName = boardName;
-        this.template = template;
-        this.isCritical = isCritical;
-        this.minimalTemperature = minimalTemperature;
+        this.minimumTemperature = minimumTemperature;
+        this.maximumTemperature = maximumTemperature;
     }
 
     public Integer getRegisterId() {
@@ -116,7 +120,11 @@ public enum TemperatureSensor {
         return isCritical;
     }
 
-    public Float getMinimalTemperature() {
-        return minimalTemperature;
+    public Float getMinimumTemperature() {
+        return minimumTemperature;
+    }
+
+    public Float getMaximumTemperature() {
+        return maximumTemperature;
     }
 }
