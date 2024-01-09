@@ -11,8 +11,11 @@ public class FloorHeatingValveRelayConfiguration {
     @Value("${floorHeating.valve.relay.coil}")
     private Integer coil;
 
-    @Value("${floorHeating.valve.relay.delay}")
-    private Integer delay;
+    @Value("${floorHeating.valve.relay.rotationTime}")
+    private Integer rotationTime;
+
+    @Value("${floorHeating.valve.relay.rotationTimeReserve}")
+    private Integer rotationTimeReserve;
 
     public Integer getAddress() {
         return address;
@@ -22,7 +25,11 @@ public class FloorHeatingValveRelayConfiguration {
         return coil;
     }
 
-    public Integer getDelay() {
-        return delay;
+    public Integer getRotationTime() {
+        return rotationTime;
+    }
+
+    public Integer getRotationTimeReserve() {
+        return rotationTimeReserve;
     }
 }

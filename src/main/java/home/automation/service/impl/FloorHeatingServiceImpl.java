@@ -1,8 +1,5 @@
 package home.automation.service.impl;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,10 +48,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    private Integer lastValvePercent;
-
-    private Integer lastCorrection;
-
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
@@ -81,16 +74,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             .description("Расчетная температура подачи в теплые полы")
             .register(meterRegistry);
 
-        Gauge.builder("floor", this::getLastValvePercent)
+        Gauge.builder("floor", this::getCurrentValvePercent)
             .tag("component", "current_valve_percent")
             .tag("system", "home_automation")
             .description("Текущий процент открытия клапана")
-            .register(meterRegistry);
-
-        Gauge.builder("floor", this::getLastCorrection)
-            .tag("component", "valve_percent_correction")
-            .tag("system", "home_automation")
-            .description("Коррекция открытия клапана")
             .register(meterRegistry);
     }
 
@@ -122,33 +109,22 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         logger.debug("Считываем текущий процент открытия клапана");
         Integer currentValvePercent = getCurrentValvePercent();
-        lastValvePercent = currentValvePercent;
         if (currentValvePercent == null) {
             logger.warn("Не удалось получить текущее положение клапана");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
-        Integer correction = calculateCorrection(targetDirectTemperature, currentValvePercent, delta);
-        lastCorrection = correction;
-        if (correction == null) {
-            logger.warn("Не удалось рассчитать коррекцию положения клапана");
+        logger.debug("Рассчитываем целевое положение клапана при этих вводных");
+        Integer targetValvePercent = calculateTargetValvePercent(currentDirectTemperature);
+        if (targetValvePercent== null) {
+            logger.warn("Не удалось рассчитать новое положение клапана");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
-        logger.info("Рассчитываем новое положение клапана с учетом коррекции");
-        /* коррекция может быть и отрицательной */
-        int newValvePercent = currentValvePercent + correction;
-        if (newValvePercent > 100) {
-            newValvePercent = 100;
-        }
-        if (newValvePercent < 0) {
-            newValvePercent = 0;
-        }
-
         logger.debug("Выставляем клапан");
-        setValveOnPercent(newValvePercent);
+        setValveOnPercent(targetValvePercent, currentValvePercent);
     }
 
     private @Nullable Float calculateTargetDirectTemperature() {
@@ -214,7 +190,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
     }
 
-    private @Nullable Integer calculateCorrection(float targetDirectTemperature, int currentValvePercent, float delta) {
+    private @Nullable Integer calculateTargetValvePercent(Float targetDirectTemperature) {
         logger.debug("Запускаем расчет коррекции положения клапана");
         logger.debug("Получаем температуры подачи до подмеса и обратки из полов");
         Float floorDirectBeforeMixingTemperature =
@@ -227,18 +203,46 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return null;
         }
 
-        return Math.round(
+        logger.debug("Проверяем граничные условия");
+        if (targetDirectTemperature < floorReturnTemperature || floorDirectBeforeMixingTemperature < floorReturnTemperature) {
+            logger.info("Слишком высокая температура обратки из теплых полов, закрываем клапан");
+            return 0;
+        }
+
+        int targetPercent = Math.round(
             100 * (targetDirectTemperature - floorReturnTemperature) / (floorDirectBeforeMixingTemperature
-                - floorReturnTemperature)) - currentValvePercent;
+                - floorReturnTemperature));
+
+        if (targetPercent > 100) {
+            return 100;
+        }
+        if (targetPercent < 0) {
+            return 0;
+        }
+        return targetPercent;
     }
 
-    private void setValveOnPercent(int openForDirectPercent) {
+    private void setValveOnPercent(int targetValvePercent, int currentValvePercent) {
         try {
+            logger.debug("Рассчитываем на сколько секунд подавать питание");
+            int powerTime;
+            int valvePercentDelta = targetValvePercent - currentValvePercent;
+            if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy() && targetValvePercent != 0 && targetValvePercent !=100) {
+                logger.info("Клапан уже установлен на заданный процент {}", targetValvePercent);
+                return;
+            }
+            if (valvePercentDelta > 0) {
+                powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0) + relayConfiguration.getRotationTimeReserve();
+            } else {
+                /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
+                powerTime = (int) (Math.round(relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0) + relayConfiguration.getRotationTimeReserve());
+            }
+
             logger.debug("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
             logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
-            int voltageIn10mv = Math.round(getVoltageInVFromPercent(openForDirectPercent) * 100);
+            int voltageIn10mv = Math.round(getVoltageInVFromPercent(targetValvePercent) * 100);
             logger.debug("Устанавливаемое напряжение на ЦАП {}V", (float) voltageIn10mv / 100);
             modbusService.writeHoldingRegister(
                 dacConfiguration.getAddress(),
@@ -246,11 +250,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 voltageIn10mv
             );
 
-            Thread.sleep(relayConfiguration.getDelay() * 1000);
+            Thread.sleep(powerTime * 1000);
             logger.debug("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
 
-            logger.info("Сервопривод был передвинут, новый процент открытия {}", openForDirectPercent);
+            logger.info("Сервопривод был передвинут, новый процент открытия {}", targetValvePercent);
         } catch (ModbusException | InterruptedException e) {
             logger.error("Ошибка выставления напряжение на ЦАП");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
@@ -270,14 +274,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         }
         return null;
-    }
-
-    public Integer getLastValvePercent() {
-        return lastValvePercent;
-    }
-
-    public Integer getLastCorrection() {
-        return lastCorrection;
     }
 
     private int getPercentFromVoltageInV(float voltage) {
