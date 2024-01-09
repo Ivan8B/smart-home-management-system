@@ -116,8 +116,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
 
         logger.debug("Рассчитываем целевое положение клапана при этих вводных");
-        Integer targetValvePercent = calculateTargetValvePercent(currentDirectTemperature);
-        if (targetValvePercent== null) {
+        Integer targetValvePercent = calculateTargetValvePercent(targetDirectTemperature);
+        if (targetValvePercent == null) {
             logger.warn("Не удалось рассчитать новое положение клапана");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
