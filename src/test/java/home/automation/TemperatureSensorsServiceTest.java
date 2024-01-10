@@ -23,11 +23,66 @@ public class TemperatureSensorsServiceTest extends AbstractTest {
     TemperatureSensorsService temperatureSensorsService;
 
     @Test
+    @DisplayName("Проверка что не путаемся с отрицательными температурами")
+    void checkMinusTemperatures() throws ModbusException, InterruptedException {
+        final Integer outsideTemperatureBoardAddress =
+            configuration.getAddressByName(TemperatureSensor.OUTSIDE_TEMPERATURE.getBoardName());
+        final Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
+
+        Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
+            .thenReturn(Integer.parseInt("FF90", 16));
+        assertEquals(-11.2F,
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)
+        );
+
+        /* ждем пока кэш протухнет */
+        Thread.sleep(1100);
+
+        Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
+            .thenReturn(Integer.parseInt("7FFF", 16));
+        assertEquals(3276.7F,
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)
+        );
+
+        /* ждем пока кэш протухнет */
+        Thread.sleep(1100);
+
+        Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
+            .thenReturn(Integer.parseInt("8001", 16));
+        assertEquals(-3276.7F,
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)
+        );
+
+        /* ждем пока кэш протухнет */
+        Thread.sleep(1100);
+
+        Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
+            .thenReturn(Integer.parseInt("00DB", 16));
+        assertEquals(21.9F,
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)
+        );
+    }
+
+    @Test
+    @DisplayName("Проверка что обрабатываем ошибку подключения")
+    void checkErrorTemperature() throws ModbusException {
+        final Integer outsideTemperatureBoardAddress =
+            configuration.getAddressByName(TemperatureSensor.OUTSIDE_TEMPERATURE.getBoardName());
+        final Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
+
+        Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
+            .thenReturn(Integer.parseInt("8000", 16));
+        assertEquals(null,
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)
+        );
+    }
+
+    @Test
     @DisplayName("Проверка кэширования и протухания значений ")
     void checkCacheAndExpire() throws ModbusException, InterruptedException {
-        Integer outsideTemperatureBoardAddress =
+        final Integer outsideTemperatureBoardAddress =
             configuration.getAddressByName(TemperatureSensor.OUTSIDE_TEMPERATURE.getBoardName());
-        Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
+        final Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
 
         Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
             .thenReturn(100);
@@ -64,13 +119,13 @@ public class TemperatureSensorsServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка что значения в кэше не путаются")
     void checkCachingConsistency() throws ModbusException {
-        Integer outsideTemperatureBoardAddress =
+        final Integer outsideTemperatureBoardAddress =
             configuration.getAddressByName(TemperatureSensor.OUTSIDE_TEMPERATURE.getBoardName());
-        Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
+        final Integer outsideTemperatureRegisterId = TemperatureSensor.OUTSIDE_TEMPERATURE.getRegisterId();
 
-        Integer boilerRoomTemperatureBoardAddress =
+        final Integer boilerRoomTemperatureBoardAddress =
             configuration.getAddressByName(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getBoardName());
-        Integer boilerRoomTemperatureRegisterId = TemperatureSensor.BOILER_ROOM_TEMPERATURE.getRegisterId();
+        final Integer boilerRoomTemperatureRegisterId = TemperatureSensor.BOILER_ROOM_TEMPERATURE.getRegisterId();
 
         Mockito.when(modbusService.readHoldingRegister(outsideTemperatureBoardAddress, outsideTemperatureRegisterId))
             .thenReturn(100);

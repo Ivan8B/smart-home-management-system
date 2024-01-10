@@ -25,7 +25,8 @@ import org.springframework.stereotype.Service;
 @Service
 @CacheConfig(cacheNames = {"temperature_cache"})
 public class TemperatureSensorsServiceImpl implements TemperatureSensorsService {
-    public static final Integer TEMPERATURE_SENSOR_ERROR_VALUE = 32768;
+    public static final Integer TEMPERATURE_SENSOR_BORDER_VALUE = Integer.parseInt("1000000000000000", 2);
+    public static final Integer TEMPERATURE_SENSOR_SUBTRACTING = 65536;
     private static final Logger logger = LoggerFactory.getLogger(TemperatureSensorsServiceImpl.class);
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TemperatureSensorsBoardsConfiguration configuration;
@@ -62,13 +63,13 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
                 modbusService.readHoldingRegister(configuration.getAddressByName(sensor.getBoardName()),
                     sensor.getRegisterId()
                 );
-            if (rawTemperature == TEMPERATURE_SENSOR_ERROR_VALUE) {
+            if (rawTemperature == TEMPERATURE_SENSOR_BORDER_VALUE) {
                 throw new ModbusException(
                     "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " + sensor.getRegisterId());
             }
-            /* такая логика работы R4DCB08, смотри документацию */
-            if (rawTemperature >= Integer.parseInt("FF00", 16)) {
-                rawTemperature = rawTemperature - Integer.parseInt("10000", 16);
+            /* если старший бит единица - температура отрицательная и из нее нужно вычитать, смотри документацию R4DCB08*/
+            if (rawTemperature > TEMPERATURE_SENSOR_BORDER_VALUE) {
+                rawTemperature = rawTemperature - TEMPERATURE_SENSOR_SUBTRACTING;
             }
             return (float) rawTemperature / 10;
         } catch (ModbusException e) {
