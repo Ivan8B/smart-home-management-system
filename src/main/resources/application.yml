@@ -121,7 +121,7 @@ floorHeating:
       # Расчетное время полного оборота клапана (секунд)
       rotationTime: 45
       # Запас по времени на каждую операцию с клапаном (секунд)
-      rotationTimeReserve: 10
+      rotationTimeReserve: 5
     # Цифро-аналоговый преобразователь
     dac:
       # Modbus slaveId

@@ -235,7 +235,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0) + relayConfiguration.getRotationTimeReserve();
             } else {
                 /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
-                powerTime = (int) (Math.round(relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0) + relayConfiguration.getRotationTimeReserve());
+                powerTime = (int) (Math.round(relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0) + 2 * relayConfiguration.getRotationTimeReserve());
             }
 
             logger.debug("Включаем питание сервопривода клапана");
