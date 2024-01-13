@@ -20,6 +20,12 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.temperature.return.max}")
     private Float temperatureReturnMax;
 
+    @Value("${gasBoiler.temperature.direct.min}")
+    private Float temperatureDirectMin;
+
+    @Value("${gasBoiler.temperature.direct.max}")
+    private Float temperatureDirectMax;
+
     @Value("${gasBoiler.temperature.weatherCurve.min}")
     private Float temperatureWeatherCurveMin;
 
@@ -47,6 +53,14 @@ public class GasBoilerConfiguration {
 
     public Float getTemperatureReturnMax() {
         return temperatureReturnMax;
+    }
+
+    public Float getTemperatureDirectMin() {
+        return temperatureDirectMin;
+    }
+
+    public Float getTemperatureDirectMax() {
+        return temperatureDirectMax;
     }
 
     public Float getTemperatureWeatherCurveMin() {

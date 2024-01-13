@@ -10,6 +10,7 @@ import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.HeatRequestService;
 import home.automation.service.HeatingPumpsService;
+import home.automation.service.HistoryService;
 import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
 import org.jetbrains.annotations.Nullable;
@@ -32,25 +33,16 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 @Service
 public class BotServiceImpl extends TelegramLongPollingBot implements BotService {
     private final Logger logger = LoggerFactory.getLogger(BotServiceImpl.class);
-
     private final TelegramBotConfiguration telegramBotConfiguration;
-
     private final TemperatureSensorsService temperatureSensorsService;
-
     private final GasBoilerService gasBoilerService;
-
+    private final HistoryService historyService;
     private final ElectricBoilerService electricBoilerService;
-
     private final CityPowerInputService cityPowerInputService;
-
     private final HeatingPumpsService heatingPumpsService;
-
     private final HeatRequestService heatRequestService;
-
     private final HealthService healthService;
-
     private final StreetLightService streetLightService;
-
     private final FunnelHeatingService funnelHeatingService;
     private BotSession session;
 
@@ -58,7 +50,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         TelegramBotConfiguration telegramBotConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         GasBoilerService gasBoilerService,
-        ElectricBoilerService electricBoilerService,
+        HistoryService historyService, ElectricBoilerService electricBoilerService,
         CityPowerInputService cityPowerInputService, HeatingPumpsService heatingPumpsService,
         HeatRequestService heatRequestService,
         @Lazy HealthService healthService,
@@ -69,6 +61,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.telegramBotConfiguration = telegramBotConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
+        this.historyService = historyService;
         this.electricBoilerService = electricBoilerService;
         this.cityPowerInputService = cityPowerInputService;
         this.heatingPumpsService = heatingPumpsService;
@@ -147,7 +140,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(heatRequestService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n");
-        message.append("* ").append(gasBoilerService.getFormattedStatusForLastDay()).append("\n\n");
+        message.append("* ").append(historyService.getGasBoilerFormattedStatusForLastDay()).append("\n\n");
         message.append("* ").append(electricBoilerService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(cityPowerInputService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(heatingPumpsService.getFormattedStatus()).append("\n\n");

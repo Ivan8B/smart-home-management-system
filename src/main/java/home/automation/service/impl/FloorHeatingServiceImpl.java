@@ -1,5 +1,7 @@
 package home.automation.service.impl;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,6 +15,7 @@ import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
+import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import io.micrometer.core.instrument.Gauge;
@@ -44,6 +47,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GasBoilerService gasBoilerService;
 
+    private final HistoryService historyService;
+
     private final ModbusService modbusService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -55,6 +60,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
+        HistoryService historyService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
         MeterRegistry meterRegistry
@@ -65,6 +71,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
+        this.historyService = historyService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
 
@@ -192,9 +199,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private @Nullable Integer calculateTargetValvePercent(Float targetDirectTemperature) {
         logger.debug("Запускаем расчет коррекции положения клапана");
-        logger.debug("Получаем температуры подачи до подмеса и обратки из полов");
-        Float floorDirectBeforeMixingTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+
+        logger.debug("Берем среднюю подачу в теплые полы до подмеса за последний час, если ее нет - берем целевую подачу из котла");
+        Float floorDirectBeforeMixingTemperature = (historyService.getAverageFloorDirectTemperatureBeforeMixingWhenGasBoilerWorksForLastHourIfHasFullData() != null) ? historyService.getAverageFloorDirectTemperatureBeforeMixingWhenGasBoilerWorksForLastHourIfHasFullData() : gasBoilerService.calculateTargetDirectTemperature();
+
+        logger.debug("Получаем температуру обратки из полов");
         Float floorReturnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
 
