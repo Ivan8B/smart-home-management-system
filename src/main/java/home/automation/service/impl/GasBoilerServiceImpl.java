@@ -68,6 +68,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .tag("system", "home_automation")
             .description("Статус реле газового котла")
             .register(meterRegistry);
+
+        Gauge.builder("gas_boiler", this::calculateTargetDirectTemperature)
+            .tag("component", "target_temperature")
+            .tag("system", "home_automation")
+            .description("Расчетная температура подачи из газового котла")
+            .register(meterRegistry);
     }
 
     @Scheduled(fixedRateString = "${gasBoiler.relay.controlInterval}")
