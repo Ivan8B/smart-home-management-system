@@ -1,11 +1,9 @@
 package home.automation.service;
 
-import java.time.Duration;
 import java.time.Instant;
 
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
-import org.jetbrains.annotations.Nullable;
 
 public interface HistoryService {
     /**
@@ -22,11 +20,6 @@ public interface HistoryService {
      * @param ts          время
      */
     void putTemperatureToDailyHistory(TemperatureSensor sensor, Float temperature, Instant ts);
-
-    /**
-     * Получить среднее значение подачи в теплые полы до смешения за последний час (в интервалы когда котел работал)
-     */
-    @Nullable Float getAverageFloorDirectTemperatureBeforeMixingWhenGasBoilerWorksForLastHourIfHasFullData();
 
     /**
      * Получение аналитики по работе котла за прошедшие сутки

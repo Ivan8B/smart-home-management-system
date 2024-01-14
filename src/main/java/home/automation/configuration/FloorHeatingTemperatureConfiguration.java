@@ -12,6 +12,9 @@ public class FloorHeatingTemperatureConfiguration {
     @Value("${floorHeating.temperature.direct.max}")
     private Float directMaxTemperature;
 
+    @Value("${floorHeating.temperature.maxDelta}")
+    private Float maxDelta;
+
     @Value("${floorHeating.temperature.k}")
     private Float k;
 
@@ -24,6 +27,10 @@ public class FloorHeatingTemperatureConfiguration {
 
     public Float getDirectMaxTemperature() {
         return directMaxTemperature;
+    }
+
+    public Float getMaxDelta() {
+        return maxDelta;
     }
 
     public Float getK() {

@@ -42,6 +42,10 @@ public class FloorHeatingServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов")
     void checkTargetTemperatureCalculation() {
+        /* ставим высокую температуру обратки чтобы не срезалась подача*/
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE))
+            .thenReturn(32F);
+
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
@@ -78,11 +82,24 @@ public class FloorHeatingServiceTest extends AbstractTest {
             .thenReturn(22F);
         assertEquals(35.5F, invokeCalculateTargetDirectTemperature(), 0.5f);
 
+
+        /* ставим низкую температуру обратки и проверяем как срезается подача*/
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE))
+            .thenReturn(24F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(-10F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+            .thenReturn(20F);
+        assertEquals(31F, invokeCalculateTargetDirectTemperature(), 0.5f);
     }
 
     @Test
     @DisplayName("Проверка правильности расчета целевой температуры теплых полов при граничных значениях")
     void checkTargetTemperatureCalculationLimits() {
+        /* ставим высокую температуру обратки чтобы не срезалась подача*/
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE))
+            .thenReturn(38F);
+
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
             .thenReturn(10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
