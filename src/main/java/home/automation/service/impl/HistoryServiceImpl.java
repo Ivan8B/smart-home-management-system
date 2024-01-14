@@ -89,6 +89,11 @@ public class HistoryServiceImpl implements HistoryService {
                 .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
                     && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        /* еще раз проверяем, что история не пустая */
+        if (gasBoilerReturnWhenWorkTemperature3HourHistory.isEmpty() || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
+            return null;
+        }
+        /* рассчитываем среднюю дельту за 3 часа за время работы котла */
         float delta = calculateAverageTemperatureDeltaWhenWork(
             gasBoilerDirectWhenWorkTemperature3HourHistory,
             gasBoilerReturnWhenWorkTemperature3HourHistory
@@ -200,12 +205,8 @@ public class HistoryServiceImpl implements HistoryService {
             Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory,
             Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory
         ) {
-        float averageDirect =
-            (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                .getAsDouble());
-        float averageReturn =
-            (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                .getAsDouble());
+        float averageDirect = (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average().orElse(0f));
+        float averageReturn = (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average().orElse(0f));
         return averageDirect - averageReturn;
     }
 
