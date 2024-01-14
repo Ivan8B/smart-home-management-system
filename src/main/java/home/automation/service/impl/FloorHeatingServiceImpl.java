@@ -153,7 +153,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         Float returnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
         if (returnTemperature != null && calculated > returnTemperature + temperatureConfiguration.getMaxDelta()) {
-            logger.info("Слишком высокая целевая температура подачи {}, срезаем до {}", calculated, returnTemperature + temperatureConfiguration.getMaxDelta());
+            logger.debug("Слишком высокая целевая температура подачи {}, срезаем до {}", calculated, returnTemperature + temperatureConfiguration.getMaxDelta());
             calculated = returnTemperature + temperatureConfiguration.getMaxDelta();
         }
 

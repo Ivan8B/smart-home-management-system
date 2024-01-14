@@ -53,7 +53,6 @@ public class HistoryServiceImpl implements HistoryService {
                 case WATER_DIRECT_GAS_BOILER_TEMPERATURE -> gasBoilerDirectTemperatureDailyHistory.put(ts, temperature);
                 case WATER_RETURN_GAS_BOILER_TEMPERATURE -> gasBoilerReturnTemperatureDailyHistory.put(ts, temperature);
             }
-
             gasBoilerDirectTemperatureDailyHistory.entrySet()
                 .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
             gasBoilerReturnTemperatureDailyHistory.entrySet()
