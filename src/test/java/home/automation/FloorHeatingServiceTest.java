@@ -112,5 +112,14 @@ public class FloorHeatingServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(22F);
         assertEquals(configuration.getDirectMinTemperature(), invokeCalculateTargetDirectTemperature());
+
+        /* ставим низкую температуру обратки*/
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE))
+            .thenReturn(20F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+            .thenReturn(25F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+            .thenReturn(22F);
+        assertEquals(20F + configuration.getMaxDelta(), invokeCalculateTargetDirectTemperature());
     }
 }

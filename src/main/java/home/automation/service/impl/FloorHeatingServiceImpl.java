@@ -147,6 +147,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     @Nullable
     Float calculateTargetDirectTemperature() {
         logger.debug("Запущена задача расчета целевой температуры подачи в полы");
+        float calculated;
 
         Float averageInternalTemperature = calculateAverageInternalTemperature();
         if (averageInternalTemperature == null) {
@@ -161,18 +162,34 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return null;
         }
 
-        /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
-        float calculated =
-            (generalConfiguration.getInsideTarget() - outsideTemperature) * temperatureConfiguration.getK()
-                + generalConfiguration.getInsideTarget() + (generalConfiguration.getInsideTarget()
-                - averageInternalTemperature);
-
-        logger.debug("Расчетная целевая температура не должна быть сильно больше обратки из теплых полов");
         Float returnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
-        if (returnTemperature != null && calculated > returnTemperature + temperatureConfiguration.getMaxDelta()) {
-            logger.debug("Слишком высокая целевая температура подачи {}, срезаем до {}", calculated, returnTemperature + temperatureConfiguration.getMaxDelta());
-            calculated = returnTemperature + temperatureConfiguration.getMaxDelta();
+        if (returnTemperature == null) {
+            logger.warn("Нет возможности определить температуру обратки из теплых полов");
+            return null;
+        }
+
+        logger.debug("Проверяем граничные условия");
+        if (generalConfiguration.getInsideTarget() < outsideTemperature || generalConfiguration.getInsideTarget() < averageInternalTemperature) {
+            logger.debug("Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
+                temperatureConfiguration.getDirectMinTemperature());
+            calculated = temperatureConfiguration.getDirectMinTemperature();
+        } else {
+            /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
+            calculated =
+                (generalConfiguration.getInsideTarget() - outsideTemperature) * temperatureConfiguration.getK()
+                    + generalConfiguration.getInsideTarget() + (generalConfiguration.getInsideTarget()
+                    - averageInternalTemperature);
+        }
+
+        logger.debug("Расчетная целевая температура не должна быть сильно больше обратки из теплых полов");
+        if (calculated > returnTemperature + temperatureConfiguration.getMaxDelta()) {
+            logger.debug(
+                "Слишком высокая целевая температура подачи {}, срезаем до {}",
+                calculated,
+                returnTemperature + temperatureConfiguration.getMaxDelta()
+            );
+            return returnTemperature + temperatureConfiguration.getMaxDelta();
         }
 
         if (calculated < temperatureConfiguration.getDirectMinTemperature()) {
