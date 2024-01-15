@@ -239,6 +239,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 logger.info("Клапан уже установлен на заданный процент {}", targetValvePercent);
                 return;
             }
+            if (valvePercentDelta > dacConfiguration.getMaxIncreaseStep()) {
+                logger.info("Требуемый процент увеличения открытия {} слишком высок, открываем за этот шаг на {}", targetValvePercent, currentValvePercent + dacConfiguration.getMaxIncreaseStep());
+                targetValvePercent = currentValvePercent + dacConfiguration.getMaxIncreaseStep();
+            }
             if (valvePercentDelta > 0) {
                 powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0) + relayConfiguration.getRotationTimeReserve();
             } else {

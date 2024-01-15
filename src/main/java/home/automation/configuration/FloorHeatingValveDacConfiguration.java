@@ -14,6 +14,9 @@ public class FloorHeatingValveDacConfiguration {
     @Value("${floorHeating.valve.dac.accuracy}")
     private Integer accuracy;
 
+    @Value("${floorHeating.valve.dac.maxIncreaseStep}")
+    private Integer maxIncreaseStep;
+
     public Integer getAddress() {
         return address;
     }
@@ -24,5 +27,9 @@ public class FloorHeatingValveDacConfiguration {
 
     public Integer getAccuracy() {
         return accuracy;
+    }
+
+    public Integer getMaxIncreaseStep() {
+        return maxIncreaseStep;
     }
 }
