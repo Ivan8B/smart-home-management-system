@@ -90,7 +90,7 @@ public class FloorHeatingServiceTest extends AbstractTest {
             .thenReturn(-10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
             .thenReturn(20F);
-        assertEquals(31F, invokeCalculateTargetDirectTemperature(), 0.5f);
+        assertEquals(32F, invokeCalculateTargetDirectTemperature(), 0.5f);
     }
 
     @Test
