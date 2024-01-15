@@ -17,6 +17,12 @@ public class FloorHeatingValveDacConfiguration {
     @Value("${floorHeating.valve.dac.maxIncreaseStep}")
     private Integer maxIncreaseStep;
 
+    @Value("${floorHeating.valve.dac.minOpenPercent}")
+    private Integer minOpenPercent;
+
+    @Value("${floorHeating.valve.dac.maxOpenPercent}")
+    private Integer maxOpenPercent;
+
     public Integer getAddress() {
         return address;
     }
@@ -31,5 +37,13 @@ public class FloorHeatingValveDacConfiguration {
 
     public Integer getMaxIncreaseStep() {
         return maxIncreaseStep;
+    }
+
+    public Integer getMinOpenPercent() {
+        return minOpenPercent;
+    }
+
+    public Integer getMaxOpenPercent() {
+        return maxOpenPercent;
     }
 }
