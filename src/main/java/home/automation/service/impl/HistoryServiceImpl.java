@@ -190,14 +190,14 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     private float calculateAverageTurnOnPerHour(Pair<List<Float>, List<Float>> intervals) {
-        float countWorks = (float) intervals.getLeft().stream().mapToDouble(t -> t).sum();
+        int countWorks = intervals.getLeft().size();
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
         long countHours = TimeUnit.HOURS.toHours(Instant.now().compareTo(oldestTimestampIntDataset));
         /* если прошло не больше часа - возвращаем чисто включений */
         if (countHours == 0) {
             return countWorks;
         }
-        return countWorks / countHours;
+        return ((float) countWorks) / countHours;
     }
 
     private float calculateAverageTemperatureDeltaWhenWork(
