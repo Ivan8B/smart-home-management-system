@@ -22,6 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +52,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    private final Environment environment;
+
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
@@ -57,6 +63,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         @Lazy GasBoilerService gasBoilerService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
+        Environment environment,
         MeterRegistry meterRegistry
     ) {
         this.temperatureConfiguration = temperatureConfiguration;
@@ -67,6 +74,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.gasBoilerService = gasBoilerService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.environment = environment;
 
         Gauge.builder("floor", this::calculateTargetDirectTemperature)
             .tag("component", "target_temperature")
@@ -81,8 +89,17 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             .register(meterRegistry);
     }
 
+    @EventListener({ContextRefreshedEvent.class})
+    @Async
+    public void init() {
+        if (!environment.matchesProfiles("test")) {
+            logger.info("Система была перезагружена, закрываем клапан подмеса в полы на минимум чтобы дать котлу запуститься");
+            setValveOnPercent(dacConfiguration.getMinOpenPercent(), dacConfiguration.getMaxOpenPercent());
+        }
+    }
+
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
-    private void control() {
+    void control() {
         logger.debug("Запущена джоба управления теплым полом");
 
         logger.debug("Проверяем, работает ли котел");
@@ -127,7 +144,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         setValveOnPercent(targetValvePercent, currentValvePercent);
     }
 
-    private @Nullable Float calculateTargetDirectTemperature() {
+    @Nullable
+    Float calculateTargetDirectTemperature() {
         logger.debug("Запущена задача расчета целевой температуры подачи в полы");
 
         Float averageInternalTemperature = calculateAverageInternalTemperature();
