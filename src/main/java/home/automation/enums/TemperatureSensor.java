@@ -28,7 +28,7 @@ public enum TemperatureSensor {
             2,
             FIRST_BOARD_NAME,
             "обратка в газовый котел",
-            false,
+            true,
             null,
             null
         ),

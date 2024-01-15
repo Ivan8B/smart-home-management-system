@@ -64,6 +64,10 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильного расчета статуса котла при запуске (зима) если котел при запуске системы работает")
     void checkStatusCalculationOnTemperatureOnStartWinterWorks() {
+        /* температуру обратки ставим пониже */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(20F);
+        
         /* после первого опроса статус не может быть известен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
@@ -110,6 +114,10 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильного расчета статуса котла при запуске (зима) если котел при запуске системы не работает")
     void checkStatusCalculationOnTemperatureOnStartWinterIdle() {
+        /* температуру обратки ставим пониже */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(20F);
+        
         /* после первого опроса статус не может быть известен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
@@ -148,25 +156,53 @@ public class GasBoilerServiceTest extends AbstractTest {
     }
 
     @Test
-    @DisplayName("Проверка правильного расчета статуса котла летом (когда запроса на тепло нет)")
+    @DisplayName("Проверка правильного расчета статуса котла летом")
     void checkStatusCalculationOnTemperatureSummer() {
+        /* температуру обратки ставим пониже */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(20F);
+
         /* если реле кота разомкнуто - котел не работает на отопление*/
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
-        /* температура подачи почти такая же - котел должен считаться отключенным */
+        /* температура подачи растет - а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(44.9F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
-        /* температура подачи почти такая же - котел должен считаться отключенным */
+        /* температура подачи растет - а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45.1F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
+    }
+
+    @Test
+    @DisplayName("Проверка правильного расчета статуса котла когда он стоит в ошибке")
+    void checkStatusCalculationOnTemperatureError() {
+        /* температура подачи и обратки почти одинаковы */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
+            .thenReturn(44F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45F);
+        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        assertEquals(GasBoilerStatus.INIT, gasBoilerService.getStatus());
+
+        /* температура подачи растет из-за колебаний погоды- а котел все еще выключен */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(45.5F);
+        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
+
+        /* ошибку сбросили, температура подачи выросла сильнее и котел включился */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(48F);
+        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
     }
 
     private void invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus status) {

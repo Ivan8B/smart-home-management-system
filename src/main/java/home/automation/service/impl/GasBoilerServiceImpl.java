@@ -106,8 +106,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         Float newDirectTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
+        Float newReturnTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
-        if (newDirectTemperature == null) {
+        if (newDirectTemperature == null || newReturnTemperature == null) {
             logger.warn("Не удалось вычислить статус газового котла");
             setStatus(GasBoilerStatus.ERROR, now);
             lastDirectTemperature = null;
@@ -124,8 +126,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
 
         /* считаем, что котел работает когда температура подачи растет либо не слишком сильно упала относительно максимума за период работы */
-        if (newDirectTemperature > lastDirectTemperature || ((maxDirectTemperatureForPeriod != null
-            && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta()))) {
+        /* и когда дельта между подачей и обраткой больше порога */
+        if ((newDirectTemperature > lastDirectTemperature || ((maxDirectTemperatureForPeriod != null
+            && newDirectTemperature > maxDirectTemperatureForPeriod - configuration.getTurnOffDirectDelta())))
+            && newDirectTemperature - newReturnTemperature > configuration.getTurnOnMinDelta()) {
             logger.debug("Статус газового котла - работает");
             setStatus(GasBoilerStatus.WORKS, now);
 
@@ -143,7 +147,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE, newDirectTemperature, now);
 
         logger.debug("Отправляем в историю текущую температуру обратки");
-        historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE, temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE), now);
+        historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE, newReturnTemperature, now);
     }
 
     private boolean ifGasBoilerCanBeTurnedOn() {

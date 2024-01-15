@@ -11,7 +11,10 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.relay.coil}")
     private Integer coil;
 
-    @Value("${gasBoiler.relay.turnOffDirectDelta}")
+    @Value("${gasBoiler.temperature.turnOnMinDelta}")
+    private Float turnOnMinDelta;
+
+    @Value("${gasBoiler.temperature.turnOffDirectDelta}")
     private Float turnOffDirectDelta;
 
     @Value("${gasBoiler.temperature.return.min}")
@@ -41,6 +44,10 @@ public class GasBoilerConfiguration {
 
     public Integer getCoil() {
         return coil;
+    }
+
+    public Float getTurnOnMinDelta() {
+        return turnOnMinDelta;
     }
 
     public Float getTurnOffDirectDelta() {
