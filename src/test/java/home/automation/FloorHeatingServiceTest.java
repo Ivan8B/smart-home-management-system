@@ -28,12 +28,12 @@ public class FloorHeatingServiceTest extends AbstractTest {
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 
-    private float invokeCalculateTargetDirectTemperature() {
+    private Float invokeCalculateTargetDirectTemperature() {
         try {
             Method method = floorHeatingService.getClass()
                 .getDeclaredMethod("calculateTargetDirectTemperature");
             method.setAccessible(true);
-            return (float) method.invoke(floorHeatingService);
+            return (Float) method.invoke(floorHeatingService);
         } catch (Exception e) {
             throw new RuntimeException("Не удалось вызвать метод расчета целевой температуры теплых полов", e);
         }
@@ -63,12 +63,6 @@ public class FloorHeatingServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
             .thenReturn(20F);
         assertEquals(37.5F, invokeCalculateTargetDirectTemperature(), 0.5f);
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(10F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
-            .thenReturn(22F);
-        assertEquals(30F, invokeCalculateTargetDirectTemperature(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-0F);
@@ -105,21 +99,5 @@ public class FloorHeatingServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-31F);
         assertEquals(configuration.getDirectMaxTemperature(), invokeCalculateTargetDirectTemperature());
-
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
-            .thenReturn(25F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(22F);
-        assertEquals(configuration.getDirectMinTemperature(), invokeCalculateTargetDirectTemperature());
-
-        /* ставим низкую температуру обратки*/
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE))
-            .thenReturn(20F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
-            .thenReturn(25F);
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-            .thenReturn(22F);
-        assertEquals(20F + configuration.getMaxDelta(), invokeCalculateTargetDirectTemperature());
     }
 }

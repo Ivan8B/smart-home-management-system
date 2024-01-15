@@ -5,10 +5,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class FloorHeatingTemperatureConfiguration {
-
-    @Value("${floorHeating.temperature.direct.min}")
-    private Float directMinTemperature;
-
     @Value("${floorHeating.temperature.direct.max}")
     private Float directMaxTemperature;
 
@@ -20,10 +16,6 @@ public class FloorHeatingTemperatureConfiguration {
 
     @Value("${floorHeating.temperature.accuracy}")
     private Float accuracy;
-
-    public Float getDirectMinTemperature() {
-        return directMinTemperature;
-    }
 
     public Float getDirectMaxTemperature() {
         return directMaxTemperature;

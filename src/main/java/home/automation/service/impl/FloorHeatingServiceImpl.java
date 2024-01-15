@@ -112,8 +112,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         Float targetDirectTemperature = calculateTargetDirectTemperature();
         Float currentDirectTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING);
-        if (targetDirectTemperature == null || currentDirectTemperature == null) {
-            logger.warn("Нет данных по температурам, не получается управлять трехходовым клапаном");
+        if (targetDirectTemperature == null) {
+            logger.warn("Нет данных по целевой температуре, выставляем клапан на минимум");
+            setValveOnPercent(0, dacConfiguration.getMaxOpenPercent());
+            return;
+        }
+        if (currentDirectTemperature == null) {
+            logger.warn("Нет данных по текущей температуре, не производим операций с клапаном");
             return;
         }
 
@@ -171,9 +176,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         logger.debug("Проверяем граничные условия");
         if (generalConfiguration.getInsideTarget() < outsideTemperature || generalConfiguration.getInsideTarget() < averageInternalTemperature) {
-            logger.debug("Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
-                temperatureConfiguration.getDirectMinTemperature());
-            calculated = temperatureConfiguration.getDirectMinTemperature();
+            logger.warn("Невозможно рассчитать целевую температуру подачи в полы, нарушены граничные условия");
+            return null;
         } else {
             /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
             calculated =
@@ -189,15 +193,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 calculated,
                 returnTemperature + temperatureConfiguration.getMaxDelta()
             );
-            return returnTemperature + temperatureConfiguration.getMaxDelta();
-        }
-
-        if (calculated < temperatureConfiguration.getDirectMinTemperature()) {
-            logger.debug(
-                "Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
-                temperatureConfiguration.getDirectMinTemperature()
-            );
-            return temperatureConfiguration.getDirectMinTemperature();
+            calculated = returnTemperature + temperatureConfiguration.getMaxDelta();
         }
 
         if (calculated > temperatureConfiguration.getDirectMaxTemperature()) {
@@ -207,6 +203,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             );
             return temperatureConfiguration.getDirectMaxTemperature();
         }
+
             logger.debug("Целевая температура подачи в полы - {}", calculated);
             return calculated;
     }
