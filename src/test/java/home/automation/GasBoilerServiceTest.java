@@ -186,7 +186,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     void checkStatusCalculationOnTemperatureError() {
         /* температура подачи и обратки почти одинаковы */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-            .thenReturn(44F);
+            .thenReturn(44.5F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
@@ -194,7 +194,7 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         /* температура подачи растет из-за колебаний погоды- а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
-            .thenReturn(45.5F);
+            .thenReturn(45.3F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
