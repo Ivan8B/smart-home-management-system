@@ -330,8 +330,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             }
             if (status == GasBoilerStatus.WORKS && newStatus == GasBoilerStatus.IDLE) {
                 logger.info("Газовый котел только что отключился");
-                logger.info("Газовый котел достиг целевой температуры в этом цикле, поэтому блокируем реле");
-                if (lastDirectTemperature > calculateTargetDirectTemperature()) {
+                if (lastDirectTemperature > calculateTargetDirectTemperature() * 0.9) {
+                    logger.info("Газовый котел достиг целевой температуры в этом цикле, поэтому блокируем реле");
                     turnOff();
                 }
             }
