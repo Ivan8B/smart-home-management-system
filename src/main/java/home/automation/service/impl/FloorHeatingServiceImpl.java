@@ -281,7 +281,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 return;
             }
             if (valvePercentDelta > dacConfiguration.getMaxIncreaseStep()) {
-                logger.info("Требуемый процент увеличения открытия {} слишком высок, открываем за этот шаг на {}", targetValvePercent, currentValvePercent + dacConfiguration.getMaxIncreaseStep());
+                logger.debug("Требуемый процент увеличения открытия {} слишком высок, открываем за этот шаг на {}", targetValvePercent, currentValvePercent + dacConfiguration.getMaxIncreaseStep());
                 targetValvePercent = currentValvePercent + dacConfiguration.getMaxIncreaseStep();
             }
             if (valvePercentDelta > 0) {
