@@ -70,9 +70,15 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             .register(meterRegistry);
 
         Gauge.builder("gas_boiler", this::calculateTargetDirectTemperature)
-            .tag("component", "target_temperature")
+            .tag("component", "target_direct_temperature")
             .tag("system", "home_automation")
-            .description("Расчетная температура подачи из газового котла")
+            .description("Расчетная температура подачи из газового котла по ПЗА")
+            .register(meterRegistry);
+
+        Gauge.builder("gas_boiler", this::calculateMinReturnTemperature)
+            .tag("component", "min_return_temperature")
+            .tag("system", "home_automation")
+            .description("Расчетная температура обратки из газового котла при которой разрешено включение")
             .register(meterRegistry);
     }
 
