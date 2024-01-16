@@ -156,7 +156,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Нельзя открывать клапан если подача до смешения падает - котел отключится");
         if (targetValvePercent > currentValvePercent) {
             if (lastDirectBeforeMixingTemperature == null || currentDirectBeforeMixingTemperature < lastDirectBeforeMixingTemperature) {
-                logger.info("Температура подачи в узел смешения не растет, не открываем клапан");
+                logger.debug("Температура подачи в узел смешения не растет, не открываем клапан");
+                lastDirectBeforeMixingTemperature = currentDirectBeforeMixingTemperature;
                 return;
             }
         }
