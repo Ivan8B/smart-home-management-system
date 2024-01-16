@@ -54,6 +54,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final Environment environment;
 
+    private Float lastDirectBeforeMixingTemperature = null;
+
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
@@ -110,20 +112,20 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         logger.debug("Проверяем насколько текущая температура подачи отличается от целевой");
         Float targetDirectTemperature = calculateTargetDirectTemperature();
-        Float currentDirectTemperature =
+        Float currentDirectAfterMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING);
         if (targetDirectTemperature == null) {
             logger.warn("Нет данных по целевой температуре, выставляем клапан на минимум");
             setValveOnPercent(0, dacConfiguration.getMaxOpenPercent());
             return;
         }
-        if (currentDirectTemperature == null) {
+        if (currentDirectAfterMixingTemperature == null) {
             logger.warn("Нет данных по текущей температуре, не производим операций с клапаном");
             return;
         }
 
         logger.debug("Проверяем требуется ли коррекция положения клапана");
-        float delta = targetDirectTemperature - currentDirectTemperature;
+        float delta = targetDirectTemperature - currentDirectAfterMixingTemperature;
         if (Math.abs(delta) <= temperatureConfiguration.getAccuracy()) {
             logger.debug("Операций с клапаном теплого пола не требуется");
             return;
@@ -145,8 +147,24 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
+        Float currentDirectBeforeMixingTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+        if (currentDirectBeforeMixingTemperature == null) {
+            logger.warn("Нет данных по температуре до подмеса, не производим операции с клапаном");
+            return;
+        }
+
+        logger.debug("Нельзя открывать клапан если подача до смешения падает - котел отключится");
+        if (targetValvePercent > currentValvePercent) {
+            if (lastDirectBeforeMixingTemperature == null || currentDirectBeforeMixingTemperature < lastDirectBeforeMixingTemperature) {
+                logger.info("Температура подачи в узел смешения не растет, не открываем клапан");
+                return;
+            }
+        }
+
         logger.debug("Выставляем клапан");
         setValveOnPercent(targetValvePercent, currentValvePercent);
+
+        lastDirectBeforeMixingTemperature = currentDirectBeforeMixingTemperature;
     }
 
     @Nullable
