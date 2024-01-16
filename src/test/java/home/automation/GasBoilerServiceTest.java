@@ -226,6 +226,8 @@ public class GasBoilerServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка правильного управления реле котла с учетом тактования")
     void checkManageBoilerRelay() throws ModbusException {
+        /* на улице должно быть тепло, чтобы котел достигал целевой температуры подачи */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)).thenReturn(10F);
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
 
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
@@ -246,13 +248,14 @@ public class GasBoilerServiceTest extends AbstractTest {
             .thenReturn(47F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
 
-        /* убираем запрос на тепло и убеждаемся, что реле отключится у */
+        /* убираем запрос на тепло и убеждаемся, что реле отключится */
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NO_NEED_HEAT);
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
         /* снова даем запрос и предполагаем, что котел отключился по подаче */
+        Mockito.clearInvocations(modbusService);
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
@@ -260,6 +263,8 @@ public class GasBoilerServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(40F);
         invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        Mockito.verify(modbusService, Mockito.times(1))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
         /* снова включаем котел и он не должен включиться по теплой обратке */
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
@@ -275,6 +280,22 @@ public class GasBoilerServiceTest extends AbstractTest {
         invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+
+        /* на улице должно быть холодно, чтобы котел не достигал целевой температуры подачи */
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)).thenReturn(-20F);
+
+        /* снова даем запрос и предполагаем, что котел отключился по другой причине */
+        Mockito.clearInvocations(modbusService);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(47F);
+        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
+            .thenReturn(40F);
+        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        /* убеждаемся, что реле не отключается */
+        Mockito.verify(modbusService, Mockito.times(0))
+            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
     }
 
     private float invokeCalculateMinReturnTemperatureMethod() {
