@@ -77,7 +77,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.environment = environment;
 
         Gauge.builder("floor", this::calculateTargetDirectTemperature)
-            .tag("component", "target_temperature")
+            .tag("component", "target_direct_temperature")
             .tag("system", "home_automation")
             .description("Расчетная температура подачи в теплые полы")
             .register(meterRegistry);
