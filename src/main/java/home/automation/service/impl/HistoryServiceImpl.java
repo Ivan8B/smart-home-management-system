@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import home.automation.configuration.GasBoilerConfiguration;
@@ -192,7 +191,8 @@ public class HistoryServiceImpl implements HistoryService {
     private float calculateAverageTurnOnPerHour(Pair<List<Float>, List<Float>> intervals) {
         int countWorks = intervals.getLeft().size();
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
-        long countHours = TimeUnit.HOURS.toHours(Instant.now().compareTo(oldestTimestampIntDataset));
+        Duration interval = Duration.between(oldestTimestampIntDataset, Instant.now());
+        long countHours = interval.toHours();
         /* если прошло не больше часа - возвращаем чисто включений */
         if (countHours == 0) {
             return countWorks;
