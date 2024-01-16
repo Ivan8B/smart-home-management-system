@@ -264,7 +264,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         logger.debug("Проверяем граничные условия");
         if (targetDirectTemperature < floorReturnTemperature || floorDirectBeforeMixingTemperature < floorReturnTemperature) {
-            logger.info("Слишком высокая температура обратки из теплых полов, прикрываем клапан до минимального");
+            logger.debug("Слишком высокая температура обратки из теплых полов, прикрываем клапан до минимального");
             return dacConfiguration.getMinOpenPercent();
         }
 
@@ -273,11 +273,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 - floorReturnTemperature));
 
         if (targetPercent > dacConfiguration.getMaxOpenPercent()) {
-            logger.info("Слишком высокий процент открытия клапана {}, выставляем максимально допустимый {}", targetPercent, dacConfiguration.getMaxOpenPercent());
+            logger.debug("Слишком высокий процент открытия клапана {}, выставляем максимально допустимый {}", targetPercent, dacConfiguration.getMaxOpenPercent());
             return dacConfiguration.getMaxOpenPercent();
         }
         if (targetPercent < dacConfiguration.getMinOpenPercent()) {
-            logger.info("Слишком низкий процент открытия клапана {}, выставляем минимально допустимый {}", targetPercent, dacConfiguration.getMinOpenPercent());
+            logger.debug("Слишком низкий процент открытия клапана {}, выставляем минимально допустимый {}", targetPercent, dacConfiguration.getMinOpenPercent());
             return dacConfiguration.getMinOpenPercent();
         }
         return targetPercent;
