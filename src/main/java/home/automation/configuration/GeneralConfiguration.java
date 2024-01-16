@@ -11,9 +11,6 @@ public class GeneralConfiguration {
     @Value("${temperature.outsideMax}")
     private Float outsideMax;
 
-    @Value("${temperature.outsideMin}")
-    private Float outsideMin;
-
     @Value("${temperature.hysteresis}")
     private Float hysteresis;
 
@@ -23,10 +20,6 @@ public class GeneralConfiguration {
 
     public Float getOutsideMax() {
         return outsideMax;
-    }
-
-    public Float getOutsideMin() {
-        return outsideMin;
     }
 
     public Float getHysteresis() {
