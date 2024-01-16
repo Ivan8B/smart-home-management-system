@@ -54,8 +54,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final Environment environment;
 
-    private Float lastDirectBeforeMixingTemperature = null;
-
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
@@ -153,19 +151,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        logger.debug("Нельзя открывать клапан если подача до смешения падает - котел отключится");
-        if (targetValvePercent > currentValvePercent) {
-            if (lastDirectBeforeMixingTemperature == null || currentDirectBeforeMixingTemperature < lastDirectBeforeMixingTemperature) {
-                logger.debug("Температура подачи в узел смешения не растет, не открываем клапан");
-                lastDirectBeforeMixingTemperature = currentDirectBeforeMixingTemperature;
-                return;
-            }
-        }
-
         logger.debug("Выставляем клапан");
         setValveOnPercent(targetValvePercent, currentValvePercent);
 
-        lastDirectBeforeMixingTemperature = currentDirectBeforeMixingTemperature;
     }
 
     @Nullable
