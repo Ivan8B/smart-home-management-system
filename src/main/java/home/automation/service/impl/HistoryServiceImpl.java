@@ -116,6 +116,7 @@ public class HistoryServiceImpl implements HistoryService {
         float averageTurnOnPerHour = calculateAverageTurnOnPerHour(intervals);
 
         DecimalFormat df0 = new DecimalFormat("#");
+        DecimalFormat df1 = new DecimalFormat("#.#");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
@@ -124,7 +125,7 @@ public class HistoryServiceImpl implements HistoryService {
             : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
                 + " котел работал на отопление ";
 
-        return intro + df0.format(workPercent) + "% времени\n* среднее количество розжигов в час " + averageTurnOnPerHour;
+        return intro + df0.format(workPercent) + "% времени\n* среднее количество розжигов в час " +df1.format(averageTurnOnPerHour);
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
@@ -192,12 +193,12 @@ public class HistoryServiceImpl implements HistoryService {
         int countWorks = intervals.getLeft().size();
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
         Duration interval = Duration.between(oldestTimestampIntDataset, Instant.now());
-        long countHours = interval.toHours();
+        double countHours = interval.toMinutes() / 60.0;
         /* если прошло не больше часа - возвращаем чисто включений */
-        if (countHours == 0) {
+        if (countHours < 1 ) {
             return countWorks;
         }
-        return ((float) countWorks) / countHours;
+        return (float) (countWorks / countHours);
     }
 
     private float calculateAverageTemperatureDeltaWhenWork(
