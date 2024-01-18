@@ -14,9 +14,6 @@ public class FloorHeatingValveDacConfiguration {
     @Value("${floorHeating.valve.dac.accuracy}")
     private Integer accuracy;
 
-    @Value("${floorHeating.valve.dac.maxIncreaseStep}")
-    private Integer maxIncreaseStep;
-
     @Value("${floorHeating.valve.dac.minOpenPercent}")
     private Integer minOpenPercent;
 
@@ -33,10 +30,6 @@ public class FloorHeatingValveDacConfiguration {
 
     public Integer getAccuracy() {
         return accuracy;
-    }
-
-    public Integer getMaxIncreaseStep() {
-        return maxIncreaseStep;
     }
 
     public Integer getMinOpenPercent() {

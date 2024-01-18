@@ -6,8 +6,8 @@ import java.util.Set;
 import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
-import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.configuration.GeneralConfiguration;
+import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
@@ -23,6 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -39,8 +43,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final FloorHeatingValveDacConfiguration dacConfiguration;
 
-    private final GasBoilerConfiguration gasBoilerConfiguration;
-
     private final GeneralConfiguration generalConfiguration;
 
     private final TemperatureSensorsService temperatureSensorsService;
@@ -53,29 +55,31 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    Environment environment;
+
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
         FloorHeatingValveRelayConfiguration relayConfiguration,
         FloorHeatingValveDacConfiguration dacConfiguration,
-        GasBoilerConfiguration gasBoilerConfiguration,
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
         HistoryService historyService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
+        Environment environment,
         MeterRegistry meterRegistry
     ) {
         this.temperatureConfiguration = temperatureConfiguration;
         this.relayConfiguration = relayConfiguration;
         this.dacConfiguration = dacConfiguration;
-        this.gasBoilerConfiguration = gasBoilerConfiguration;
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
         this.historyService = historyService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.environment = environment;
 
         Gauge.builder("floor", this::calculateTargetDirectTemperature)
             .tag("component", "target_direct_temperature")
@@ -90,6 +94,16 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             .register(meterRegistry);
     }
 
+    @EventListener({ContextRefreshedEvent.class})
+    @Async
+    public void init() {
+        if (!environment.matchesProfiles("test")) {
+            logger.info("Система была перезагружена, закрывает клапан подмеса и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
+            setValveOnPercent(0);
+            manageValveByTargetTemperature();
+        }
+    }
+
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
     void control() {
         logger.debug("Запущена джоба управления теплым полом");
@@ -97,19 +111,40 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Проверяем насколько стабильно работает котел");
         if (historyService.gasBoilerWorksStableLastHour()) {
             logger.debug("Котел работает стабильно, выставляем клапан по температуре подачи в узел подмеса");
-            Float floorDirectBeforeMixingTemperature =
-                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
-            if (floorDirectBeforeMixingTemperature == null) {
-                logger.warn("Нет данных по температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
-                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            manageValveByDirectBeforeMixingTemperature();
+        } else {
+            logger.debug("Проверяем, работает ли котел");
+            if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
+                logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
                 return;
             }
-            manageValve(floorDirectBeforeMixingTemperature);
-        } else {
-            logger.debug("Котел тактует или только что запустился, выставляем клапан по целевой подаче котла");
-            manageValve(gasBoilerService.calculateTargetDirectTemperature() * gasBoilerConfiguration.getTemperatureDirectMaxPercent());
+            logger.debug("Котел тактует или только что запустился, выставляем клапан по средней между целевой подачей котла и подачей в узел подмеса");
+            manageValveByTargetTemperature();
         }
+    }
 
+    void manageValveByDirectBeforeMixingTemperature() {
+        Float floorDirectBeforeMixingTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+        if (floorDirectBeforeMixingTemperature == null) {
+            logger.warn("Нет данных по температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            return;
+        }
+        logger.debug("Котел работает стабильно, выставляем клапан по температуре подачи в узел подмеса");
+        manageValve(floorDirectBeforeMixingTemperature);
+    }
+
+    void manageValveByTargetTemperature() {
+        Float floorDirectBeforeMixingTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+        if (floorDirectBeforeMixingTemperature == null) {
+            logger.warn("Нет данных по температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            return;
+        }
+        logger.debug("Котел тактует или только что запустился, выставляем клапан по средней между целевой подачей котла и подачей в узел подмеса");
+        manageValve((gasBoilerService.calculateTargetDirectTemperature() + floorDirectBeforeMixingTemperature) / 2);
     }
 
     void manageValve(float directTemperature) {
@@ -276,12 +311,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
                 logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
                 return;
-            }
-            /* не открываем клапан слишком быстро, иначе котел встанет по холодной обратке */
-            /* можно бы сделать такой код на закрытие, но при закрытии клапан всегда идет через 0 */
-            if (valvePercentDelta > dacConfiguration.getMaxIncreaseStep()) {
-                logger.debug("Требуемый процент увеличения открытия {} слишком высок, открываем за этот шаг на {}", targetValvePercent, currentValvePercent + dacConfiguration.getMaxIncreaseStep());
-                targetValvePercent = currentValvePercent + dacConfiguration.getMaxIncreaseStep();
             }
             if (valvePercentDelta > 0) {
                 powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0) + relayConfiguration.getRotationTimeReserve();
