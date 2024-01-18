@@ -98,8 +98,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     @Async
     public void init() {
         if (!environment.matchesProfiles("test")) {
-            logger.info("Система была перезагружена, закрывает клапан подмеса и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
-            setValveOnPercent(0);
+            logger.debug("Система была перезагружена, закрываем клапан подмеса для калибровки");
+            setValveOnPercent(-1);
+            logger.debug("и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
             manageValveByTargetTemperature();
         }
     }
@@ -297,26 +298,36 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private void setValveOnPercent(int targetValvePercent) {
         try {
-            logger.debug("Считываем текущий процент открытия клапана");
-            Integer currentValvePercent = getCurrentValvePercent();
-            if (currentValvePercent == null) {
-                logger.warn("Не удалось получить текущее положение клапана");
-                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-                return;
-            }
+
 
             logger.debug("Рассчитываем на сколько секунд подавать питание");
             int powerTime;
-            int valvePercentDelta = targetValvePercent - currentValvePercent;
-            if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
-                logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
-                return;
-            }
-            if (valvePercentDelta > 0) {
-                powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0) + relayConfiguration.getRotationTimeReserve();
+            logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
+            if (targetValvePercent == -1) {
+                powerTime = relayConfiguration.getRotationTime() + relayConfiguration.getRotationTimeReserve();
+                targetValvePercent = 0;
             } else {
-                /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
-                powerTime = (int) (Math.round(relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0) + 2 * relayConfiguration.getRotationTimeReserve());
+                logger.debug("Считываем текущий процент открытия клапана");
+                Integer currentValvePercent = getCurrentValvePercent();
+                if (currentValvePercent == null) {
+                    logger.warn("Не удалось получить текущее положение клапана");
+                    applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                    return;
+                }
+                int valvePercentDelta = targetValvePercent - currentValvePercent;
+                if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
+                    logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
+                    return;
+                }
+                if (valvePercentDelta > 0) {
+                    powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0)
+                        + relayConfiguration.getRotationTimeReserve();
+                } else {
+                    /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
+                    powerTime = (int) (Math.round(
+                        relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0)
+                        + 2 * relayConfiguration.getRotationTimeReserve());
+                }
             }
 
             logger.debug("Включаем питание сервопривода клапана");
