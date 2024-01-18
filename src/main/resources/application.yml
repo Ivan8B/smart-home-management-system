@@ -106,7 +106,7 @@ electricBoiler:
 # Настройки управления теплым полом
 floorHeating:
   # Периодичность запуска управления теплым полом (интервал не должен быть меньше чем 2 rotationTime + 2 rotationTimeDelay)
-  controlInterval: PT2M
+  controlInterval: PT5M
   temperature:
     # Максимальная температура подачи в теплый пол
     direct:
