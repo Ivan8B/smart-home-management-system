@@ -102,7 +102,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     public void init() {
         if (!environment.matchesProfiles("test")) {
             logger.debug("Чтобы отпустить процесс инициализации приложения выставляем клапан через таски");
-            ExecutorService executor = Executors.newFixedThreadPool(1);
+            ExecutorService executor = Executors.newSingleThreadExecutor();
             logger.debug("Система была перезагружена, закрываем клапан подмеса для калибровки");
             executor.submit(() -> setValveOnPercent(-1));
             logger.debug("и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
