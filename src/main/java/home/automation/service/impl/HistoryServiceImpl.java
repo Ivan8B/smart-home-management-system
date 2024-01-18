@@ -128,6 +128,19 @@ public class HistoryServiceImpl implements HistoryService {
         return intro + df0.format(workPercent) + "% времени\n* среднее количество розжигов в час " +df1.format(averageTurnOnPerHour);
     }
 
+    @Override
+    public boolean gasBoilerWorksStableLastHour() {
+        /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
+        Map<Instant, GasBoilerStatus> gasBoilerStatus1HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
+            .filter(status -> status.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        return gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.WORKS)
+            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.INIT)
+            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.IDLE)
+            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.ERROR);
+    }
+
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
         /* создаем shallow копию датасета и очищаем его от ненужных записей */
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistoryCleared = new HashMap<>(gasBoilerStatusHistory);

@@ -22,9 +22,15 @@ public interface HistoryService {
     void putTemperatureToDailyHistory(TemperatureSensor sensor, Float temperature, Instant ts);
 
     /**
-     * Получение аналитики по работе котла за прошедшие сутки
+     * Получение аналитики по работе газового котла за прошедшие сутки
      *
      * @return сообщение для бота
      */
     String getGasBoilerFormattedStatusForLastDay();
+
+    /**
+     * Расчет стабильности работы газового котла за последний час
+     * @return true если газовый котел был непрерывно включен
+     */
+    boolean gasBoilerWorksStableLastHour();
 }

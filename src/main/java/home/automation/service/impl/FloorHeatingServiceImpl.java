@@ -8,12 +8,12 @@ import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.configuration.GeneralConfiguration;
-import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.GasBoilerService;
+import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import io.micrometer.core.instrument.Gauge;
@@ -23,10 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.core.env.Environment;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -51,11 +47,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GasBoilerService gasBoilerService;
 
+    private final HistoryService historyService;
+
     private final ModbusService modbusService;
 
     private final ApplicationEventPublisher applicationEventPublisher;
-
-    private final Environment environment;
 
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
@@ -65,9 +61,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
         @Lazy GasBoilerService gasBoilerService,
+        HistoryService historyService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
-        Environment environment,
         MeterRegistry meterRegistry
     ) {
         this.temperatureConfiguration = temperatureConfiguration;
@@ -77,9 +73,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
+        this.historyService = historyService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.environment = environment;
 
         Gauge.builder("floor", this::calculateTargetDirectTemperature)
             .tag("component", "target_direct_temperature")
@@ -94,32 +90,26 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             .register(meterRegistry);
     }
 
-    @EventListener({ContextRefreshedEvent.class})
-    @Async
-    public void init() {
-        if (!environment.matchesProfiles("test")) {
-            logger.info("Система была перезагружена, открываем клапан подмеса по целевой подаче котла");
-            manageValve(gasBoilerService.calculateTargetDirectTemperature() * gasBoilerConfiguration.getTemperatureDirectMaxPercent());;
-        }
-    }
-
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
     void control() {
         logger.debug("Запущена джоба управления теплым полом");
-        logger.debug("Проверяем, работает ли котел");
-        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
-            logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
-            return;
+
+        logger.debug("Проверяем насколько стабильно работает котел");
+        if (historyService.gasBoilerWorksStableLastHour()) {
+            logger.debug("Котел работает стабильно, выставляем клапан по температуре подачи в узел подмеса");
+            Float floorDirectBeforeMixingTemperature =
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+            if (floorDirectBeforeMixingTemperature == null) {
+                logger.warn("Нет данных по температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                return;
+            }
+            manageValve(floorDirectBeforeMixingTemperature);
+        } else {
+            logger.debug("Котел тактует или только что запустился, выставляем клапан по целевой подаче котла");
+            manageValve(gasBoilerService.calculateTargetDirectTemperature() * gasBoilerConfiguration.getTemperatureDirectMaxPercent());
         }
 
-        Float floorDirectBeforeMixingTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
-        if (floorDirectBeforeMixingTemperature == null) {
-            logger.warn("Нет данных по температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-            return;
-        }
-        manageValve(floorDirectBeforeMixingTemperature);
     }
 
     void manageValve(float directTemperature) {
@@ -145,14 +135,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        logger.debug("Считываем текущий процент открытия клапана");
-        Integer currentValvePercent = getCurrentValvePercent();
-        if (currentValvePercent == null) {
-            logger.warn("Не удалось получить текущее положение клапана");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-            return;
-        }
-
         logger.debug("Рассчитываем целевое положение клапана при этих вводных");
         logger.debug("Получаем температуру обратки из полов");
         Float floorReturnTemperature =
@@ -171,7 +153,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
 
         logger.debug("Выставляем клапан");
-        setValveOnPercent(targetValvePercent, currentValvePercent);
+        setValveOnPercent(targetValvePercent);
     }
 
     @Nullable
@@ -278,15 +260,25 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         return targetPercent;
     }
 
-    private void setValveOnPercent(int targetValvePercent, int currentValvePercent) {
+    private void setValveOnPercent(int targetValvePercent) {
         try {
+            logger.debug("Считываем текущий процент открытия клапана");
+            Integer currentValvePercent = getCurrentValvePercent();
+            if (currentValvePercent == null) {
+                logger.warn("Не удалось получить текущее положение клапана");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                return;
+            }
+
             logger.debug("Рассчитываем на сколько секунд подавать питание");
             int powerTime;
             int valvePercentDelta = targetValvePercent - currentValvePercent;
             if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
-                logger.info("Клапан уже установлен на заданный процент {}", targetValvePercent);
+                logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
                 return;
             }
+            /* не открываем клапан слишком быстро, иначе котел встанет по холодной обратке */
+            /* можно бы сделать такой код на закрытие, но при закрытии клапан всегда идет через 0 */
             if (valvePercentDelta > dacConfiguration.getMaxIncreaseStep()) {
                 logger.debug("Требуемый процент увеличения открытия {} слишком высок, открываем за этот шаг на {}", targetValvePercent, currentValvePercent + dacConfiguration.getMaxIncreaseStep());
                 targetValvePercent = currentValvePercent + dacConfiguration.getMaxIncreaseStep();
