@@ -2,6 +2,9 @@ package home.automation.service.impl;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 
 import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
@@ -26,7 +29,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +58,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     Environment environment;
+
+    private final ReentrantLock valveLocker = new ReentrantLock();
 
     public FloorHeatingServiceImpl(
         FloorHeatingTemperatureConfiguration temperatureConfiguration,
@@ -95,18 +99,19 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     @EventListener({ContextRefreshedEvent.class})
-    @Async
     public void init() {
         if (!environment.matchesProfiles("test")) {
+            logger.debug("Чтобы отпустить процесс инициализации приложения выставляем клапан через таски");
+            ExecutorService executor = Executors.newFixedThreadPool(1);
             logger.debug("Система была перезагружена, закрываем клапан подмеса для калибровки");
-            setValveOnPercent(-1);
+            executor.submit(() -> setValveOnPercent(-1));
             logger.debug("и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
-            manageValveByTargetTemperature();
+            executor.submit(this::manageValveByTargetTemperature);;
         }
     }
 
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
-    void control() {
+    private void control() {
         logger.debug("Запущена джоба управления теплым полом");
 
         logger.debug("Проверяем насколько стабильно работает котел");
@@ -124,7 +129,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
     }
 
-    void manageValveByDirectBeforeMixingTemperature() {
+    private void manageValveByDirectBeforeMixingTemperature() {
         Float floorDirectBeforeMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
         if (floorDirectBeforeMixingTemperature == null) {
@@ -136,7 +141,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         manageValve(floorDirectBeforeMixingTemperature);
     }
 
-    void manageValveByTargetTemperature() {
+    private void manageValveByTargetTemperature() {
         Float floorDirectBeforeMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
         if (floorDirectBeforeMixingTemperature == null) {
@@ -148,7 +153,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         manageValve((gasBoilerService.calculateTargetDirectTemperature() + floorDirectBeforeMixingTemperature) / 2);
     }
 
-    void manageValve(float directTemperature) {
+    private void manageValve(float directTemperature) {
         logger.debug("Проверяем насколько текущая температура подачи отличается от целевой");
         Float targetDirectTemperature = calculateTargetDirectTemperature();
         Float currentDirectAfterMixingTemperature =
@@ -188,8 +193,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        logger.debug("Выставляем клапан");
-        setValveOnPercent(targetValvePercent);
+        logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
+        if (!valveLocker.isLocked()) {
+            setValveOnPercent(targetValvePercent);
+        }
     }
 
     @Nullable
@@ -297,9 +304,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private void setValveOnPercent(int targetValvePercent) {
+        valveLocker.lock();
         try {
-
-
             logger.debug("Рассчитываем на сколько секунд подавать питание");
             int powerTime;
             logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
@@ -350,6 +356,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         } catch (ModbusException | InterruptedException e) {
             logger.error("Ошибка выставления напряжение на ЦАП");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+        } finally {
+            valveLocker.unlock();
         }
     }
 
@@ -382,5 +390,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private float getVoltageInVFromPercent(int percent) {
         /* процент считается в интервале напряжений от 2 до 10 В */
         return 2f + 8f * percent / 100;
+    }
+
+    @Override
+    public String getFormattedStatus() {
+        return "процент подмеса в теплые полы - " + getCurrentValvePercent() + "%";
     }
 }
