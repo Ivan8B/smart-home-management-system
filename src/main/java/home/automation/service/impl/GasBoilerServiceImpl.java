@@ -154,6 +154,17 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         logger.debug("Отправляем в историю текущую температуру обратки");
         historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE, newReturnTemperature, now);
+
+        logger.debug("Отправляем в историю текущую температуру подачи в узел подмеса");
+        Float floorDirectBeforeMixingTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+        if (floorDirectBeforeMixingTemperature != null) {
+            historyService.putTemperatureToDailyHistory(
+                TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING,
+                floorDirectBeforeMixingTemperature,
+                now
+            );
+        }
     }
 
     private boolean ifGasBoilerCanBeTurnedOn() {

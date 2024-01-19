@@ -33,4 +33,10 @@ public interface HistoryService {
      * @return true если газовый котел был непрерывно включен
      */
     boolean gasBoilerWorksStableLastHour();
+
+    /**
+     * Расчет средней температуры подачи в узел подмеса теплых полов во время работы котла за последний час
+     * @return средняя температура или null если нет данных (или котел не работал)
+     */
+    Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLastHour();
 }

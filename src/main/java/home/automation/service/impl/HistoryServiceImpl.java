@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
 import home.automation.configuration.GasBoilerConfiguration;
@@ -29,6 +30,7 @@ public class HistoryServiceImpl implements HistoryService {
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
+    private final Map<Instant, Float> floorDirectBeforeMixingTemperatureDailyHistory = new HashMap<>();
 
     public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
@@ -52,11 +54,14 @@ public class HistoryServiceImpl implements HistoryService {
             switch (sensor) {
                 case WATER_DIRECT_GAS_BOILER_TEMPERATURE -> gasBoilerDirectTemperatureDailyHistory.put(ts, temperature);
                 case WATER_RETURN_GAS_BOILER_TEMPERATURE -> gasBoilerReturnTemperatureDailyHistory.put(ts, temperature);
+                case WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING -> floorDirectBeforeMixingTemperatureDailyHistory.put(ts, temperature);
             }
         }
         gasBoilerDirectTemperatureDailyHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
         gasBoilerReturnTemperatureDailyHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+        floorDirectBeforeMixingTemperatureDailyHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
@@ -139,6 +144,27 @@ public class HistoryServiceImpl implements HistoryService {
             && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.INIT)
             && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.IDLE)
             && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.ERROR);
+    }
+
+    @Override
+    public Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLastHour() {
+        /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
+        Map<Instant, GasBoilerStatus> gasBoilerStatus1HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
+            .filter(status -> status.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        Map<Instant, Float> floorDirectBeforeMixingWhenWorkTemperature1HourHistory =
+            floorDirectBeforeMixingTemperatureDailyHistory.entrySet().stream()
+                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+                .filter(temperature -> gasBoilerStatus1HourHistory.containsKey(temperature.getKey())
+                    && gasBoilerStatus1HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (floorDirectBeforeMixingTemperatureDailyHistory.isEmpty()) {
+            return null;
+        }
+        OptionalDouble average = floorDirectBeforeMixingWhenWorkTemperature1HourHistory.values().stream().mapToDouble(t -> t).average();
+        return average.isPresent() ? (float) average.getAsDouble() : null;
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {

@@ -106,7 +106,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.debug("Система была перезагружена, закрываем клапан подмеса для калибровки");
             executor.submit(() -> setValveOnPercent(-1));
             logger.debug("и открываем его по средней между целевой подачей котла и подачей в узел подмеса");
-            executor.submit(this::manageValveByTargetTemperature);;
+            executor.submit(this::manageValveByAverageBetweenGasBoilerTargetAndDirectBeforeMixingTemperature);;
         }
     }
 
@@ -117,19 +117,19 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Проверяем насколько стабильно работает котел");
         if (historyService.gasBoilerWorksStableLastHour()) {
             logger.debug("Котел работает стабильно, выставляем клапан по температуре подачи в узел подмеса");
-            manageValveByDirectBeforeMixingTemperature();
+            manageValveByFloorDirectBeforeMixingTemperature();
         } else {
             logger.debug("Проверяем, работает ли котел");
             if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
                 logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
                 return;
             }
-            logger.debug("Котел тактует или только что запустился, выставляем клапан по средней между целевой подачей котла и подачей в узел подмеса");
-            manageValveByTargetTemperature();
+            logger.debug("Котел тактует, выставляем клапан по средней температуре подачи в узел подмеса");
+            manageValveByAverageFloorDirectBeforeMixingTemperature();
         }
     }
 
-    private void manageValveByDirectBeforeMixingTemperature() {
+    private void manageValveByFloorDirectBeforeMixingTemperature() {
         Float floorDirectBeforeMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
         if (floorDirectBeforeMixingTemperature == null) {
@@ -137,11 +137,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
-        logger.debug("Котел работает стабильно, выставляем клапан по температуре подачи в узел подмеса");
         manageValve(floorDirectBeforeMixingTemperature);
     }
 
-    private void manageValveByTargetTemperature() {
+    private void manageValveByAverageBetweenGasBoilerTargetAndDirectBeforeMixingTemperature() {
         Float floorDirectBeforeMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
         if (floorDirectBeforeMixingTemperature == null) {
@@ -149,8 +148,17 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
-        logger.debug("Котел тактует или только что запустился, выставляем клапан по средней между целевой подачей котла и подачей в узел подмеса");
         manageValve((gasBoilerService.calculateTargetDirectTemperature() + floorDirectBeforeMixingTemperature) / 2);
+    }
+
+    private void manageValveByAverageFloorDirectBeforeMixingTemperature() {
+        Float averageFloorDirectBeforeMixingTemperature = historyService.getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLastHour();
+        if (averageFloorDirectBeforeMixingTemperature == null) {
+            logger.warn("Нет данных по средней температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            return;
+        }
+        manageValve(averageFloorDirectBeforeMixingTemperature);
     }
 
     private void manageValve(float directTemperature) {
