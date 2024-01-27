@@ -168,10 +168,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private boolean ifGasBoilerCanBeTurnedOn() {
-        /* если котел уже работает, то включать его реле можно */
-        if (status == GasBoilerStatus.WORKS) {
-            return true;
-        }
         /* проверяем можно ли уже включать котел по температуре обратки */
         Float returnTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
