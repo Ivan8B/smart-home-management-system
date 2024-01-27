@@ -94,7 +94,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         Gauge.builder("floor", this::getCurrentValvePercent)
             .tag("component", "current_valve_percent")
             .tag("system", "home_automation")
-            .description("Текущий процент открытия клапана")
+            .description("Текущий процент открытия клапана по напряжению")
+            .register(meterRegistry);
+
+        Gauge.builder("floor", this::getEffectiveValvePercent)
+            .tag("component", "effective_valve_percent")
+            .tag("system", "home_automation")
+            .description("Текущий процент открытия клапана по температуре")
             .register(meterRegistry);
     }
 
@@ -384,6 +390,21 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         }
         return null;
+    }
+
+    private Integer getEffectiveValvePercent() {
+        Float floorDirectBeforeMixingTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
+        Float floorDirectAfterMixingTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING);
+        Float floorReturnTemperature =
+            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
+        if (floorDirectBeforeMixingTemperature == null || floorDirectAfterMixingTemperature == null || floorReturnTemperature == null) {
+            return null;
+        }
+        return Math.round(
+            100 * (floorDirectAfterMixingTemperature - floorReturnTemperature) / (floorDirectBeforeMixingTemperature
+                - floorReturnTemperature));
     }
 
     private int getPercentFromVoltageInV(float voltage) {
