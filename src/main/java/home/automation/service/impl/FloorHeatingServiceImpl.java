@@ -202,9 +202,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
 
         logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
-        if (!valveLocker.isLocked()) {
-            setValveOnPercent(targetValvePercent);
+        if (valveLocker.isLocked()) {
+            logger.info("Клапан заблокирован, не выставляем положение");
+            return;
         }
+        setValveOnPercent(targetValvePercent);
     }
 
     @Nullable
