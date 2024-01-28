@@ -352,7 +352,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 }
             }
 
-            logger.debug("Включаем питание сервопривода клапана");
+            logger.info("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
             logger.debug("Подаем управляющее напряжение, оно в десятках милливольт");
@@ -365,7 +365,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             );
 
             Thread.sleep(powerTime * 1000);
-            logger.debug("Выключаем питание сервопривода клапана");
+            logger.info("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
 
             logger.info("Сервопривод был передвинут, новый процент открытия {}", targetValvePercent);
