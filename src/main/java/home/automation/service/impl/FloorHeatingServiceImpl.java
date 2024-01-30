@@ -402,9 +402,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (floorDirectBeforeMixingTemperature == null || floorDirectAfterMixingTemperature == null || floorReturnTemperature == null) {
             return null;
         }
-        return Math.round(
+        int calculated =  Math.round(
             100 * (floorDirectAfterMixingTemperature - floorReturnTemperature) / (floorDirectBeforeMixingTemperature
                 - floorReturnTemperature));
+        if (calculated < 0 || calculated > 100) {
+            return -1;
+        }
+        return calculated;
     }
 
     private int getPercentFromVoltageInV(float voltage) {
