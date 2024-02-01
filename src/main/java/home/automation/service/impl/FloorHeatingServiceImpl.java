@@ -341,15 +341,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
                     return;
                 }
-                if (valvePercentDelta > 0) {
-                    powerTime = (int) Math.round(relayConfiguration.getRotationTime() * valvePercentDelta / 100.0)
-                        + relayConfiguration.getRotationTimeReserve();
-                } else {
-                    /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
-                    powerTime = (int) (Math.round(
-                        relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0)
-                        + 2 * relayConfiguration.getRotationTimeReserve());
-                }
+                /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
+                /* но на всякий случая подаем питание пропорционально сумме положений и при увеличении процента открытия тоже, похоже иногда клапан увеличивает процент через ноль */
+                powerTime = (int) (Math.round(
+                    relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0)
+                    + 2 * relayConfiguration.getRotationTimeReserve());
             }
 
             logger.info("Включаем питание сервопривода клапана");
