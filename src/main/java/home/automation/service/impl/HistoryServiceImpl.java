@@ -147,15 +147,15 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     @Override
-    public Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLastHour() {
-        /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
+    public Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLast3Hours() {
+        /* история работы котла собирается за сутки, а нам нужно за 3 часа, поэтому отрезаем лишнее */
         Map<Instant, GasBoilerStatus> gasBoilerStatus1HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-            .filter(status -> status.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+            .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<Instant, Float> floorDirectBeforeMixingWhenWorkTemperature1HourHistory =
             floorDirectBeforeMixingTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
+                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
                 .filter(temperature -> gasBoilerStatus1HourHistory.containsKey(temperature.getKey())
                     && gasBoilerStatus1HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

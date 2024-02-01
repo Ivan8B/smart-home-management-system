@@ -158,7 +158,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private void manageValveByAverageFloorDirectBeforeMixingTemperature() {
-        Float averageFloorDirectBeforeMixingTemperature = historyService.getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLastHour();
+        Float averageFloorDirectBeforeMixingTemperature = historyService.getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLast3Hours();
         if (averageFloorDirectBeforeMixingTemperature == null) {
             logger.warn("Нет данных по средней температуре подачи в узел подмеса, не получается управлять трехходовым клапаном");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
