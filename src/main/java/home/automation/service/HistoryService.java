@@ -29,14 +29,15 @@ public interface HistoryService {
     String getGasBoilerFormattedStatusForLastDay();
 
     /**
-     * Расчет стабильности работы газового котла за последний час
-     * @return true если газовый котел был непрерывно включен
+     * Добавление рассчитанного процента открытия клапана в историю
+     * @param calculatedTargetValvePercent рассчтитонное положение клапана
+     * @param ts время
      */
-    boolean gasBoilerWorksStableLastHour();
+    void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts);
 
     /**
-     * Расчет средней температуры подачи в узел подмеса теплых полов во время работы котла за последние 3 часа
-     * @return средняя температура или null если нет данных (или котел не работал)
+     * Получение среднего рассчитанного процента открытия клапана за последний час
+     * @return среднее рассчитанное положение клапана за последний час
      */
-    Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLast3Hours();
+    Integer getAverageCalculatedTargetValvePercentForLastHour();
 }

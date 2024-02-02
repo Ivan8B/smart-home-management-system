@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,7 @@ public class HistoryServiceImpl implements HistoryService {
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
-    private final Map<Instant, Float> floorDirectBeforeMixingTemperatureDailyHistory = new HashMap<>();
+    private final Map<Instant, Integer> calculatedValvePercentDailyHistory = new HashMap<>();
 
     public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
@@ -54,22 +55,18 @@ public class HistoryServiceImpl implements HistoryService {
             switch (sensor) {
                 case WATER_DIRECT_GAS_BOILER_TEMPERATURE -> gasBoilerDirectTemperatureDailyHistory.put(ts, temperature);
                 case WATER_RETURN_GAS_BOILER_TEMPERATURE -> gasBoilerReturnTemperatureDailyHistory.put(ts, temperature);
-                case WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING -> floorDirectBeforeMixingTemperatureDailyHistory.put(ts, temperature);
             }
         }
         gasBoilerDirectTemperatureDailyHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
         gasBoilerReturnTemperatureDailyHistory.entrySet()
             .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
-        floorDirectBeforeMixingTemperatureDailyHistory.entrySet()
-            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     private Float getGasBoilerAverage3HourlyPower() {
         if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
             || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
-            || gasBoilerDirectTemperatureDailyHistory.isEmpty()
-            || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
+            || gasBoilerDirectTemperatureDailyHistory.isEmpty() || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
             return null;
         }
 
@@ -134,37 +131,28 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     @Override
-    public boolean gasBoilerWorksStableLastHour() {
-        /* история работы котла собирается за сутки, а нам нужно за час, поэтому отрезаем лишнее */
-        Map<Instant, GasBoilerStatus> gasBoilerStatus1HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-            .filter(status -> status.getKey().isAfter(Instant.now().minus(1, ChronoUnit.HOURS)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        return gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.WORKS)
-            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.INIT)
-            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.IDLE)
-            && !gasBoilerStatus1HourHistory.containsValue(GasBoilerStatus.ERROR);
+    public void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts) {
+        if (calculatedTargetValvePercent != null) {
+            calculatedValvePercentDailyHistory.put(ts, calculatedTargetValvePercent);
+        }
+        calculatedValvePercentDailyHistory.entrySet()
+            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     @Override
-    public Float getAverageFloorDirectBeforeMixingTemperatureWhenGasBoilerWorksForLast3Hours() {
-        /* история работы котла собирается за сутки, а нам нужно за 3 часа, поэтому отрезаем лишнее */
-        Map<Instant, GasBoilerStatus> gasBoilerStatus1HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-            .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    public Integer getAverageCalculatedTargetValvePercentForLastHour() {
+        Map<Instant, Integer> calculatedValvePercentDailyHistory1HourHistory =
+            calculatedValvePercentDailyHistory.entrySet().stream()
+                .filter(percent -> percent.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
-        Map<Instant, Float> floorDirectBeforeMixingWhenWorkTemperature1HourHistory =
-            floorDirectBeforeMixingTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                .filter(temperature -> gasBoilerStatus1HourHistory.containsKey(temperature.getKey())
-                    && gasBoilerStatus1HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        if (floorDirectBeforeMixingTemperatureDailyHistory.isEmpty()) {
+        if (calculatedValvePercentDailyHistory1HourHistory.isEmpty()) {
             return null;
         }
-        OptionalDouble average = floorDirectBeforeMixingWhenWorkTemperature1HourHistory.values().stream().mapToDouble(t -> t).average();
-        return average.isPresent() ? (float) average.getAsDouble() : null;
+        OptionalDouble averageOptional =
+            calculatedValvePercentDailyHistory1HourHistory.values().stream().mapToDouble(t -> t).average();
+        Float average = averageOptional.isPresent() ? (float) averageOptional.getAsDouble() : null;
+        return average != null ? Math.round(average) : null;
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
@@ -234,7 +222,7 @@ public class HistoryServiceImpl implements HistoryService {
         Duration interval = Duration.between(oldestTimestampIntDataset, Instant.now());
         double countHours = interval.toMinutes() / 60.0;
         /* если прошло не больше часа - возвращаем чисто включений */
-        if (countHours < 1 ) {
+        if (countHours < 1) {
             return countWorks;
         }
         return (float) (countWorks / countHours);
