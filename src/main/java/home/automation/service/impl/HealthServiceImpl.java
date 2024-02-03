@@ -16,6 +16,7 @@ import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.event.error.FunnelHeatingErrorEvent;
 import home.automation.event.error.GasBoilerErrorEvent;
+import home.automation.event.error.GasBoilerFakeOutsideTemperatureErrorEvent;
 import home.automation.event.error.HeatRequestErrorEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
@@ -45,6 +46,7 @@ public class HealthServiceImpl implements HealthService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final List<HeatRequestErrorEvent> heatRequestErrorEvents = new ArrayList<>();
     private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
+    private final List<GasBoilerFakeOutsideTemperatureErrorEvent> gasBoilerFakeOutsideTemperatureErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
     private final List<CityPowerInputErrorEvent> cityPowerInputErrorEvents = new ArrayList<>();
@@ -89,8 +91,8 @@ public class HealthServiceImpl implements HealthService {
             || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
         }
-        if (!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk() || !funnelHeatingIsOk()
-            || !maximumTemperaturesAreOk()) {
+        if (!gasBoilerFakeOutsideTemperatureIsOk() ||!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
+            || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
         }
 
@@ -144,6 +146,11 @@ public class HealthServiceImpl implements HealthService {
     @EventListener
     public void onGasBoilerRelaySetFailEvent(GasBoilerErrorEvent event) {
         gasBoilerErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onGasBoilerFakeOutsideTemperatureErrorEvent(GasBoilerFakeOutsideTemperatureErrorEvent event) {
+        gasBoilerFakeOutsideTemperatureErrorEvents.add(event);
     }
 
     @EventListener
@@ -213,6 +220,10 @@ public class HealthServiceImpl implements HealthService {
         return gasBoilerErrorEvents.isEmpty();
     }
 
+    private boolean gasBoilerFakeOutsideTemperatureIsOk() {
+        return gasBoilerFakeOutsideTemperatureErrorEvents.isEmpty();
+    }
+
     private boolean electricBoilerIsOk() {
         return electricBoilerErrorEvents.isEmpty();
     }
@@ -262,6 +273,7 @@ public class HealthServiceImpl implements HealthService {
     private void clear() {
         heatRequestErrorEvents.clear();
         gasBoilerErrorEvents.clear();
+        gasBoilerFakeOutsideTemperatureErrorEvents.clear();
         electricBoilerErrorEvents.clear();
         electricBoilerTurnedOnEvents.clear();
         cityPowerInputErrorEvents.clear();
@@ -316,6 +328,9 @@ public class HealthServiceImpl implements HealthService {
 
     private String formatMinorMessage() {
         StringBuilder message = new StringBuilder("Неполадки:\n");
+        if (!gasBoilerFakeOutsideTemperatureIsOk()) {
+            message.append("* отказ обманки газового котла\n");
+        }
         if (!minorTemperatureSensorsAreOk()) {
             message.append("* отказ температурных датчиков: ");
             message.append(minorTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
