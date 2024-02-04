@@ -9,7 +9,7 @@ public enum TemperatureSensor {
             FIRST_BOARD_NAME,
             "температура в котельной",
             true,
-            15F,
+            12F,
             null
         ),
 

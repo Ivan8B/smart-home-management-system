@@ -225,8 +225,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         logger.debug("Проверяем граничные условия");
         if (generalConfiguration.getInsideTarget() < outsideTemperature || generalConfiguration.getInsideTarget() < averageInternalTemperature) {
-            logger.warn("Невозможно рассчитать целевую температуру подачи в полы, нарушены граничные условия");
-            return null;
+            logger.debug("Нарушены граничные условия, возвращаем минимальную температуру подачи в полы");
+            return temperatureConfiguration.getDirectMinTemperature();
         } else {
             /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
             calculated =
@@ -235,22 +235,20 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     - averageInternalTemperature);
         }
 
-        logger.debug("Расчетная целевая температура не должна быть сильно больше обратки из теплых полов");
-        if (calculated > returnTemperature + temperatureConfiguration.getMaxDelta()) {
-            logger.debug(
-                "Слишком высокая целевая температура подачи {}, срезаем до {}",
-                calculated,
-                returnTemperature + temperatureConfiguration.getMaxDelta()
-            );
-            calculated = returnTemperature + temperatureConfiguration.getMaxDelta();
-        }
-
         if (calculated > temperatureConfiguration.getDirectMaxTemperature()) {
             logger.debug(
                 "Целевая температура подачи в полы больше максимальной, возвращаем максимальную - {}",
                 temperatureConfiguration.getDirectMaxTemperature()
             );
             return temperatureConfiguration.getDirectMaxTemperature();
+        }
+
+        if (calculated < temperatureConfiguration.getDirectMinTemperature()) {
+            logger.debug(
+                "Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
+                temperatureConfiguration.getDirectMinTemperature()
+            );
+            return temperatureConfiguration.getDirectMinTemperature();
         }
 
         logger.debug("Целевая температура подачи в полы - {}", calculated);
