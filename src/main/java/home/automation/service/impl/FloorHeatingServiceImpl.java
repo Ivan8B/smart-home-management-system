@@ -50,8 +50,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final TemperatureSensorsService temperatureSensorsService;
 
-    private final GasBoilerService gasBoilerService;
-
     private final HistoryService historyService;
 
     private final ModbusService modbusService;
@@ -68,7 +66,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         FloorHeatingValveDacConfiguration dacConfiguration,
         GeneralConfiguration generalConfiguration,
         TemperatureSensorsService temperatureSensorsService,
-        @Lazy GasBoilerService gasBoilerService,
         HistoryService historyService,
         ModbusService modbusService,
         ApplicationEventPublisher applicationEventPublisher,
@@ -80,7 +77,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.dacConfiguration = dacConfiguration;
         this.generalConfiguration = generalConfiguration;
         this.temperatureSensorsService = temperatureSensorsService;
-        this.gasBoilerService = gasBoilerService;
         this.historyService = historyService;
         this.modbusService = modbusService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -121,14 +117,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private void control() {
         logger.debug("Запущена джоба управления теплым полом");
 
-        logger.debug("Проверяем, работает ли котел");
-        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
-            logger.debug("Котел не работает, операций с клапаном теплого пола не производим");
-            return;
-        }
-
-        logger.debug("Котел работает, рассчитываем целевое положение клапана на текущий момент");
-        logger.debug("Рассчитываем целевое температуру подачи в теплые полы");
+        logger.debug("Рассчитываем целевую температуру подачи в теплые полы");
         Float targetDirectTemperature =  calculateTargetDirectTemperature();
         if (targetDirectTemperature == null) {
             logger.warn("Нет данных по целевой подаче в полы, не получается управлять трехходовым клапаном");
