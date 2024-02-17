@@ -11,12 +11,10 @@ import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GeneralConfiguration;
-import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
-import home.automation.service.GasBoilerService;
 import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
@@ -26,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
@@ -271,20 +268,20 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Проверяем граничные условия");
         if (targetDirectTemperature < floorReturnTemperature || floorDirectBeforeMixingTemperature < floorReturnTemperature) {
             logger.debug("Слишком высокая температура обратки из теплых полов, прикрываем клапан до минимального");
-            return dacConfiguration.getMinOpenPercent();
+            return 0;
         }
 
         int targetPercent = Math.round(
             100 * (targetDirectTemperature - floorReturnTemperature) / (floorDirectBeforeMixingTemperature
                 - floorReturnTemperature));
 
-        if (targetPercent > dacConfiguration.getMaxOpenPercent()) {
-            logger.debug("Слишком высокий процент открытия клапана {}, выставляем максимально допустимый {}", targetPercent, dacConfiguration.getMaxOpenPercent());
-            return dacConfiguration.getMaxOpenPercent();
+        if (targetPercent > 100) {
+            logger.debug("Слишком высокий процент открытия клапана {}, выставляем максимально допустимый {}", targetPercent, 100);
+            return 100;
         }
-        if (targetPercent < dacConfiguration.getMinOpenPercent()) {
-            logger.debug("Слишком низкий процент открытия клапана {}, выставляем минимально допустимый {}", targetPercent, dacConfiguration.getMinOpenPercent());
-            return dacConfiguration.getMinOpenPercent();
+        if (targetPercent < 0) {
+            logger.debug("Слишком низкий процент открытия клапана {}, выставляем минимально допустимый {}", targetPercent, 0);
+            return 0;
         }
         return targetPercent;
     }
@@ -297,7 +294,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
             if (targetValvePercent == -1) {
                 powerTime = relayConfiguration.getRotationTime() + relayConfiguration.getRotationTimeReserve();
-                targetValvePercent = 0;
             } else {
                 logger.debug("Считываем текущий процент открытия клапана");
                 Integer currentValvePercent = getCurrentValvePercent();
@@ -311,11 +307,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
                     return;
                 }
-                /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
-                /* но на всякий случая подаем питание пропорционально сумме положений и при увеличении процента открытия тоже, похоже иногда клапан увеличивает процент через ноль */
-                powerTime = (int) (Math.round(
-                    relayConfiguration.getRotationTime() * (currentValvePercent + targetValvePercent) / 100.0)
-                    + 2 * relayConfiguration.getRotationTimeReserve());
+                powerTime = calculateTime(targetValvePercent, currentValvePercent);
             }
 
             logger.info("Включаем питание сервопривода клапана");
@@ -341,6 +333,16 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         } finally {
             valveLocker.unlock();
         }
+    }
+
+    private int calculateTime(int targetValvePercent, int currentValvePercent) {
+        /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
+        /* но на всякий случая подаем питание пропорционально сумме положений и при увеличении процента открытия тоже, похоже иногда клапан увеличивает процент через ноль */
+        /* считаем по напряжению которое будет выдаваться на ЦАП, вычитаем 2 раза по 2 вольта - клапан работает от 2 до 10V */
+        return (int) (Math.round(
+            relayConfiguration.getRotationTime()
+                * (getPercentFromVoltageInV(currentValvePercent) + getVoltageInVFromPercent(targetValvePercent) - 4) / 8.0)
+                    + 2 * relayConfiguration.getRotationTimeReserve());
     }
 
     private Integer getCurrentValvePercent() {
@@ -385,12 +387,22 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (voltage > 10) {
             voltage = 10;
         }
-        return Math.round(((voltage - 2) / 8) * 100);
+        int correctedPercent = Math.round(((voltage - 2) / 8) * 100);
+        if (correctedPercent == 0) {
+            return 0;
+        }
+        /* компенсируем коррекцию */
+        return (int) Math.round((correctedPercent - 25) / 0.5);
     }
 
     private float getVoltageInVFromPercent(int percent) {
-        /* процент считается в интервале напряжений от 2 до 10 В */
-        return 2f + 8f * percent / 100;
+        /* поскольку клапан открывается неравномерно нужна коррекция */
+        /* эта коррекция по линейной функции и весьма приблизительна */
+        /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
+        float correctedPercent = (percent == -1) ? 0 : (float) (25 + 0.5 * percent);
+
+        /* клапан работает в интервале напряжений от 2 до 10 В */
+        return 2f + 8f * correctedPercent / 100;
     }
 
     @Override
