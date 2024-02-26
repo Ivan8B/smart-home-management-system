@@ -104,8 +104,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         logger.debug("Запоминаем текущее время, чтобы ключи в истории были одинаковые");
         Instant now = Instant.now();
 
-        /* если реле отключено - статус котла считать не имеет смысла */
         if (getGasBoilerRelayStatus() == GasBoilerRelayStatus.NO_NEED_HEAT) {
+            logger.debug("Реле отключено - статус котла считать не имеет смысла");
             setStatus(GasBoilerStatus.IDLE, now);
             return;
         }

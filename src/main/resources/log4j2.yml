@@ -19,7 +19,15 @@ Configuration:
           max: 30
   Loggers:
     Root:
-      level: info
+      level: warn
       AppenderRef:
         - ref: Console
         - ref: RollingFile
+      additivity: false
+    Logger:
+      name: home.automation
+      level: debug
+      AppenderRef:
+        - ref: Console
+        - ref: RollingFile
+      additivity: false
