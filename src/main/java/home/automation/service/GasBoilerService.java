@@ -3,7 +3,7 @@ package home.automation.service;
 import home.automation.enums.GasBoilerStatus;
 
 public interface GasBoilerService {
-    float calculateTargetDirectTemperature();
+    Float calculateTargetDirectTemperature();
 
     /**
      * Получение статуса газового котла (рассчитывается по росту температуры подачи)

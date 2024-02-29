@@ -43,7 +43,7 @@ public class GasBoilerServiceTest extends AbstractTest {
     @MockBean
     HeatRequestService heatRequestService;
 
-    private void invokeCalculateStatusMethod(GasBoilerRelayStatus status) {
+    private void invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus status) {
         try {
             if (status == GasBoilerRelayStatus.NO_NEED_HEAT) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
@@ -53,7 +53,7 @@ public class GasBoilerServiceTest extends AbstractTest {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
                     .thenReturn(new boolean[]{false, false});
             }
-            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateStatus");
+            Method method = gasBoilerService.getClass().getDeclaredMethod("calculateStatusAndManageRelay");
             method.setAccessible(true);
             method.invoke(gasBoilerService);
         } catch (Exception e) {
@@ -71,43 +71,43 @@ public class GasBoilerServiceTest extends AbstractTest {
         /* после первого опроса статус не может быть известен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.INIT, gasBoilerService.getStatus());
 
         /* температура подачи растет - котел должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи немного упала - котел все еще должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(46F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи упала сильно - котел считается отключенным */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(40F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* температура подачи растет - котел должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(41F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи растет - котел должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(42F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи упала сильно - котел считается отключенным */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(34F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
@@ -121,37 +121,37 @@ public class GasBoilerServiceTest extends AbstractTest {
         /* после первого опроса статус не может быть известен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.INIT, gasBoilerService.getStatus());
 
         /* температура подачи падает - котел считается отключенным */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(43F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* температура подачи растет - котел считается работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(46F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи немного упала - котел все еще должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
 
         /* температура подачи упала сильно - котел считается отключенным */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(40F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* температура подачи растет - котел должен считаться работающим */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(41F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
     }
 
@@ -165,19 +165,19 @@ public class GasBoilerServiceTest extends AbstractTest {
         /* если реле кота разомкнуто - котел не работает на отопление*/
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* температура подачи растет - а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(44.9F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* температура подачи растет - а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45.1F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
     }
 
@@ -189,38 +189,20 @@ public class GasBoilerServiceTest extends AbstractTest {
             .thenReturn(44.5F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.INIT, gasBoilerService.getStatus());
 
         /* температура подачи растет из-за колебаний погоды- а котел все еще выключен */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45.3F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.IDLE, gasBoilerService.getStatus());
 
         /* ошибку сбросили, температура подачи выросла сильнее и котел включился */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(48F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         assertEquals(GasBoilerStatus.WORKS, gasBoilerService.getStatus());
-    }
-
-    private void invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus status) {
-        try {
-            if (status == GasBoilerRelayStatus.NO_NEED_HEAT) {
-                Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{true, false});
-            }
-            if (status == GasBoilerRelayStatus.NEED_HEAT) {
-                Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{false, false});
-            }
-            Method method = gasBoilerService.getClass().getDeclaredMethod("manageGasBoilerRelay");
-            method.setAccessible(true);
-            method.invoke(gasBoilerService);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось вызвать метод управления реле котла", e);
-        }
     }
 
     @Test
@@ -230,27 +212,27 @@ public class GasBoilerServiceTest extends AbstractTest {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE)).thenReturn(10F);
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
 
-        invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         /* вызываем метод снова, чтобы проверить, что реле не сработает второй раз */
         Mockito.clearInvocations(modbusService);
-        invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(0))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         /* имитируем рост температуры - включение котла */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
 
         /* убираем запрос на тепло и убеждаемся, что реле отключится */
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NO_NEED_HEAT);
-        invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
@@ -259,10 +241,10 @@ public class GasBoilerServiceTest extends AbstractTest {
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(40F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
@@ -270,14 +252,14 @@ public class GasBoilerServiceTest extends AbstractTest {
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
             .thenReturn(45F);
-        invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(0))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         /* теперь даем обратке остыть и включение должно быть разрешено */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
             .thenReturn(25F);
-        invokeManageGasBoilerRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
@@ -289,10 +271,10 @@ public class GasBoilerServiceTest extends AbstractTest {
         Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(47F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE))
             .thenReturn(40F);
-        invokeCalculateStatusMethod(GasBoilerRelayStatus.NEED_HEAT);
+        invokeCalculateStatusAndManageRelayMethod(GasBoilerRelayStatus.NEED_HEAT);
         /* убеждаемся, что реле не отключается */
         Mockito.verify(modbusService, Mockito.times(0))
             .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
@@ -355,22 +337,22 @@ public class GasBoilerServiceTest extends AbstractTest {
     void checkCalculateTargetDirectTemperatureMethod() {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-30F);
-        assertEquals(71f, gasBoilerService.calculateTargetDirectTemperature());
+        assertEquals(71F, gasBoilerService.calculateTargetDirectTemperature());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(-10F);
-        assertEquals(60f,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
+        assertEquals(60F,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(0F);
-        assertEquals(48f,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
+        assertEquals(48F,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(10F);
-        assertEquals(47f,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
+        assertEquals(47F,  gasBoilerService.calculateTargetDirectTemperature(), 1f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
             .thenReturn(16F);
-        assertEquals(47f,  gasBoilerService.calculateTargetDirectTemperature());
+        assertEquals(47F,  gasBoilerService.calculateTargetDirectTemperature());
     }
 }
