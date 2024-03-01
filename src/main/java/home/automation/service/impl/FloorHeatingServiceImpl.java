@@ -340,7 +340,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         /* считаем по напряжению которое будет выдаваться на ЦАП, вычитаем 2 раза по 2 вольта - клапан работает от 2 до 10V */
         return (int) (Math.round(
             relayConfiguration.getRotationTime()
-                * (getPercentFromVoltageInV(currentValvePercent) + getVoltageInVFromPercent(targetValvePercent) - 4) / 8.0)
+                * (getVoltageInVFromPercent(currentValvePercent) + getVoltageInVFromPercent(targetValvePercent) - 4) / 8.0)
                     + 2 * relayConfiguration.getRotationTimeReserve());
     }
 
