@@ -1,110 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-<modelVersion>4.0.0</modelVersion>
-<parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.0.9</version>
-</parent>
-<groupId>com.example</groupId>
-<artifactId>HomeAutomation</artifactId>
-<version>1.0-SNAPSHOT</version>
-<name>Home Automation</name>
-<description>Demo project for Spring Boot</description>
-<properties>
-    <java.version>17</java.version>
-    <modbus.tcp.version>1.2.0</modbus.tcp.version>
-    <caffeine.version>3.1.8</caffeine.version>
-    <telegrambots.version>6.7.0</telegrambots.version>
-    <jlibmodbus.version>1.2.9.7</jlibmodbus.version>
-    <jetbrains.annotation.version>23.0.0</jetbrains.annotation.version>
-    <sunrise-sunset.version>1.1.1</sunrise-sunset.version>
-</properties>
-<dependencies>
-    <dependency>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter</artifactId>
-        <exclusions>
-            <exclusion>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-logging</artifactId>
-            </exclusion>
-        </exclusions>
-    </dependency>
-
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-log4j2</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-yaml</artifactId>
-    </dependency>
-
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-prometheus</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-cache</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.github.ben-manes.caffeine</groupId>
-        <artifactId>caffeine</artifactId>
-        <version>${caffeine.version}</version>
-    </dependency>
-
-    <dependency>
-        <groupId>org.telegram</groupId>
-        <artifactId>telegrambots</artifactId>
-        <version>${telegrambots.version}</version>
-    </dependency>
-
-    <dependency>
-        <groupId>com.intelligt.modbus</groupId>
-        <artifactId>jlibmodbus</artifactId>
-        <version>${jlibmodbus.version}</version>
-    </dependency>
-
-    <dependency>
-        <groupId>ca.rmen</groupId>
-        <artifactId>lib-sunrise-sunset</artifactId>
-        <version>${sunrise-sunset.version}</version>
-    </dependency>
-
-    <dependency>
-        <groupId>org.jetbrains</groupId>
-        <artifactId>annotations</artifactId>
-        <version>${jetbrains.annotation.version}</version>
-        <scope>compile</scope>
-    </dependency>
-</dependencies>
-
-<build>
-    <plugins>
-        <plugin>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.0.9</version>
+    </parent>
+    <groupId>com.example</groupId>
+    <artifactId>HomeAutomation</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>Home Automation</name>
+    <description>Demo project for Spring Boot</description>
+    <properties>
+        <java.version>17</java.version>
+        <modbus.tcp.version>1.2.0</modbus.tcp.version>
+        <caffeine.version>3.1.8</caffeine.version>
+        <telegrambots.version>6.7.0</telegrambots.version>
+        <jlibmodbus.version>1.2.9.7</jlibmodbus.version>
+        <jetbrains.annotation.version>23.0.0</jetbrains.annotation.version>
+        <sunrise-sunset.version>1.1.1</sunrise-sunset.version>
+    </properties>
+    <dependencies>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-        </plugin>
-    </plugins>
-</build>
+            <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots</artifactId>
+            <version>${telegrambots.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.intelligt.modbus</groupId>
+            <artifactId>jlibmodbus</artifactId>
+            <version>${jlibmodbus.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ca.rmen</groupId>
+            <artifactId>lib-sunrise-sunset</artifactId>
+            <version>${sunrise-sunset.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>${jetbrains.annotation.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
