@@ -242,7 +242,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private @Nullable Float calculateAverageInternalTemperature() {
-        logger.debug("Запущен расчет средней температуры в доме для теплых полов");
         Set<Float> polledTemperatures = new HashSet<>();
         for (TemperatureSensor sensor : averageInternalSensors) {
             Float sensorTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
