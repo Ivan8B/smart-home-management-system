@@ -97,6 +97,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 logger.info("Газовый котел достиг целевой температуры в этом цикле, поэтому блокируем реле");
                 turnOff();
             }
+            logger.debug("Обнуляем максимальную температуру подачи");
+            maxDirectTemperatureForPeriod = null;
         }
         else if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT ||
                 heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
@@ -106,7 +108,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             turnOff();
         }
 
-        logger.debug("Выставляем новый статус глобально");
+        logger.debug("Выставляем новый статус {} глобально", newStatus);
         status = newStatus;
     }
 
@@ -131,11 +133,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             /* Можно сделать событие о невозможности рассчитать статус газового котла. Но зачем оно? */
         }
         else if (lastDirectTemperature == null) {
-            logger.debug("Появилась температура, но статус котла пока неизвестен");
+            logger.debug("Появилась температура подачи {}, но статус котла пока неизвестен", newDirectTemperature);
             status = GasBoilerStatus.INIT;
         }
         else
-
             /* считаем, что котел работает когда температура подачи растет либо не слишком сильно упала относительно
             максимума за период работы */
             /* и когда дельта между подачей и обраткой больше порога */
@@ -152,24 +153,34 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 status = GasBoilerStatus.IDLE;
             }
 
-        logger.debug("Записываем новую температуру подачи");
-        lastDirectTemperature = newDirectTemperature;
-
-        logger.debug("Записываем максимальную температуру подачи");
-        if (newDirectTemperature != null &&
-                (maxDirectTemperatureForPeriod == null || newDirectTemperature > maxDirectTemperatureForPeriod)) {
-            maxDirectTemperatureForPeriod = newDirectTemperature;
+        if (newDirectTemperature != null) {
+            logger.debug("Записываем новую температуру подачи {} вместо старой {}",
+                    newDirectTemperature,
+                    lastDirectTemperature);
+            lastDirectTemperature = newDirectTemperature;
         }
 
-        logger.debug("Отправляем в историю текущую температуру подачи");
-        historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE,
-                newDirectTemperature,
-                now);
+        if (status == GasBoilerStatus.WORKS || status == GasBoilerStatus.INIT) {
+            if (maxDirectTemperatureForPeriod == null || newDirectTemperature > maxDirectTemperatureForPeriod) {
+                logger.debug("Записываем максимальную температуру подачи {} вместо старой {}",
+                        newDirectTemperature,
+                        maxDirectTemperatureForPeriod);
+                maxDirectTemperatureForPeriod = newDirectTemperature;
+            }
 
-        logger.debug("Отправляем в историю текущую температуру обратки");
-        historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE,
-                newReturnTemperature,
-                now);
+            logger.debug("Отправляем в историю текущую температуру подачи {}", newDirectTemperature);
+            historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE,
+                    newDirectTemperature,
+                    now);
+
+            logger.debug("Отправляем в историю текущую температуру обратки {}", newReturnTemperature);
+            historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE,
+                    newReturnTemperature,
+                    now);
+        }
+        else {
+            logger.debug("Цикл работы котла закончен");
+        }
 
         logger.debug("Отправляем в историю текущий статус котла");
         historyService.putGasBoilerStatusToDailyHistory(status, now);
