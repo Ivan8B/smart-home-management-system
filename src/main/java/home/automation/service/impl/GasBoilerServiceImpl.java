@@ -108,7 +108,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             turnOff();
         }
 
-        logger.debug("Выставляем новый статус {} глобально", newStatus);
+        logger.debug("Выставляем новый статус {}", newStatus);
         status = newStatus;
     }
 
@@ -182,7 +182,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             logger.debug("Цикл работы котла закончен");
         }
 
-        logger.debug("Отправляем в историю текущий статус котла");
+        logger.debug("Отправляем в историю текущий статус котла {}", status);
         historyService.putGasBoilerStatusToDailyHistory(status, now);
 
         return status;

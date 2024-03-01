@@ -121,13 +121,14 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
         Integer calculatedTargetValvePercent = calculateTargetValvePercentByTemperatureBeforeMixing(targetDirectTemperature);
-        logger.debug("Положение клапана считаем по текущей подаче в узел подмеса {}", calculatedTargetValvePercent);
+        logger.debug("Рассчитанный по температуре подмеса целевой процент открытия клапана {}",
+                calculatedTargetValvePercent);
         if (calculatedTargetValvePercent == null) {
             logger.warn("Не удалось рассчитать целевое положение клапана, не получается управлять трехходовым клапаном");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
-        logger.debug("Добавляем рассчитанное значение клапана в историю");
+        logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
         historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
 
         Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastHour();
@@ -138,16 +139,15 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        logger.debug("Проверяем насколько текущая температура подачи отличается от целевой");
         Float currentDirectAfterMixingTemperature =
             temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING);
+        logger.debug("Текущая температура подачи в полы {}", currentDirectAfterMixingTemperature);
         if (currentDirectAfterMixingTemperature == null) {
             logger.warn("Нет данных по текущей температуре, не производим операций с клапаном");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
-        logger.debug("Проверяем требуется ли коррекция положения клапана");
         float delta = targetDirectTemperature - currentDirectAfterMixingTemperature;
         if (Math.abs(delta) <= temperatureConfiguration.getAccuracy()) {
             logger.debug("Операций с клапаном теплого пола не требуется");
