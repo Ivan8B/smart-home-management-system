@@ -1,12 +1,5 @@
 package home.automation;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-
 import home.automation.enums.GasBoilerStatus;
 import home.automation.service.HistoryService;
 import org.apache.commons.lang3.tuple.Pair;
@@ -15,6 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -69,7 +69,9 @@ public class HistoryServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
 
-        assertEquals(3f, invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(getGasBoilerStatusDailyHistory())));
+        assertEquals(3f,
+                invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(
+                        getGasBoilerStatusDailyHistory())));
 
 
         /* с момента включения прошло больше часа */
@@ -86,7 +88,9 @@ public class HistoryServiceTest extends AbstractTest {
         gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
         gasBoilerStatusDailyHistory.put(Instant.now().minus(30, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
 
-        assertEquals(0.4f, invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(getGasBoilerStatusDailyHistory())));
+        assertEquals(0.4f,
+                invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(
+                        getGasBoilerStatusDailyHistory())));
 
     }
 }

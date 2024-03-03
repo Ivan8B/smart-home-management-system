@@ -27,10 +27,10 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     private final ModbusService modbusService;
 
     public FunnelHeatingServiceImpl(
-        FunnelHeatingConfiguration configuration,
-        TemperatureSensorsService temperatureSensorsService,
-        ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+            FunnelHeatingConfiguration configuration,
+            TemperatureSensorsService temperatureSensorsService,
+            ApplicationEventPublisher applicationEventPublisher,
+            ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.temperatureSensorsService = temperatureSensorsService;
@@ -42,7 +42,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     private void control() {
         logger.debug("Запущена задача управления воронками обогрева");
         logger.debug("Опрашиваем сенсор уличной температуры");
-        Float currentTemperature = temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+        Float currentTemperature =
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
@@ -52,10 +53,11 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
         }
 
         if (configuration.getTemperatureMin() < currentTemperature
-            && currentTemperature < configuration.getTemperatureMax()) {
+                && currentTemperature < configuration.getTemperatureMax()) {
             logger.debug("Требуется подогрев воронок, включаем");
             turnOn();
-        } else {
+        }
+        else {
             logger.debug("Подогрева воронок не требуется, отключаем");
             turnOff();
         }
@@ -94,7 +96,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
             }
             if (pollResult[configuration.getCoil()]) {
                 return FunnelHeatingStatus.TURNED_ON;
-            } else {
+            }
+            else {
                 return FunnelHeatingStatus.TURNED_OFF;
             }
 

@@ -1,9 +1,9 @@
 package home.automation.configuration;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class TelegramBotConfiguration {

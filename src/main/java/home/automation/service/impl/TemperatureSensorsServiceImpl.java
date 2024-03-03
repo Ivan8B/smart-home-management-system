@@ -1,11 +1,5 @@
 package home.automation.service.impl;
 
-import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import home.automation.configuration.TemperatureSensorsBoardsConfiguration;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
@@ -22,6 +16,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 @Service
 @CacheConfig(cacheNames = {"temperature_cache"})
 public class TemperatureSensorsServiceImpl implements TemperatureSensorsService {
@@ -33,10 +33,10 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     private final ModbusService modbusService;
 
     public TemperatureSensorsServiceImpl(
-        ApplicationEventPublisher applicationEventPublisher,
-        TemperatureSensorsBoardsConfiguration configuration,
-        ModbusService modbusService,
-        MeterRegistry meterRegistry
+            ApplicationEventPublisher applicationEventPublisher,
+            TemperatureSensorsBoardsConfiguration configuration,
+            ModbusService modbusService,
+            MeterRegistry meterRegistry
     ) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.configuration = configuration;
@@ -44,10 +44,10 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
 
         for (TemperatureSensor sensor : TemperatureSensor.values()) {
             Gauge.builder("temperature", bind(this::getCurrentTemperatureForSensor, sensor))
-                .tag("system", "home_automation")
-                .tag("component", sensor.name())
-                .description(sensor.getTemplate())
-                .register(meterRegistry);
+                    .tag("system", "home_automation")
+                    .tag("component", sensor.name())
+                    .description(sensor.getTemplate())
+                    .register(meterRegistry);
         }
     }
 
@@ -60,14 +60,16 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
             int rawTemperature =
-                modbusService.readHoldingRegister(configuration.getAddressByName(sensor.getBoardName()),
-                    sensor.getRegisterId()
-                );
+                    modbusService.readHoldingRegister(configuration.getAddressByName(sensor.getBoardName()),
+                            sensor.getRegisterId()
+                    );
             if (rawTemperature == TEMPERATURE_SENSOR_BORDER_VALUE) {
                 throw new ModbusException(
-                    "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " + sensor.getRegisterId());
+                        "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " +
+                                sensor.getRegisterId());
             }
-            /* если старший бит единица - температура отрицательная и из нее нужно вычитать, смотри документацию R4DCB08*/
+            /* если старший бит единица - температура отрицательная и из нее нужно вычитать, смотри документацию
+            R4DCB08*/
             if (rawTemperature > TEMPERATURE_SENSOR_BORDER_VALUE) {
                 rawTemperature = rawTemperature - TEMPERATURE_SENSOR_SUBTRACTING;
             }
@@ -92,6 +94,6 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     @Override
     public String getCurrentTemperaturesFormatted() {
         return Arrays.stream(TemperatureSensor.values()).map(this::getCurrentTemperatureForSensorFormatted)
-            .collect(Collectors.joining("\n* "));
+                .collect(Collectors.joining("\n* "));
     }
 }

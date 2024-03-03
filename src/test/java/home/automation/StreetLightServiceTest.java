@@ -1,8 +1,5 @@
 package home.automation;
 
-import java.lang.reflect.Method;
-import java.util.Calendar;
-
 import home.automation.configuration.StreetLightConfiguration;
 import home.automation.enums.StreetLightStatus;
 import home.automation.exception.ModbusException;
@@ -11,6 +8,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.lang.reflect.Method;
+import java.util.Calendar;
 
 public class StreetLightServiceTest extends AbstractTest {
     @Autowired
@@ -23,11 +23,11 @@ public class StreetLightServiceTest extends AbstractTest {
         try {
             if (status == StreetLightStatus.TURNED_ON) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{false, true});
+                        .thenReturn(new boolean[]{false, true});
             }
             if (status == StreetLightStatus.TURNED_OFF) {
                 Mockito.when(modbusService.readAllCoilsFromZero(configuration.getAddress()))
-                    .thenReturn(new boolean[]{false, false});
+                        .thenReturn(new boolean[]{false, false});
             }
             Method method = streetLightService.getClass().getDeclaredMethod("control", Calendar.class);
             method.setAccessible(true);
@@ -45,13 +45,13 @@ public class StreetLightServiceTest extends AbstractTest {
 
         invokeScheduledMethod(dayTime, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         /* если уже выключено - не выключается повторно*/
         Mockito.clearInvocations(modbusService);
         invokeScheduledMethod(dayTime, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(0))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
     }
 
     @Test
@@ -62,13 +62,13 @@ public class StreetLightServiceTest extends AbstractTest {
 
         invokeScheduledMethod(nightTime, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
         /* если уже включено - не включается повторно*/
         Mockito.clearInvocations(modbusService);
         invokeScheduledMethod(nightTime, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(0))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
     }
 
     @Test
@@ -78,13 +78,13 @@ public class StreetLightServiceTest extends AbstractTest {
         dayTimeBefore.set(2023, Calendar.JUNE, 22, 21, 18);
         invokeScheduledMethod(dayTimeBefore, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
         Calendar dayTimeAfter = Calendar.getInstance();
         dayTimeAfter.set(2023, Calendar.JUNE, 22, 21, 20);
         invokeScheduledMethod(dayTimeAfter, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
     }
 
     @Test
@@ -94,12 +94,12 @@ public class StreetLightServiceTest extends AbstractTest {
         dayTimeBefore.set(2023, Calendar.JUNE, 22, 3, 44);
         invokeScheduledMethod(dayTimeBefore, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
         Calendar dayTimeAfter = Calendar.getInstance();
         dayTimeAfter.set(2023, Calendar.JUNE, 22, 3, 46);
         invokeScheduledMethod(dayTimeAfter, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
-            .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
     }
 }

@@ -21,9 +21,9 @@ public class HeatRequestServiceImpl implements HeatRequestService {
     private HeatRequestStatus calculatedStatus = HeatRequestStatus.NEED_HEAT;
 
     public HeatRequestServiceImpl(
-        GeneralConfiguration configuration,
-        ApplicationEventPublisher applicationEventPublisher,
-        TemperatureSensorsService temperatureSensorsService
+            GeneralConfiguration configuration,
+            ApplicationEventPublisher applicationEventPublisher,
+            TemperatureSensorsService temperatureSensorsService
     ) {
         this.configuration = configuration;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -45,7 +45,7 @@ public class HeatRequestServiceImpl implements HeatRequestService {
         logger.debug("Запущена задача расчета статуса запроса на тепло в дом");
         logger.debug("Опрашиваем сенсор уличной температуры");
         Float currentTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");

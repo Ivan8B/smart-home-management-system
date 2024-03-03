@@ -5,6 +5,7 @@ import org.springframework.context.ApplicationEvent;
 
 public class MaximumTemperatureViolationEvent extends ApplicationEvent {
     TemperatureSensor sensor;
+
     public MaximumTemperatureViolationEvent(Object source, TemperatureSensor sensor) {
         super(source);
         this.sensor = sensor;

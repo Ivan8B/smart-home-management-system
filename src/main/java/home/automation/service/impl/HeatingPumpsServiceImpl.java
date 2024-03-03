@@ -23,10 +23,10 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
     private final HeatRequestService heatRequestService;
 
     public HeatingPumpsServiceImpl(
-        HeatingPumpsRelayConfiguration configuration,
-        ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService,
-        HeatRequestService heatRequestService
+            HeatingPumpsRelayConfiguration configuration,
+            ApplicationEventPublisher applicationEventPublisher,
+            ModbusService modbusService,
+            HeatRequestService heatRequestService
     ) {
         this.configuration = configuration;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -37,7 +37,7 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
     @Scheduled(fixedRateString = "${heatingPumps.relay.controlInterval}")
     private void control() {
         if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT
-            || heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
+                || heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
             turnOn();
         }
         if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
@@ -80,7 +80,8 @@ public class HeatingPumpsServiceImpl implements HeatingPumpsService {
             }
             if (pollResult[configuration.getCoil()]) {
                 return HeatingPumpsStatus.TURNED_OFF;
-            } else {
+            }
+            else {
                 return HeatingPumpsStatus.TURNED_ON;
             }
 

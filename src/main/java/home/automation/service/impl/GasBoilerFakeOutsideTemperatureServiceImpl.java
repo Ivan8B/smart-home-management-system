@@ -30,11 +30,11 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
     private final ModbusService modbusService;
 
     public GasBoilerFakeOutsideTemperatureServiceImpl(
-        GasBoilerFakeOutsideTemperatureConfiguration gasBoilerFakeOutsideTemperatureConfiguration,
-        GasBoilerConfiguration gasBoilerConfiguration,
-        TemperatureSensorsService temperatureSensorsService,
-        ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+            GasBoilerFakeOutsideTemperatureConfiguration gasBoilerFakeOutsideTemperatureConfiguration,
+            GasBoilerConfiguration gasBoilerConfiguration,
+            TemperatureSensorsService temperatureSensorsService,
+            ApplicationEventPublisher applicationEventPublisher,
+            ModbusService modbusService
     ) {
         this.gasBoilerFakeOutsideTemperatureConfiguration = gasBoilerFakeOutsideTemperatureConfiguration;
         this.gasBoilerConfiguration = gasBoilerConfiguration;
@@ -48,7 +48,7 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
         logger.debug("Запущена задача управления обманкой температурного датчика газового котла");
         logger.debug("Опрашиваем сенсор уличной температуры");
         Float currentTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
@@ -60,7 +60,8 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
         if (gasBoilerConfiguration.getTemperatureWeatherCurveMax() < currentTemperature) {
             logger.debug("Температура на улице выше максимальной по температурной кривой, включаем обманку на +1°");
             turnOn1Degree();
-        } else {
+        }
+        else {
             logger.debug("Температура на улице ниже максимальной по температурной кривой, выключаем обманку");
             turnOff();
         }
@@ -70,12 +71,12 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
         if (getStatus() != GasBoilerFakeOutsideTemperatureStatus.TURNED_ON_1_DEGREE) {
             try {
                 modbusService.writeCoil(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress(),
-                    gasBoilerFakeOutsideTemperatureConfiguration.getMainCoil(),
-                    true
+                        gasBoilerFakeOutsideTemperatureConfiguration.getMainCoil(),
+                        true
                 );
                 modbusService.writeCoil(gasBoilerFakeOutsideTemperatureConfiguration.getSecondaryAddress(),
-                    gasBoilerFakeOutsideTemperatureConfiguration.getSecondaryCoil(),
-                    false
+                        gasBoilerFakeOutsideTemperatureConfiguration.getSecondaryCoil(),
+                        false
                 );
                 logger.info("Обманка газового котла включена на +1°");
             } catch (ModbusException e) {
@@ -89,8 +90,8 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
         if (getStatus() != GasBoilerFakeOutsideTemperatureStatus.TURNED_OFF) {
             try {
                 modbusService.writeCoil(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress(),
-                    gasBoilerFakeOutsideTemperatureConfiguration.getMainCoil(),
-                    false
+                        gasBoilerFakeOutsideTemperatureConfiguration.getMainCoil(),
+                        false
                 );
                 logger.info("Обманка газового котла выключена");
             } catch (ModbusException e) {
@@ -104,18 +105,20 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
     public GasBoilerFakeOutsideTemperatureStatus getStatus() {
         try {
             boolean[] pollResult1 =
-                modbusService.readAllCoilsFromZero(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress());
+                    modbusService.readAllCoilsFromZero(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress());
             boolean[] pollResult2 =
-                modbusService.readAllCoilsFromZero(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress());
+                    modbusService.readAllCoilsFromZero(gasBoilerFakeOutsideTemperatureConfiguration.getMainAddress());
             if (pollResult1.length < 1 || pollResult2.length < 1) {
                 throw new ModbusException("Опрос катушек реле обманок вернул пустой результат");
             }
             if (!pollResult1[gasBoilerFakeOutsideTemperatureConfiguration.getMainCoil()]) {
                 return GasBoilerFakeOutsideTemperatureStatus.TURNED_OFF;
-            } else {
+            }
+            else {
                 if (pollResult2[gasBoilerFakeOutsideTemperatureConfiguration.getSecondaryCoil()]) {
                     return GasBoilerFakeOutsideTemperatureStatus.TURNED_ON_MINUS_20_DEGREE;
-                } else {
+                }
+                else {
                     return GasBoilerFakeOutsideTemperatureStatus.TURNED_ON_1_DEGREE;
                 }
             }

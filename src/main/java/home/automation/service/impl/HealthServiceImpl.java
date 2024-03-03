@@ -1,12 +1,5 @@
 package home.automation.service.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import home.automation.enums.CityPowerInputStatus;
 import home.automation.enums.ElectricBoilerStatus;
 import home.automation.enums.SelfMonitoringStatus;
@@ -36,6 +29,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 public class HealthServiceImpl implements HealthService {
     private static final Logger logger = LoggerFactory.getLogger(HealthServiceImpl.class);
@@ -46,7 +46,8 @@ public class HealthServiceImpl implements HealthService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final List<HeatRequestErrorEvent> heatRequestErrorEvents = new ArrayList<>();
     private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
-    private final List<GasBoilerFakeOutsideTemperatureErrorEvent> gasBoilerFakeOutsideTemperatureErrorEvents = new ArrayList<>();
+    private final List<GasBoilerFakeOutsideTemperatureErrorEvent> gasBoilerFakeOutsideTemperatureErrorEvents =
+            new ArrayList<>();
     private final List<ElectricBoilerErrorEvent> electricBoilerErrorEvents = new ArrayList<>();
     private final List<ElectricBoilerTurnedOnEvent> electricBoilerTurnedOnEvents = new ArrayList<>();
     private final List<CityPowerInputErrorEvent> cityPowerInputErrorEvents = new ArrayList<>();
@@ -61,11 +62,11 @@ public class HealthServiceImpl implements HealthService {
     private SelfMonitoringStatus lastStatus = SelfMonitoringStatus.OK;
 
     public HealthServiceImpl(
-        BotService botService,
-        TemperatureSensorsService temperatureSensorsService,
-        ElectricBoilerService electricBoilerService,
-        CityPowerInputService cityPowerInputService,
-        ApplicationEventPublisher applicationEventPublisher
+            BotService botService,
+            TemperatureSensorsService temperatureSensorsService,
+            ElectricBoilerService electricBoilerService,
+            CityPowerInputService cityPowerInputService,
+            ApplicationEventPublisher applicationEventPublisher
     ) {
         this.botService = botService;
         this.temperatureSensorsService = temperatureSensorsService;
@@ -87,12 +88,12 @@ public class HealthServiceImpl implements HealthService {
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
         if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
-            || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
-            || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
+                || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
+                || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
         }
-        if (!gasBoilerFakeOutsideTemperatureIsOk() ||!minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
-            || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
+        if (!gasBoilerFakeOutsideTemperatureIsOk() || !minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
+                || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
         }
 
@@ -114,28 +115,36 @@ public class HealthServiceImpl implements HealthService {
 
     private void checkMinimumTemperature() {
         Arrays.stream(TemperatureSensor.values())
-            .filter(sensor -> sensor.isCritical() && sensor.getMinimumTemperature() != null).forEach(sensor -> {
-                Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
-                if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimumTemperature()) {
-                    logger.warn(
-                        sensor.getTemplate() + " - слишком низкая температура - " + currentTemperatureForSensor + " C°!");
-                    logger.debug("Отправляем событие о низкой температуре");
-                    applicationEventPublisher.publishEvent(new MinimumTemperatureViolationEvent(this, sensor));
-                }
-            });
+                .filter(sensor -> sensor.isCritical() && sensor.getMinimumTemperature() != null).forEach(sensor -> {
+                    Float currentTemperatureForSensor =
+                            temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
+                    if (currentTemperatureForSensor != null && currentTemperatureForSensor < sensor.getMinimumTemperature()) {
+                        logger.warn(
+                                sensor.getTemplate() +
+                                        " - слишком низкая температура - " +
+                                        currentTemperatureForSensor +
+                                        " C°!");
+                        logger.debug("Отправляем событие о низкой температуре");
+                        applicationEventPublisher.publishEvent(new MinimumTemperatureViolationEvent(this, sensor));
+                    }
+                });
     }
 
     private void checkMaximumTemperature() {
         Arrays.stream(TemperatureSensor.values())
-            .filter(sensor -> sensor.isCritical() && sensor.getMaximumTemperature() != null).forEach(sensor -> {
-                Float currentTemperatureForSensor = temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
-                if (currentTemperatureForSensor != null && currentTemperatureForSensor > sensor.getMaximumTemperature()) {
-                    logger.warn(
-                        sensor.getTemplate() + " - слишком высокая температура - " + currentTemperatureForSensor + " C°!");
-                    logger.debug("Отправляем событие о высокой температуре");
-                    applicationEventPublisher.publishEvent(new MaximumTemperatureViolationEvent(this, sensor));
-                }
-            });
+                .filter(sensor -> sensor.isCritical() && sensor.getMaximumTemperature() != null).forEach(sensor -> {
+                    Float currentTemperatureForSensor =
+                            temperatureSensorsService.getCurrentTemperatureForSensor(sensor);
+                    if (currentTemperatureForSensor != null && currentTemperatureForSensor > sensor.getMaximumTemperature()) {
+                        logger.warn(
+                                sensor.getTemplate() +
+                                        " - слишком высокая температура - " +
+                                        currentTemperatureForSensor +
+                                        " C°!");
+                        logger.debug("Отправляем событие о высокой температуре");
+                        applicationEventPublisher.publishEvent(new MaximumTemperatureViolationEvent(this, sensor));
+                    }
+                });
     }
 
     @EventListener
@@ -192,7 +201,8 @@ public class HealthServiceImpl implements HealthService {
     public void onTemperatureSensorPollErrorEvent(TemperatureSensorPollErrorEvent event) {
         if ((event.getSensor().isCritical())) {
             criticalTemperatureSensorFailEvents.add(event.getSensor());
-        } else {
+        }
+        else {
             minorTemperatureSensorFailEvents.add(event.getSensor());
         }
     }
@@ -230,7 +240,7 @@ public class HealthServiceImpl implements HealthService {
 
     private boolean electricBoilerIsTurnedOff() {
         return electricBoilerTurnedOnEvents.isEmpty()
-            && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
+                && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
     }
 
     private boolean cityPowerInputIsOk() {
@@ -239,7 +249,7 @@ public class HealthServiceImpl implements HealthService {
 
     private boolean cityPowerInputHasPower() {
         return cityPowerInputNoPowerEvents.isEmpty()
-            && cityPowerInputService.getStatus() == CityPowerInputStatus.POWER_ON;
+                && cityPowerInputService.getStatus() == CityPowerInputStatus.POWER_ON;
     }
 
     private boolean floorHeatingIsOk() {
@@ -313,13 +323,13 @@ public class HealthServiceImpl implements HealthService {
         if (!criticalTemperatureSensorsAreOk()) {
             message.append("* отказ критичных температурных датчиков: ");
             message.append(criticalTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
             message.append("\n");
         }
         if (!minimumTemperaturesAreOk()) {
             message.append("* слишком низкая температура датчиков: ");
             message.append(minimumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
             message.append("\n");
             ;
         }
@@ -334,7 +344,7 @@ public class HealthServiceImpl implements HealthService {
         if (!minorTemperatureSensorsAreOk()) {
             message.append("* отказ температурных датчиков: ");
             message.append(minorTemperatureSensorFailEvents.stream().map(TemperatureSensor::getTemplate)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
         }
         if (!streetLightRelayIsOk()) {
             message.append("* отказ реле уличного освещения\n");
@@ -345,7 +355,7 @@ public class HealthServiceImpl implements HealthService {
         if (!maximumTemperaturesAreOk()) {
             message.append("* слишком высокая температура датчиков: ");
             message.append(maximumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
-                .collect(Collectors.joining(", ")));
+                    .collect(Collectors.joining(", ")));
             message.append("\n");
         }
         return message.toString();

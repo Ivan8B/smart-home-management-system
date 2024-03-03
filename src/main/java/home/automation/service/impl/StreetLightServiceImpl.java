@@ -1,7 +1,5 @@
 package home.automation.service.impl;
 
-import java.util.Calendar;
-
 import home.automation.configuration.StreetLightConfiguration;
 import home.automation.enums.StreetLightStatus;
 import home.automation.event.error.StreetLightErrorEvent;
@@ -14,6 +12,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
+
 import static ca.rmen.sunrisesunset.SunriseSunset.getSunriseSunset;
 
 @Service
@@ -24,9 +24,9 @@ public class StreetLightServiceImpl implements StreetLightService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public StreetLightServiceImpl(
-        StreetLightConfiguration configuration,
-        ModbusService modbusService,
-        ApplicationEventPublisher applicationEventPublisher
+            StreetLightConfiguration configuration,
+            ModbusService modbusService,
+            ApplicationEventPublisher applicationEventPublisher
     ) {
         this.configuration = configuration;
         this.modbusService = modbusService;
@@ -44,12 +44,13 @@ public class StreetLightServiceImpl implements StreetLightService {
     private void control(Calendar calendar) {
         /* восход и закат на широте Москвы есть всегда, поэтому не боимся получить ошибку */
         Calendar[] sunriseSunset =
-            getSunriseSunset(calendar, configuration.getLatitude(), configuration.getLongitude());
+                getSunriseSunset(calendar, configuration.getLatitude(), configuration.getLongitude());
 
         if (calendar.after(sunriseSunset[0]) && calendar.before(sunriseSunset[1])) {
             logger.debug("Освещение не требуется, выключаем");
             turnOff();
-        } else {
+        }
+        else {
             logger.debug("Нужно освещение, включаем");
             turnOn();
         }
@@ -88,7 +89,8 @@ public class StreetLightServiceImpl implements StreetLightService {
             }
             if (pollResult[configuration.getCoil()]) {
                 return StreetLightStatus.TURNED_ON;
-            } else {
+            }
+            else {
                 return StreetLightStatus.TURNED_OFF;
             }
 

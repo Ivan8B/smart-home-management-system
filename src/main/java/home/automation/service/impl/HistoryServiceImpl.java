@@ -1,5 +1,14 @@
 package home.automation.service.impl;
 
+import home.automation.configuration.GasBoilerConfiguration;
+import home.automation.enums.GasBoilerStatus;
+import home.automation.enums.TemperatureSensor;
+import home.automation.service.HistoryService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.stereotype.Service;
+
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,15 +25,6 @@ import java.util.Map.Entry;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
-import home.automation.configuration.GasBoilerConfiguration;
-import home.automation.enums.GasBoilerStatus;
-import home.automation.enums.TemperatureSensor;
-import home.automation.service.HistoryService;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
-import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.stereotype.Service;
-
 @Service
 public class HistoryServiceImpl implements HistoryService {
     private final GasBoilerConfiguration gasBoilerConfiguration;
@@ -36,17 +36,17 @@ public class HistoryServiceImpl implements HistoryService {
     public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
         Gauge.builder("gas_boiler", this::getGasBoilerAverage3HourlyPower)
-            .tag("component", "average_3_hour_power")
-            .tag("system", "home_automation")
-            .description("Средняя мощность за 3 часа")
-            .register(meterRegistry);
+                .tag("component", "average_3_hour_power")
+                .tag("system", "home_automation")
+                .description("Средняя мощность за 3 часа")
+                .register(meterRegistry);
     }
 
     @Override
     public void putGasBoilerStatusToDailyHistory(GasBoilerStatus status, Instant ts) {
         gasBoilerStatusDailyHistory.put(ts, status);
         gasBoilerStatusDailyHistory.entrySet()
-            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+                .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     @Override
@@ -58,47 +58,50 @@ public class HistoryServiceImpl implements HistoryService {
             }
         }
         gasBoilerDirectTemperatureDailyHistory.entrySet()
-            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+                .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
         gasBoilerReturnTemperatureDailyHistory.entrySet()
-            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+                .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     private Float getGasBoilerAverage3HourlyPower() {
         if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-            || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
-            || gasBoilerDirectTemperatureDailyHistory.isEmpty() || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
+                || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
+                ||
+                gasBoilerDirectTemperatureDailyHistory.isEmpty() ||
+                gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
             return null;
         }
 
         /* история работы котла собирается за сутки, а нам нужно за три часа, поэтому отрезаем лишнее */
         Map<Instant, GasBoilerStatus> gasBoilerStatus3HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-            .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals(gasBoilerStatus3HourHistory);
         float work3HourPercent = calculateWorkPercent(intervals);
 
         /* аналогично для расчета среднечасовой дельты, еще и фильтруем только те записи, когда котел работал */
         Map<Instant, Float> gasBoilerDirectWhenWorkTemperature3HourHistory =
-            gasBoilerDirectTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
-                    && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                gasBoilerDirectTemperatureDailyHistory.entrySet().stream()
+                        .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
+                        .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
+                                && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         Map<Instant, Float> gasBoilerReturnWhenWorkTemperature3HourHistory =
-            gasBoilerReturnTemperatureDailyHistory.entrySet().stream()
-                .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
-                    && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                gasBoilerReturnTemperatureDailyHistory.entrySet().stream()
+                        .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
+                        .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
+                                && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         /* еще раз проверяем, что история не пустая */
-        if (gasBoilerReturnWhenWorkTemperature3HourHistory.isEmpty() || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
+        if (gasBoilerReturnWhenWorkTemperature3HourHistory.isEmpty() ||
+                gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
             return null;
         }
         /* рассчитываем среднюю дельту за 3 часа за время работы котла */
         float delta = calculateAverageTemperatureDeltaWhenWork(
-            gasBoilerDirectWhenWorkTemperature3HourHistory,
-            gasBoilerReturnWhenWorkTemperature3HourHistory
+                gasBoilerDirectWhenWorkTemperature3HourHistory,
+                gasBoilerReturnWhenWorkTemperature3HourHistory
         );
 
         return calculateAverageGasBoilerPowerInkW(delta, work3HourPercent);
@@ -107,9 +110,9 @@ public class HistoryServiceImpl implements HistoryService {
     @Override
     public String getGasBoilerFormattedStatusForLastDay() {
         if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-            || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
-            || gasBoilerDirectTemperatureDailyHistory.isEmpty()
-            || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
+                || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
+                || gasBoilerDirectTemperatureDailyHistory.isEmpty()
+                || gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
             return "сведений о работе газового котла пока не достаточно";
         }
 
@@ -123,11 +126,14 @@ public class HistoryServiceImpl implements HistoryService {
 
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
         String intro = oldestTimestampIntDataset.isBefore(Instant.now().minus(23, ChronoUnit.HOURS))
-            ? "за последние сутки котел работал на отопление "
-            : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
+                ? "за последние сутки котел работал на отопление "
+                : "начиная с " + dtf.format(LocalDateTime.ofInstant(oldestTimestampIntDataset, ZoneId.systemDefault()))
                 + " котел работал на отопление ";
 
-        return intro + df0.format(workPercent) + "% времени\n* среднее количество розжигов в час " +df1.format(averageTurnOnPerHour);
+        return intro +
+                df0.format(workPercent) +
+                "% времени\n* среднее количество розжигов в час " +
+                df1.format(averageTurnOnPerHour);
     }
 
     @Override
@@ -136,21 +142,21 @@ public class HistoryServiceImpl implements HistoryService {
             calculatedValvePercentDailyHistory.put(ts, calculatedTargetValvePercent);
         }
         calculatedValvePercentDailyHistory.entrySet()
-            .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+                .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
     @Override
     public Integer getAverageCalculatedTargetValvePercentForLastHour() {
         Map<Instant, Integer> calculatedValvePercentDailyHistory1HourHistory =
-            calculatedValvePercentDailyHistory.entrySet().stream()
-                .filter(percent -> percent.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+                calculatedValvePercentDailyHistory.entrySet().stream()
+                        .filter(percent -> percent.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
+                        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
         if (calculatedValvePercentDailyHistory1HourHistory.isEmpty()) {
             return null;
         }
         OptionalDouble averageOptional =
-            calculatedValvePercentDailyHistory1HourHistory.values().stream().mapToDouble(t -> t).average();
+                calculatedValvePercentDailyHistory1HourHistory.values().stream().mapToDouble(t -> t).average();
         Float average = averageOptional.isPresent() ? (float) averageOptional.getAsDouble() : null;
         return average != null ? Math.round(average) : null;
     }
@@ -159,7 +165,8 @@ public class HistoryServiceImpl implements HistoryService {
         /* создаем shallow копию датасета и очищаем его от ненужных записей */
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistoryCleared = new HashMap<>(gasBoilerStatusHistory);
         gasBoilerStatusDailyHistoryCleared.entrySet()
-            .removeIf(entry -> (entry.getValue() != GasBoilerStatus.WORKS && entry.getValue() != GasBoilerStatus.IDLE));
+                .removeIf(entry -> (entry.getValue() != GasBoilerStatus.WORKS &&
+                        entry.getValue() != GasBoilerStatus.IDLE));
 
         /* для работы нужен отсортированный список времен */
         List<Instant> timestamps = new ArrayList<>(gasBoilerStatusDailyHistoryCleared.keySet());
@@ -179,7 +186,7 @@ public class HistoryServiceImpl implements HistoryService {
         for (Instant timestamp : timestamps) {
             if (gasBoilerStatusDailyHistoryCleared.get(timestamp) != intervalBeginStatus) {
                 float durationInMinutes =
-                    (float) (Duration.between(intervalBeginTimestamp, timestamp).toSeconds() / 60);
+                        (float) (Duration.between(intervalBeginTimestamp, timestamp).toSeconds() / 60);
                 if (intervalBeginStatus == GasBoilerStatus.IDLE) {
                     idleIntervals.add(durationInMinutes);
                 }
@@ -193,7 +200,7 @@ public class HistoryServiceImpl implements HistoryService {
         /* если последний интервал не закрыт - закрываем вручную */
         if (intervalBeginTimestamp != null) {
             float durationInMinutes =
-                (float) (Duration.between(intervalBeginTimestamp, Instant.now()).toSeconds() / 60);
+                    (float) (Duration.between(intervalBeginTimestamp, Instant.now()).toSeconds() / 60);
             if (intervalBeginStatus == GasBoilerStatus.IDLE) {
                 idleIntervals.add(durationInMinutes);
             }
@@ -211,7 +218,8 @@ public class HistoryServiceImpl implements HistoryService {
         float result = countWorks / (countWorks + countIdle) * 100;
         if (!Float.isNaN(result)) {
             return result;
-        } else {
+        }
+        else {
             return 0;
         }
     }
@@ -229,15 +237,15 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     private float calculateAverageTemperatureDeltaWhenWork(
-        Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory,
-        Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory
+            Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory,
+            Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory
     ) {
         float averageDirect =
-            (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                .orElse(0f));
+                (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
+                        .orElse(0f));
         float averageReturn =
-            (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                .orElse(0f));
+                (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
+                        .orElse(0f));
         return averageDirect - averageReturn;
     }
 

@@ -28,10 +28,10 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
     private final ModbusService modbusService;
 
     public ElectricBoilerServiceImpl(
-        ElectricBoilerConfiguration configuration,
-        TemperatureSensorsService temperatureSensorsService,
-        ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+            ElectricBoilerConfiguration configuration,
+            TemperatureSensorsService temperatureSensorsService,
+            ApplicationEventPublisher applicationEventPublisher,
+            ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.temperatureSensorsService = temperatureSensorsService;
@@ -44,7 +44,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
         logger.debug("Запущена задача управления электрическим котлом");
         logger.debug("Опрашиваем сенсор температуры в котельной");
         Float currentTemperature =
-            temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE);
+                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры в котельной");
@@ -60,7 +60,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             return;
         }
         if (currentTemperature
-            > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
+                > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
             logger.debug("Работа электрического котла не требуется, выключаем");
             turnOff();
         }
@@ -97,7 +97,8 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             }
             if (pollResult[configuration.getCoil()]) {
                 return ElectricBoilerStatus.TURNED_ON;
-            } else {
+            }
+            else {
                 return ElectricBoilerStatus.TURNED_OFF;
             }
 

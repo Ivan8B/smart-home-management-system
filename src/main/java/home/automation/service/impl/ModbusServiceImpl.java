@@ -1,10 +1,5 @@
 package home.automation.service.impl;
 
-import java.net.InetAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import com.intelligt.modbus.jlibmodbus.Modbus;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMaster;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMasterFactory;
@@ -15,6 +10,11 @@ import home.automation.service.ModbusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.net.InetAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class ModbusServiceImpl implements ModbusService {
@@ -94,7 +94,8 @@ public class ModbusServiceImpl implements ModbusService {
         try {
             init();
             Future<boolean[]> future = executorService.submit(() -> writeCoilWithDelay(address, coilId, value));
-            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с записью*/
+            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с
+            записью*/
             future.get();
         } catch (Exception e) {
             logger.error("Ошибка выставления значения катушки", e);
@@ -130,8 +131,11 @@ public class ModbusServiceImpl implements ModbusService {
     public void writeHoldingRegister(int address, int registerId, int value) throws ModbusException {
         try {
             init();
-            Future<int[]> future = executorService.submit(() -> writeHoldingRegistersWithDelay(address, registerId, value));
-            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с записью*/
+            Future<int[]> future = executorService.submit(() -> writeHoldingRegistersWithDelay(address,
+                    registerId,
+                    value));
+            /* этот future.get нужен только чтобы получить ExecutionException и по нему понять, что что-то не так с
+            записью*/
             future.get();
         } catch (Exception e) {
             logger.error("Ошибка записи в регистр", e);

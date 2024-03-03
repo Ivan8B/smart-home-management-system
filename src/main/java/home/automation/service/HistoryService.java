@@ -1,13 +1,14 @@
 package home.automation.service;
 
-import java.time.Instant;
-
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
+
+import java.time.Instant;
 
 public interface HistoryService {
     /**
      * Добавление статуса котла в историю
+     *
      * @param status статус котла
      * @param ts     время
      */
@@ -15,6 +16,7 @@ public interface HistoryService {
 
     /**
      * Добавление температуры в историю
+     *
      * @param sensor      датчик
      * @param temperature значение
      * @param ts          время
@@ -30,13 +32,15 @@ public interface HistoryService {
 
     /**
      * Добавление рассчитанного процента открытия клапана в историю
+     *
      * @param calculatedTargetValvePercent рассчтитонное положение клапана
-     * @param ts время
+     * @param ts                           время
      */
     void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts);
 
     /**
      * Получение среднего рассчитанного процента открытия клапана за последний час
+     *
      * @return среднее рассчитанное положение клапана за последний час
      */
     Integer getAverageCalculatedTargetValvePercentForLastHour();

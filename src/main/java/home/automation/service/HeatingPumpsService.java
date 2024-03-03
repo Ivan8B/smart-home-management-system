@@ -12,6 +12,7 @@ public interface HeatingPumpsService {
 
     /**
      * Получение статуса насосов отопления текстом
+     *
      * @return сообщение для бота
      */
     String getFormattedStatus();

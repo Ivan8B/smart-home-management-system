@@ -24,9 +24,9 @@ public class CityPowerInputServiceImpl implements CityPowerInputService {
     private final ModbusService modbusService;
 
     public CityPowerInputServiceImpl(
-        CityPowerInputConfiguration configuration,
-        ApplicationEventPublisher applicationEventPublisher,
-        ModbusService modbusService
+            CityPowerInputConfiguration configuration,
+            ApplicationEventPublisher applicationEventPublisher,
+            ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -51,7 +51,8 @@ public class CityPowerInputServiceImpl implements CityPowerInputService {
             if (pollResult[configuration.getDiscreteInput()]) {
                 logger.debug("Статус напряжения на входе ИБП - есть");
                 return CityPowerInputStatus.POWER_ON;
-            } else {
+            }
+            else {
                 logger.debug("Статус напряжения на входе ИБП - нет");
                 logger.debug("Отправляем событие об отсутствии питания");
                 applicationEventPublisher.publishEvent(new CityPowerInputNoPowerEvent(this));

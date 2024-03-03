@@ -51,18 +51,19 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private BotSession session;
 
     public BotServiceImpl(
-        TelegramBotConfiguration telegramBotConfiguration,
-        TemperatureSensorsService temperatureSensorsService,
-        GasBoilerService gasBoilerService,
-        HistoryService historyService,
-        @Lazy FloorHeatingService floorHeatingService,
-        ElectricBoilerService electricBoilerService,
-        CityPowerInputService cityPowerInputService,
-        HeatingPumpsService heatingPumpsService,
-        GasBoilerFakeOutsideTemperatureService gasBoilerFakeOutsideTemperatureService, HeatRequestService heatRequestService,
-        @Lazy HealthService healthService,
-        StreetLightService streetLightService,
-        FunnelHeatingService funnelHeatingService
+            TelegramBotConfiguration telegramBotConfiguration,
+            TemperatureSensorsService temperatureSensorsService,
+            GasBoilerService gasBoilerService,
+            HistoryService historyService,
+            @Lazy FloorHeatingService floorHeatingService,
+            ElectricBoilerService electricBoilerService,
+            CityPowerInputService cityPowerInputService,
+            HeatingPumpsService heatingPumpsService,
+            GasBoilerFakeOutsideTemperatureService gasBoilerFakeOutsideTemperatureService,
+            HeatRequestService heatRequestService,
+            @Lazy HealthService healthService,
+            StreetLightService streetLightService,
+            FunnelHeatingService funnelHeatingService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
@@ -117,14 +118,14 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     public void onUpdateReceived(Update update) {
         if (!update.hasMessage() || !userHasPrivileges(update.getMessage().getFrom())) {
             logger.warn("Получено сообщение от неизвестного пользователя {}, игнорируем",
-                update.getMessage().getFrom()
+                    update.getMessage().getFrom()
             );
             return;
         }
 
         logger.debug("Получено сообщение {} от пользователя {}",
-            update.getMessage().getText(),
-            update.getMessage().getFrom()
+                update.getMessage().getText(),
+                update.getMessage().getFrom()
         );
 
         String response = processBotCommand(update.getMessage().getText());
@@ -146,7 +147,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     private String formatStatus() {
         StringBuilder message =
-            new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
+                new StringBuilder("Общий статус системы - ").append(healthService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(heatRequestService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(gasBoilerService.getFormattedStatus()).append("\n");
         message.append("* ").append(historyService.getGasBoilerFormattedStatusForLastDay()).append("\n\n");
