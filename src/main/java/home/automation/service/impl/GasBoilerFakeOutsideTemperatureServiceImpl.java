@@ -46,9 +46,10 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
     @Scheduled(fixedRateString = "${gasBoiler.fakeOutsideTemperature.controlInterval}")
     private void control() {
         logger.debug("Запущена задача управления обманкой температурного датчика газового котла");
-        logger.debug("Опрашиваем сенсор уличной температуры");
+
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+        logger.debug("Температура на улице {}", currentTemperature);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
@@ -83,6 +84,8 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
                 logger.error("Ошибка переключения обманки газового котла");
                 applicationEventPublisher.publishEvent(new GasBoilerFakeOutsideTemperatureErrorEvent(this));
             }
+        } else {
+            logger.debug("Обманка газового котла уже включена");
         }
     }
 
@@ -98,6 +101,8 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
                 logger.error("Ошибка переключения обманки газового котла");
                 applicationEventPublisher.publishEvent(new GasBoilerFakeOutsideTemperatureErrorEvent(this));
             }
+        } else {
+            logger.debug("Обманка газового котла уже отключена");
         }
     }
 

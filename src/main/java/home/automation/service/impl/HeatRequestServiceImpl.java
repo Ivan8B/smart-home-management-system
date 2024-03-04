@@ -43,9 +43,10 @@ public class HeatRequestServiceImpl implements HeatRequestService {
     @Scheduled(fixedRateString = "${temperature.controlInterval}")
     private void control() {
         logger.debug("Запущена задача расчета статуса запроса на тепло в дом");
-        logger.debug("Опрашиваем сенсор уличной температуры");
+
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+        logger.debug("Температура на улице {}", currentTemperature);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");

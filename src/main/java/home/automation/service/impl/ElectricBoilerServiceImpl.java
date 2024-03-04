@@ -42,9 +42,10 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
     @Scheduled(fixedRateString = "${electricBoiler.controlInterval}")
     private void control() {
         logger.debug("Запущена задача управления электрическим котлом");
-        logger.debug("Опрашиваем сенсор температуры в котельной");
+
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE);
+        logger.debug("Температура в котельной {}", currentTemperature);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры в котельной");
@@ -74,6 +75,8 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
                 logger.error("Ошибка переключения статуса реле электрического котла");
                 applicationEventPublisher.publishEvent(new ElectricBoilerErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле электрического котла уже включено");
         }
     }
 
@@ -85,6 +88,8 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
                 logger.error("Ошибка переключения статуса реле электрического котла");
                 applicationEventPublisher.publishEvent(new ElectricBoilerErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле электрического котла уже отключено");
         }
     }
 

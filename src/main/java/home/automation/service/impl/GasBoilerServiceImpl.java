@@ -84,10 +84,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     private void control() {
         logger.debug("Запущена задача расчета управления газовым котлом");
 
-        logger.debug("Рассчитываем статус котла");
         GasBoilerStatus newStatus = calculateStatus();
 
-        logger.debug("Управляем реле котла если требуется");
         if (status == GasBoilerStatus.WORKS && newStatus == GasBoilerStatus.IDLE) {
             Float targetDirectTemperature = calculateTargetDirectTemperature();
             if (targetDirectTemperature != null &&
@@ -108,12 +106,10 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             turnOff();
         }
 
-        logger.debug("Выставляем новый статус {}", newStatus);
         status = newStatus;
     }
 
     private GasBoilerStatus calculateStatus() {
-        logger.debug("Запоминаем текущее время, чтобы ключи в истории были одинаковые");
         Instant now = Instant.now();
 
         Float newDirectTemperature =
@@ -293,6 +289,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                     logger.error("Ошибка переключения статуса реле газового котла");
                     applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
                 }
+        } else {
+            logger.debug("Реле газового котла уже включено");
         }
     }
 
@@ -313,6 +311,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 logger.error("Ошибка переключения статуса реле газового котла");
                 applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле газового котла уже отключено");
         }
     }
 

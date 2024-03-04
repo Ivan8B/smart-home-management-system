@@ -41,9 +41,10 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
     @Scheduled(fixedRateString = "${funnelHeating.controlInterval}")
     private void control() {
         logger.debug("Запущена задача управления воронками обогрева");
-        logger.debug("Опрашиваем сенсор уличной температуры");
+
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
+        logger.debug("Температура на улице {}", currentTemperature);
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
@@ -72,6 +73,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
                 logger.error("Ошибка переключения статуса реле обогрева воронок");
                 applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле обогрева воронок уже включено");
         }
     }
 
@@ -84,6 +87,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
                 logger.error("Ошибка переключения статуса реле обогрева воронок");
                 applicationEventPublisher.publishEvent(new FunnelHeatingErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле обогрева воронок уже отключено");
         }
     }
 

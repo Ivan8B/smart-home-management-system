@@ -165,8 +165,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private Integer calculateTargetValvePercentByTemperatureBeforeMixing(float targetDirectTemperature) {
-        logger.debug("Рассчитываем целевое положение клапана");
-
         Float floorDirectBeforeMixingTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
         logger.debug("Температура подачи в узел подмеса {}", floorDirectBeforeMixingTemperature);
@@ -191,7 +189,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     @Nullable
     Float calculateTargetDirectTemperature() {
-        logger.debug("Запущена задача расчета целевой температуры подачи в полы");
         float calculated;
 
         Float averageInternalTemperature = calculateAverageInternalTemperature();

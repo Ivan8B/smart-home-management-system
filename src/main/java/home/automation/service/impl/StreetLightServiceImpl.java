@@ -65,6 +65,8 @@ public class StreetLightServiceImpl implements StreetLightService {
                 logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле уличного освещения уже включено");
         }
     }
 
@@ -77,6 +79,8 @@ public class StreetLightServiceImpl implements StreetLightService {
                 logger.error("Ошибка переключения статуса реле уличного освещения");
                 applicationEventPublisher.publishEvent(new StreetLightErrorEvent(this));
             }
+        } else {
+            logger.debug("Реле уличного освещения уже отключено");
         }
     }
 
