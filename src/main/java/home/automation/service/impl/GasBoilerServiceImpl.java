@@ -281,18 +281,18 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private void turnOn() {
-        if (!ifGasBoilerCanBeTurnedOn()) {
-            logger.debug("Газовый котел не может быть включен на отопление по политике тактования");
-            return;
-        }
         if (getGasBoilerRelayStatus() != GasBoilerRelayStatus.NEED_HEAT) {
-            try {
-                modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
-                logger.info("Включаем реле газового котла");
-            } catch (ModbusException e) {
-                logger.error("Ошибка переключения статуса реле газового котла");
-                applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
+            if (!ifGasBoilerCanBeTurnedOn()) {
+                logger.debug("Газовый котел не может быть включен на отопление по политике тактования");
             }
+            else
+                try {
+                    modbusService.writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+                    logger.info("Включаем реле газового котла");
+                } catch (ModbusException e) {
+                    logger.error("Ошибка переключения статуса реле газового котла");
+                    applicationEventPublisher.publishEvent(new GasBoilerErrorEvent(this));
+                }
         }
     }
 
