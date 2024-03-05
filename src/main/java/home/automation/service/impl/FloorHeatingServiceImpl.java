@@ -372,7 +372,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                             dacConfiguration.getRegister())
                             / 100;
             logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
-            return getPercentFromVoltageInV(currentVoltageInV);
+            int currentPercent = getPercentFromVoltageInV(currentVoltageInV);
+            logger.debug("Текущий процент открытия клапана по ЦАП {}", currentPercent);
+            return currentPercent;
         } catch (ModbusException e) {
             logger.error("Ошибка чтения напряжение на ЦАП");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
@@ -398,6 +400,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (calculated < 0 || calculated > 100) {
             return -1;
         }
+        logger.debug("Текущий процент открытия клапана по температуре {}", calculated);
         return calculated;
     }
 
