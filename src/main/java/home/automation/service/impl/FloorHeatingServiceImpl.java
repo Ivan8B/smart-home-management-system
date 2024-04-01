@@ -4,10 +4,12 @@ import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GeneralConfiguration;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
@@ -45,6 +47,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GeneralConfiguration generalConfiguration;
 
+    private final HeatRequestService heatRequestService;
+
     private final TemperatureSensorsService temperatureSensorsService;
 
     private final HistoryService historyService;
@@ -60,6 +64,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             FloorHeatingValveRelayConfiguration relayConfiguration,
             FloorHeatingValveDacConfiguration dacConfiguration,
             GeneralConfiguration generalConfiguration,
+            HeatRequestService heatRequestService,
             TemperatureSensorsService temperatureSensorsService,
             HistoryService historyService,
             ModbusService modbusService,
@@ -71,6 +76,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.relayConfiguration = relayConfiguration;
         this.dacConfiguration = dacConfiguration;
         this.generalConfiguration = generalConfiguration;
+        this.heatRequestService = heatRequestService;
         this.temperatureSensorsService = temperatureSensorsService;
         this.historyService = historyService;
         this.modbusService = modbusService;
@@ -111,6 +117,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     @Scheduled(fixedRateString = "${floorHeating.controlInterval}")
     private void control() {
         logger.debug("Запущена задача управления теплым полом");
+
+        if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
+            logger.info("Запроса на тепло нет, теплым полом управлять не нужно");
+            return;
+        }
 
         Float targetDirectTemperature = calculateTargetDirectTemperature();
         logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
