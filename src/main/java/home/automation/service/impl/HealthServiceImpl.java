@@ -87,16 +87,28 @@ public class HealthServiceImpl implements HealthService {
 
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
+        if (!gasBoilerFakeOutsideTemperatureIsOk() || !minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
+                || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
+            newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
+            notifyAndSetLastStatus(newStatus);
+        }
+
         if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
                 || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
                 || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
-        }
-        if (!gasBoilerFakeOutsideTemperatureIsOk() || !minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
-                || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
-            newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
+            notifyAndSetLastStatus(newStatus);
         }
 
+        if (newStatus == SelfMonitoringStatus.OK) {
+            notifyAndSetLastStatus(newStatus);
+        }
+
+        clear();
+        return newStatus;
+    }
+
+    private void notifyAndSetLastStatus(SelfMonitoringStatus newStatus) {
         if (newStatus != lastStatus) {
             if (newStatus == SelfMonitoringStatus.EMERGENCY) {
                 botService.notify(formatCriticalMessage());
@@ -109,8 +121,6 @@ public class HealthServiceImpl implements HealthService {
             }
             lastStatus = newStatus;
         }
-        clear();
-        return newStatus;
     }
 
     private void checkMinimumTemperature() {
