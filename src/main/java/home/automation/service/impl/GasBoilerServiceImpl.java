@@ -82,7 +82,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Scheduled(fixedRateString = "${gasBoiler.direct.pollInterval}")
     private void control() {
-        logger.debug("Запущена задача расчета управления газовым котлом");
+        logger.debug("Запущена задача управления газовым котлом");
 
         GasBoilerStatus newStatus = calculateStatus();
 
@@ -100,9 +100,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
         else if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT ||
                 heatRequestService.getStatus() == HeatRequestStatus.ERROR) {
+            logger.debug("Запроса на тепло есть, разрешаем работу газового котла");
             turnOn();
         }
         else if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
+            logger.debug("Запроса на тепло нет, запрещаем работу газового котла");
             turnOff();
         }
 
