@@ -295,36 +295,24 @@ public class GasBoilerServiceTest extends AbstractTest {
         assertEquals(45f, invokeCalculateMinReturnTemperatureMethod());
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(22F);
-        assertEquals(35f, invokeCalculateMinReturnTemperatureMethod());
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-19.9F);
         assertEquals(45f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(16.9F);
-        assertEquals(35f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(-1.5F);
-        assertEquals(36f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-10F);
         assertEquals(40f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(10F);
-        assertEquals(35f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+                .thenReturn(-1.5F);
+        assertEquals(36f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(-19F);
-        assertEquals(44.5f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+                .thenReturn(10F);
+        assertEquals(31f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(16F);
-        assertEquals(35f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(28f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
     }
 
     @Test

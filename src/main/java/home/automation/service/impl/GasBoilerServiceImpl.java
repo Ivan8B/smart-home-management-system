@@ -208,14 +208,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             return targetReturnTemperature;
         }
 
-        if (outsideTemperature >= configuration.getTemperatureWeatherCurveMax()) {
-            float targetReturnTemperature = configuration.getTemperatureReturnMin();
-            logger.debug("Температура на улице выше максимальной температуры климатической кривой, расчетная " +
-                    "температура " +
-                    "обратки для включения {} C°", targetReturnTemperature);
-            return targetReturnTemperature;
-        }
-
         /* решаем задачу нахождения функции для прямой проходящей через 2 точки, по оси X температура на улице, по
         оси Y температура обратки */
 
