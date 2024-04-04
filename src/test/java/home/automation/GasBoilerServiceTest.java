@@ -300,19 +300,23 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-10F);
-        assertEquals(40f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(39f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-1.5F);
-        assertEquals(36f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
+        assertEquals(34f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(10F);
-        assertEquals(31f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(26f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(16F);
-        assertEquals(28f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(23f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
+                .thenReturn(24F);
+        assertEquals(23f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
     }
 
     @Test

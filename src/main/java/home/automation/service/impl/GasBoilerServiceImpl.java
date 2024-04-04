@@ -193,17 +193,16 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
 
         if (outsideTemperature == null) {
-            float targetReturnTemperature = configuration.getTemperatureReturnMax();
+            float targetReturnTemperature = configuration.getTemperatureReturnOnMinCurvePoint();
             logger.debug("Нет информации о температуре на улице, расчетная температура обратки для включения {} C°",
                     targetReturnTemperature);
             return targetReturnTemperature;
         }
 
         if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
-            float targetReturnTemperature = configuration.getTemperatureReturnMax();
+            float targetReturnTemperature = configuration.getTemperatureReturnOnMinCurvePoint();
             logger.debug("Температура на улице ниже минимальной температуры климатической кривой, расчетная " +
-                    "температура " +
-                    "обратки для включения {} C°", targetReturnTemperature);
+                            "температура обратки для включения {} C°", targetReturnTemperature);
             return targetReturnTemperature;
         }
 
@@ -211,16 +210,20 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         оси Y температура обратки */
 
         /* коэффициент наклона прямой */
-        float m = (configuration.getTemperatureReturnMin() - configuration.getTemperatureReturnMax()) /
+        float m = (configuration.getTemperatureReturnOnMaxCurvePoint() - configuration.getTemperatureReturnOnMinCurvePoint()) /
                 (configuration.getTemperatureWeatherCurveMax() - configuration.getTemperatureWeatherCurveMin());
 
         /* свободный член уравнения*/
-        float b = configuration.getTemperatureReturnMax() - m * configuration.getTemperatureWeatherCurveMin();
+        float b = configuration.getTemperatureReturnOnMinCurvePoint() - m * configuration.getTemperatureWeatherCurveMin();
 
         float targetReturnTemperature = m * outsideTemperature + b;
-        logger.debug("Температура на улице в пределах климатической кривой, расчетная температура обратки для " +
-                "включения {}" +
-                " C°", targetReturnTemperature);
+        if (targetReturnTemperature < configuration.getTemperatureReturnMin()) {
+            targetReturnTemperature = configuration.getTemperatureReturnMin();
+            logger.debug("Расчетная температура обратки для включения меньше минимальной, используем минимальную {} C°",
+                    targetReturnTemperature);
+            return targetReturnTemperature;
+        }
+        logger.debug("Расчетная температура обратки для включения {} C°", targetReturnTemperature);
         return targetReturnTemperature;
     }
 

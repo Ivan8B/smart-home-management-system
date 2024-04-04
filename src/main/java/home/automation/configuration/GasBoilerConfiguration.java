@@ -26,11 +26,14 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.temperature.direct.blockDelta}")
     private Integer temperatureDirectBlockDelta;
 
+    @Value("${gasBoiler.temperature.return.onMaxCurvePoint}")
+    private Float temperatureReturnOnMaxCurvePoint;
+
+    @Value("${gasBoiler.temperature.return.onMinCurvePoint}")
+    private Float temperatureReturnOnMinCurvePoint;
+
     @Value("${gasBoiler.temperature.return.min}")
     private Float temperatureReturnMin;
-
-    @Value("${gasBoiler.temperature.return.max}")
-    private Float temperatureReturnMax;
 
     @Value("${gasBoiler.temperature.weatherCurve.min}")
     private Float temperatureWeatherCurveMin;
@@ -69,12 +72,16 @@ public class GasBoilerConfiguration {
         return temperatureDirectBlockDelta;
     }
 
-    public Float getTemperatureReturnMin() {
-        return temperatureReturnMin;
+    public Float getTemperatureReturnOnMaxCurvePoint() {
+        return temperatureReturnOnMaxCurvePoint;
     }
 
-    public Float getTemperatureReturnMax() {
-        return temperatureReturnMax;
+    public Float getTemperatureReturnOnMinCurvePoint() {
+        return temperatureReturnOnMinCurvePoint;
+    }
+
+    public Float getTemperatureReturnMin() {
+        return temperatureReturnMin;
     }
 
     public Float getTemperatureWeatherCurveMin() {
