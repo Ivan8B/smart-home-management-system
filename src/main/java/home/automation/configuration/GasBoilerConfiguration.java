@@ -23,8 +23,8 @@ public class GasBoilerConfiguration {
     @Value("${gasBoiler.temperature.direct.max}")
     private Float temperatureDirectMax;
 
-    @Value("${gasBoiler.temperature.direct.maxPercent}")
-    private Integer temperatureDirectMaxPercent;
+    @Value("${gasBoiler.temperature.direct.blockDelta}")
+    private Integer temperatureDirectBlockDelta;
 
     @Value("${gasBoiler.temperature.return.min}")
     private Float temperatureReturnMin;
@@ -65,8 +65,8 @@ public class GasBoilerConfiguration {
         return temperatureDirectMax;
     }
 
-    public Integer getTemperatureDirectMaxPercent() {
-        return temperatureDirectMaxPercent;
+    public Integer getTemperatureDirectBlockDelta() {
+        return temperatureDirectBlockDelta;
     }
 
     public Float getTemperatureReturnMin() {

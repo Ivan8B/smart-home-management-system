@@ -90,8 +90,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             Float targetDirectTemperature = calculateTargetDirectTemperature();
             if (targetDirectTemperature != null &&
                     maxDirectTemperatureForPeriod != null &&
-                    maxDirectTemperatureForPeriod >
-                            targetDirectTemperature * configuration.getTemperatureDirectMaxPercent() / 100) {
+                    maxDirectTemperatureForPeriod > targetDirectTemperature - configuration.getTemperatureDirectBlockDelta()) {
                 logger.info("Газовый котел достиг целевой температуры в этом цикле, поэтому блокируем реле");
                 turnOff();
             }
