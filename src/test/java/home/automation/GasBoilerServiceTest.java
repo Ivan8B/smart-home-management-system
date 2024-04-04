@@ -253,7 +253,7 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         /* теперь даем обратке остыть и включение должно быть разрешено */
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE))
-                .thenReturn(23F);
+                .thenReturn(21F);
         invokeControlMethod(GasBoilerRelayStatus.NO_NEED_HEAT);
         Mockito.verify(modbusService, Mockito.times(1))
                 .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
@@ -300,15 +300,15 @@ public class GasBoilerServiceTest extends AbstractTest {
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-10F);
-        assertEquals(38f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(37f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-1.5F);
-        assertEquals(32f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
+        assertEquals(30f, invokeCalculateMinReturnTemperatureMethod(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(10F);
-        assertEquals(24f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
+        assertEquals(22f, invokeCalculateMinReturnTemperatureMethod(), 0.5);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(16F);
