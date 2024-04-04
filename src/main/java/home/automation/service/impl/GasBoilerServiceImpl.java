@@ -238,19 +238,19 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
 
         if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
-            float targetReturnTemperature = configuration.getTemperatureDirectMax();
+            float targetDirectTemperature = configuration.getTemperatureDirectMax();
             logger.debug("Температура на улице ниже минимальной температуры климатической кривой, расчетная " +
                     "температура " +
-                    "подачи {} C°", targetReturnTemperature);
-            return targetReturnTemperature;
+                    "подачи {} C°", targetDirectTemperature);
+            return targetDirectTemperature;
         }
 
         if (outsideTemperature >= configuration.getTemperatureWeatherCurveMax()) {
-            float targetReturnTemperature = configuration.getTemperatureDirectMin();
+            float targetDirectTemperature = configuration.getTemperatureDirectMin();
             logger.debug("Температура на улице выше максимальной температуры климатической кривой, расчетная " +
                     "температура " +
-                    "подачи {} C°", targetReturnTemperature);
-            return targetReturnTemperature;
+                    "подачи {} C°", targetDirectTemperature);
+            return targetDirectTemperature;
         }
 
         /* решаем задачу нахождения функции для прямой проходящей через 2 точки, по оси X температура на улице, по
