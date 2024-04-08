@@ -18,10 +18,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
@@ -31,7 +31,7 @@ public class HistoryServiceImpl implements HistoryService {
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
-    private final Map<Instant, Integer> calculatedValvePercentDailyHistory = new HashMap<>();
+    private final Map<Instant, Integer> calculatedValvePercentLast25Values = new HashMap<>();
 
     public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
@@ -139,24 +139,20 @@ public class HistoryServiceImpl implements HistoryService {
     @Override
     public void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts) {
         if (calculatedTargetValvePercent != null) {
-            calculatedValvePercentDailyHistory.put(ts, calculatedTargetValvePercent);
+            calculatedValvePercentLast25Values.put(ts, calculatedTargetValvePercent);
         }
-        calculatedValvePercentDailyHistory.entrySet()
-                .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
+        List<Instant> listOfTop25NewestKeys =
+                calculatedValvePercentLast25Values.keySet().stream().sorted(Comparator.reverseOrder()).limit(25).toList();
+        calculatedValvePercentLast25Values.entrySet().removeIf(entry -> !listOfTop25NewestKeys.contains(entry.getKey()));
     }
 
     @Override
-    public Integer getAverageCalculatedTargetValvePercentForLastHour() {
-        Map<Instant, Integer> calculatedValvePercentDailyHistory1HourHistory =
-                calculatedValvePercentDailyHistory.entrySet().stream()
-                        .filter(percent -> percent.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-
-        if (calculatedValvePercentDailyHistory1HourHistory.isEmpty()) {
+    public Integer getAverageCalculatedTargetValvePercentForLast25Values() {
+        if (calculatedValvePercentLast25Values.isEmpty()) {
             return null;
         }
         OptionalDouble averageOptional =
-                calculatedValvePercentDailyHistory1HourHistory.values().stream().mapToDouble(t -> t).average();
+                calculatedValvePercentLast25Values.values().stream().mapToDouble(t -> t).average();
         Float average = averageOptional.isPresent() ? (float) averageOptional.getAsDouble() : null;
         return average != null ? Math.round(average) : null;
     }

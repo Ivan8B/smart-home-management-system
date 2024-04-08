@@ -39,9 +39,9 @@ public interface HistoryService {
     void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts);
 
     /**
-     * Получение среднего рассчитанного процента открытия клапана за последний час
+     * Получение среднего рассчитанного процента открытия клапана за последние 25 расчетов
      *
-     * @return среднее рассчитанное положение клапана за последний час
+     * @return среднее рассчитанное положение клапана за последние 25 расчетов
      */
-    Integer getAverageCalculatedTargetValvePercentForLastHour();
+    Integer getAverageCalculatedTargetValvePercentForLast25Values();
 }

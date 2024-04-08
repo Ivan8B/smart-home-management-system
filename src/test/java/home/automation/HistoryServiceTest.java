@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 public class HistoryServiceTest extends AbstractTest {
@@ -92,5 +93,37 @@ public class HistoryServiceTest extends AbstractTest {
                 invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(
                         getGasBoilerStatusDailyHistory())));
 
+    }
+
+    private Map<Instant, Integer> getCalculatedValvePercentLast25Values() {
+        try {
+            Field field = historyService.getClass().getDeclaredField("calculatedValvePercentLast25Values");
+            field.setAccessible(true);
+            return (Map<Instant, Integer>) field.get(historyService);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось обратиться к датасету рассчитанных процентов открытия клапана", e);
+        }
+    }
+
+    private void invokePutCalculatedTargetValvePercentMethod(Integer calculatedTargetValvePercent, Instant ts) {
+        try {
+            Method method = historyService.getClass().getDeclaredMethod("putCalculatedTargetValvePercent",
+                    Integer.class, Instant.class);
+            method.setAccessible(true);
+            method.invoke(historyService, calculatedTargetValvePercent, ts);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось вызвать метод добавления процентов открытия клапана в историю", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Проверка очистки старых данных из датасета рассчитанных процентов открытия клапана")
+    void checkCleanOldValuesFromCalculatedValvePercentLast25Values() {
+        Instant now = Instant.now();
+        for (int i = 0; i < 26; i++) {
+            invokePutCalculatedTargetValvePercentMethod(50, now.plus(i, ChronoUnit.MINUTES));
+        }
+        assertEquals(25, getCalculatedValvePercentLast25Values().size());
+        assertFalse(getCalculatedValvePercentLast25Values().containsKey(now));
     }
 }
