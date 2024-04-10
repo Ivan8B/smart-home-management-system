@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 public class HistoryServiceTest extends AbstractTest {
@@ -120,9 +121,13 @@ public class HistoryServiceTest extends AbstractTest {
     @DisplayName("Проверка очистки старых данных из датасета рассчитанных процентов открытия клапана")
     void checkCleanOldValuesFromCalculatedValvePercentLast25Values() {
         Instant now = Instant.now();
-        for (int i = 0; i < 26; i++) {
+        for (int i = 0; i < 25; i++) {
             invokePutCalculatedTargetValvePercentMethod(50, now.plus(i, ChronoUnit.MINUTES));
         }
+        assertEquals(25, getCalculatedValvePercentLast25Values().size());
+        assertTrue(getCalculatedValvePercentLast25Values().containsKey(now));
+
+        invokePutCalculatedTargetValvePercentMethod(50, now.plus(25, ChronoUnit.MINUTES));
         assertEquals(25, getCalculatedValvePercentLast25Values().size());
         assertFalse(getCalculatedValvePercentLast25Values().containsKey(now));
     }
