@@ -152,21 +152,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return;
         }
 
-        Float currentDirectAfterMixingTemperature =
-                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_AFTER_MIXING);
-        logger.debug("Текущая температура подачи в полы {}", currentDirectAfterMixingTemperature);
-        if (currentDirectAfterMixingTemperature == null) {
-            logger.warn("Нет данных по текущей температуре, не производим операций с клапаном");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-            return;
-        }
-
-        float delta = targetDirectTemperature - currentDirectAfterMixingTemperature;
-        if (Math.abs(delta) <= temperatureConfiguration.getAccuracy()) {
-            logger.debug("Операций с клапаном теплого пола не требуется");
-            return;
-        }
-
         logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
         if (valveLocker.isLocked()) {
             logger.info("Клапан заблокирован, не выставляем положение");
