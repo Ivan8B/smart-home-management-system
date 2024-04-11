@@ -142,12 +142,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
         historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
 
-        Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLast10Values();
-        logger.debug("Целевой процент за последние 10 расчетов {}", averageTargetValvePercent);
+        Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
+        logger.debug("Целевой процент за последние " + HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT +
+                " расчетов {}", averageTargetValvePercent);
         if (averageTargetValvePercent == null) {
-            logger.warn(
-                    "Не удалось рассчитать среднее целевое положение клапана, не получается управлять трехходовым " +
-                            "клапаном");
+            logger.info(
+                    "Недостаточно данных по  среднему целевому положению клапана, не получается управлять трехходовым" +
+                            " клапаном");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }

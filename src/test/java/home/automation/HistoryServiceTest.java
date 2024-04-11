@@ -96,9 +96,9 @@ public class HistoryServiceTest extends AbstractTest {
 
     }
 
-    private Map<Instant, Integer> getCalculatedValvePercentLast10Values() {
+    private Map<Instant, Integer> getCalculatedValvePercentLastNValues() {
         try {
-            Field field = historyService.getClass().getDeclaredField("calculatedValvePercentLast10Values");
+            Field field = historyService.getClass().getDeclaredField("calculatedValvePercentLastNValues");
             field.setAccessible(true);
             return (Map<Instant, Integer>) field.get(historyService);
         } catch (Exception e) {
@@ -121,14 +121,14 @@ public class HistoryServiceTest extends AbstractTest {
     @DisplayName("Проверка очистки старых данных из датасета рассчитанных процентов открытия клапана")
     void checkCleanOldValuesFromCalculatedValvePercentLast25Values() {
         Instant now = Instant.now();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT; i++) {
             invokePutCalculatedTargetValvePercentMethod(50, now.plus(i, ChronoUnit.MINUTES));
         }
-        assertEquals(10, getCalculatedValvePercentLast10Values().size());
-        assertTrue(getCalculatedValvePercentLast10Values().containsKey(now));
+        assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
+        assertTrue(getCalculatedValvePercentLastNValues().containsKey(now));
 
         invokePutCalculatedTargetValvePercentMethod(50, now.plus(11, ChronoUnit.MINUTES));
-        assertEquals(10, getCalculatedValvePercentLast10Values().size());
-        assertFalse(getCalculatedValvePercentLast10Values().containsKey(now));
+        assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
+        assertFalse(getCalculatedValvePercentLastNValues().containsKey(now));
     }
 }

@@ -31,7 +31,7 @@ public class HistoryServiceImpl implements HistoryService {
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
-    private final Map<Instant, Integer> calculatedValvePercentLast10Values = new HashMap<>();
+    private final Map<Instant, Integer> calculatedValvePercentLastNValues = new HashMap<>();
 
     public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
@@ -139,20 +139,21 @@ public class HistoryServiceImpl implements HistoryService {
     @Override
     public void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts) {
         if (calculatedTargetValvePercent != null) {
-            calculatedValvePercentLast10Values.put(ts, calculatedTargetValvePercent);
+            calculatedValvePercentLastNValues.put(ts, calculatedTargetValvePercent);
         }
         List<Instant> listOfTop10NewestKeys =
-                calculatedValvePercentLast10Values.keySet().stream().sorted(Comparator.reverseOrder()).limit(10).toList();
-        calculatedValvePercentLast10Values.entrySet().removeIf(entry -> !listOfTop10NewestKeys.contains(entry.getKey()));
+                calculatedValvePercentLastNValues.keySet().stream().sorted(Comparator.reverseOrder())
+                        .limit(CALCULATED_VALVE_PERCENT_VALUES_COUNT).toList();
+        calculatedValvePercentLastNValues.entrySet().removeIf(entry -> !listOfTop10NewestKeys.contains(entry.getKey()));
     }
 
     @Override
-    public Integer getAverageCalculatedTargetValvePercentForLast10Values() {
-        if (calculatedValvePercentLast10Values.isEmpty()) {
+    public Integer getAverageCalculatedTargetValvePercentForLastNValues() {
+        if (calculatedValvePercentLastNValues.size() < CALCULATED_VALVE_PERCENT_VALUES_COUNT) {
             return null;
         }
         OptionalDouble averageOptional =
-                calculatedValvePercentLast10Values.values().stream().mapToDouble(t -> t).average();
+                calculatedValvePercentLastNValues.values().stream().mapToDouble(t -> t).average();
         Float average = averageOptional.isPresent() ? (float) averageOptional.getAsDouble() : null;
         return average != null ? Math.round(average) : null;
     }

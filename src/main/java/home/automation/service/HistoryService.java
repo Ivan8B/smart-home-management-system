@@ -6,6 +6,9 @@ import home.automation.enums.TemperatureSensor;
 import java.time.Instant;
 
 public interface HistoryService {
+
+    static final Integer CALCULATED_VALVE_PERCENT_VALUES_COUNT = 10;
+
     /**
      * Добавление статуса котла в историю
      *
@@ -39,9 +42,9 @@ public interface HistoryService {
     void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts);
 
     /**
-     * Получение среднего рассчитанного процента открытия клапана за последние 10 расчетов
+     * Получение среднего рассчитанного процента открытия клапана за последние N расчетов
      *
      * @return среднее рассчитанное положение клапана
      */
-    Integer getAverageCalculatedTargetValvePercentForLast10Values();
+    Integer getAverageCalculatedTargetValvePercentForLastNValues();
 }
