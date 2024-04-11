@@ -4,12 +4,12 @@ import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
 import home.automation.configuration.GeneralConfiguration;
-import home.automation.enums.HeatRequestStatus;
+import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.FloorHeatingErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.FloorHeatingService;
-import home.automation.service.HeatRequestService;
+import home.automation.service.GasBoilerService;
 import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
@@ -47,7 +47,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     private final GeneralConfiguration generalConfiguration;
 
-    private final HeatRequestService heatRequestService;
+    private final GasBoilerService gasBoilerService;
 
     private final TemperatureSensorsService temperatureSensorsService;
 
@@ -64,7 +64,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             FloorHeatingValveRelayConfiguration relayConfiguration,
             FloorHeatingValveDacConfiguration dacConfiguration,
             GeneralConfiguration generalConfiguration,
-            HeatRequestService heatRequestService,
+            GasBoilerService gasBoilerService,
             TemperatureSensorsService temperatureSensorsService,
             HistoryService historyService,
             ModbusService modbusService,
@@ -76,7 +76,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         this.relayConfiguration = relayConfiguration;
         this.dacConfiguration = dacConfiguration;
         this.generalConfiguration = generalConfiguration;
-        this.heatRequestService = heatRequestService;
+        this.gasBoilerService = gasBoilerService;
         this.temperatureSensorsService = temperatureSensorsService;
         this.historyService = historyService;
         this.modbusService = modbusService;
@@ -118,8 +118,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private void control() {
         logger.debug("Запущена задача управления теплым полом");
 
-        if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT) {
-            logger.info("Запроса на тепло нет, теплым полом управлять не нужно");
+        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
+            logger.info("Котел не работает на отопление, теплым полом управлять не нужно");
             return;
         }
 
@@ -142,8 +142,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
         historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
 
-        Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLast25Values();
-        logger.debug("Целевой процент за последние 25 расчетов {}", averageTargetValvePercent);
+        Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLast10Values();
+        logger.debug("Целевой процент за последние 10 расчетов {}", averageTargetValvePercent);
         if (averageTargetValvePercent == null) {
             logger.warn(
                     "Не удалось рассчитать среднее целевое положение клапана, не получается управлять трехходовым " +
