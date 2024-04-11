@@ -14,9 +14,6 @@ public class FloorHeatingTemperatureConfiguration {
     @Value("${floorHeating.temperature.k}")
     private Float k;
 
-    @Value("${floorHeating.temperature.accuracy}")
-    private Float accuracy;
-
     public Float getDirectMinTemperature() {
         return directMinTemperature;
     }
@@ -27,9 +24,5 @@ public class FloorHeatingTemperatureConfiguration {
 
     public Float getK() {
         return k;
-    }
-
-    public Float getAccuracy() {
-        return accuracy;
     }
 }
