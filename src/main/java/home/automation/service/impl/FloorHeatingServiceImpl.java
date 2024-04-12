@@ -252,7 +252,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             }
             polledTemperatures.add(sensorTemperature);
         }
-        if (polledTemperatures.size() == 0) {
+        if (polledTemperatures.isEmpty()) {
             logger.warn("Не удалось рассчитать среднюю температуру");
             return null;
         }
