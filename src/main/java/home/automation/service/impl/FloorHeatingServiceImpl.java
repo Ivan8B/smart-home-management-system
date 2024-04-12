@@ -149,7 +149,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.info(
                     "Недостаточно данных по  среднему целевому положению клапана, не получается управлять трехходовым" +
                             " клапаном");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
 
