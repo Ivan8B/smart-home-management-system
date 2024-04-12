@@ -64,7 +64,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
                             sensor.getRegisterId()
                     );
             if (rawTemperature == TEMPERATURE_SENSOR_BORDER_VALUE) {
-                logger.warn("Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр {}",
+                logger.error("Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр {}",
                         sensor.getRegisterId());
                 throw new ModbusException(
                         "Ошибка опроса  - температурный сенсор DS18B20 не подключен, регистр " +
