@@ -7,7 +7,7 @@ import java.time.Instant;
 
 public interface HistoryService {
 
-    static final Integer CALCULATED_VALVE_PERCENT_VALUES_COUNT = 10;
+    static final Integer CALCULATED_VALVE_PERCENT_VALUES_COUNT = 60;
 
     /**
      * Добавление статуса котла в историю

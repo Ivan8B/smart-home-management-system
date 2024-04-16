@@ -127,7 +127,8 @@ public class HistoryServiceTest extends AbstractTest {
         assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
         assertTrue(getCalculatedValvePercentLastNValues().containsKey(now));
 
-        invokePutCalculatedTargetValvePercentMethod(50, now.plus(11, ChronoUnit.MINUTES));
+        invokePutCalculatedTargetValvePercentMethod(50,
+                now.plus(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, ChronoUnit.MINUTES));
         assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
         assertFalse(getCalculatedValvePercentLastNValues().containsKey(now));
     }
