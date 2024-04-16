@@ -47,4 +47,11 @@ public interface HistoryService {
      * @return среднее рассчитанное положение клапана
      */
     Integer getAverageCalculatedTargetValvePercentForLastNValues();
+
+    /**
+     * Получение последнего рассчитанного процента открытия клапана за последние N расчетов
+     *
+     * @return последнее рассчитанное положение клапана
+     */
+    Integer getLastCalculatedTargetValvePercent();
 }

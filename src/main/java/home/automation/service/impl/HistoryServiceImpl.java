@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
@@ -156,6 +157,12 @@ public class HistoryServiceImpl implements HistoryService {
                 calculatedValvePercentLastNValues.values().stream().mapToDouble(t -> t).average();
         Float average = averageOptional.isPresent() ? (float) averageOptional.getAsDouble() : null;
         return average != null ? Math.round(average) : null;
+    }
+
+    @Override
+    public Integer getLastCalculatedTargetValvePercent() {
+        Optional<Instant> lastKey = calculatedValvePercentLastNValues.keySet().stream().max(Comparator.naturalOrder());
+        return lastKey.map(calculatedValvePercentLastNValues::get).orElse(null);
     }
 
     private Pair<List<Float>, List<Float>> calculateWorkIdleIntervals(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
