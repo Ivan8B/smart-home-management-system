@@ -401,19 +401,20 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (voltage > 10) {
             voltage = 10;
         }
+        /* клапан работает в интервале напряжений от 2 до 10 В */
         int correctedPercent = Math.round(((voltage - 2) / 8) * 100);
         if (correctedPercent == 0) {
             return 0;
         }
         /* компенсируем коррекцию */
-        return (int) Math.round((correctedPercent - 25) / 0.5);
+        return Math.round((correctedPercent - dacConfiguration.getCorrectionConstant()) / dacConfiguration.getCorrectionGradient());
     }
 
     private float getVoltageInVFromPercent(int percent) {
         /* поскольку клапан открывается неравномерно нужна коррекция */
         /* эта коррекция по линейной функции и весьма приблизительна */
         /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
-        float correctedPercent = (percent == -1) ? 0 : (float) (25 + 0.5 * percent);
+        float correctedPercent = (percent == -1) ? 0 : (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
 
         /* клапан работает в интервале напряжений от 2 до 10 В */
         return 2f + 8f * correctedPercent / 100;
