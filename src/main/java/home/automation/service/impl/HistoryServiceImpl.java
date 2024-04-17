@@ -1,5 +1,6 @@
 package home.automation.service.impl;
 
+import home.automation.configuration.FloorHeatingConfiguration;
 import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
@@ -29,13 +30,18 @@ import java.util.stream.Collectors;
 @Service
 public class HistoryServiceImpl implements HistoryService {
     private final GasBoilerConfiguration gasBoilerConfiguration;
+    private final FloorHeatingConfiguration floorHeatingConfiguration;
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Integer> calculatedValvePercentLastNValues = new HashMap<>();
 
-    public HistoryServiceImpl(MeterRegistry meterRegistry, GasBoilerConfiguration gasBoilerConfiguration) {
+    public HistoryServiceImpl(MeterRegistry meterRegistry,
+                              GasBoilerConfiguration gasBoilerConfiguration,
+                              FloorHeatingConfiguration floorHeatingConfiguration) {
         this.gasBoilerConfiguration = gasBoilerConfiguration;
+        this.floorHeatingConfiguration = floorHeatingConfiguration;
+
         Gauge.builder("gas_boiler", this::getGasBoilerAverage3HourlyPower)
                 .tag("component", "average_3_hour_power")
                 .tag("system", "home_automation")
@@ -144,13 +150,13 @@ public class HistoryServiceImpl implements HistoryService {
         }
         List<Instant> listOfTop10NewestKeys =
                 calculatedValvePercentLastNValues.keySet().stream().sorted(Comparator.reverseOrder())
-                        .limit(CALCULATED_VALVE_PERCENT_VALUES_COUNT).toList();
+                        .limit(floorHeatingConfiguration.getValuesCountForAverage()).toList();
         calculatedValvePercentLastNValues.entrySet().removeIf(entry -> !listOfTop10NewestKeys.contains(entry.getKey()));
     }
 
     @Override
     public Integer getAverageCalculatedTargetValvePercentForLastNValues() {
-        if (calculatedValvePercentLastNValues.size() < CALCULATED_VALVE_PERCENT_VALUES_COUNT) {
+        if (calculatedValvePercentLastNValues.size() < floorHeatingConfiguration.getValuesCountForAverage()) {
             return null;
         }
         OptionalDouble averageOptional =

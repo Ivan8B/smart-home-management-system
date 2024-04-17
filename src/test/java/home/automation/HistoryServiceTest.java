@@ -1,5 +1,6 @@
 package home.automation;
 
+import home.automation.configuration.FloorHeatingConfiguration;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.service.HistoryService;
 import org.apache.commons.lang3.tuple.Pair;
@@ -22,6 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 public class HistoryServiceTest extends AbstractTest {
+    @Autowired
+    FloorHeatingConfiguration floorHeatingConfiguration;
+
     @Autowired
     HistoryService historyService;
 
@@ -121,15 +125,15 @@ public class HistoryServiceTest extends AbstractTest {
     @DisplayName("Проверка очистки старых данных из датасета рассчитанных процентов открытия клапана")
     void checkCleanOldValuesFromCalculatedValvePercentLast25Values() {
         Instant now = Instant.now();
-        for (int i = 0; i < HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT; i++) {
+        for (int i = 0; i < floorHeatingConfiguration.getValuesCountForAverage(); i++) {
             invokePutCalculatedTargetValvePercentMethod(50, now.plus(i, ChronoUnit.MINUTES));
         }
-        assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
+        assertEquals(floorHeatingConfiguration.getValuesCountForAverage(), getCalculatedValvePercentLastNValues().size());
         assertTrue(getCalculatedValvePercentLastNValues().containsKey(now));
 
         invokePutCalculatedTargetValvePercentMethod(50,
-                now.plus(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, ChronoUnit.MINUTES));
-        assertEquals(HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT, getCalculatedValvePercentLastNValues().size());
+                now.plus(floorHeatingConfiguration.getValuesCountForAverage(), ChronoUnit.MINUTES));
+        assertEquals(floorHeatingConfiguration.getValuesCountForAverage(), getCalculatedValvePercentLastNValues().size());
         assertFalse(getCalculatedValvePercentLastNValues().containsKey(now));
     }
 }

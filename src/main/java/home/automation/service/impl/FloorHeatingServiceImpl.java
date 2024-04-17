@@ -1,5 +1,6 @@
 package home.automation.service.impl;
 
+import home.automation.configuration.FloorHeatingConfiguration;
 import home.automation.configuration.FloorHeatingTemperatureConfiguration;
 import home.automation.configuration.FloorHeatingValveDacConfiguration;
 import home.automation.configuration.FloorHeatingValveRelayConfiguration;
@@ -36,6 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FloorHeatingServiceImpl implements FloorHeatingService {
     private static final Logger logger = LoggerFactory.getLogger(FloorHeatingServiceImpl.class);
     private final Set<TemperatureSensor> averageInternalSensors = Set.of(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE);
+    private final FloorHeatingConfiguration floorHeatingConfiguration;
     private final FloorHeatingTemperatureConfiguration temperatureConfiguration;
     private final FloorHeatingValveRelayConfiguration relayConfiguration;
     private final FloorHeatingValveDacConfiguration dacConfiguration;
@@ -49,6 +51,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     Environment environment;
 
     public FloorHeatingServiceImpl(
+            FloorHeatingConfiguration floorHeatingConfiguration,
             FloorHeatingTemperatureConfiguration temperatureConfiguration,
             FloorHeatingValveRelayConfiguration relayConfiguration,
             FloorHeatingValveDacConfiguration dacConfiguration,
@@ -61,6 +64,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             Environment environment,
             MeterRegistry meterRegistry
     ) {
+        this.floorHeatingConfiguration = floorHeatingConfiguration;
         this.temperatureConfiguration = temperatureConfiguration;
         this.relayConfiguration = relayConfiguration;
         this.dacConfiguration = dacConfiguration;
@@ -138,7 +142,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
 
         Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
-        logger.debug("Целевой процент за последние " + HistoryService.CALCULATED_VALVE_PERCENT_VALUES_COUNT +
+        logger.debug("Целевой процент за последние " + floorHeatingConfiguration.getValuesCountForAverage() +
                 " расчетов {}", averageTargetValvePercent);
         if (averageTargetValvePercent == null) {
             logger.info(
