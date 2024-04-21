@@ -124,7 +124,7 @@ floorHeating:
   # Периодичность запуска управления теплым полом
   controlInterval: PT2M
   # Количество расчетов процента открытия, по среднему из которых выставляется клапан
-  valuesCountForAverage: 30
+  valuesCountForAverage: 60
   temperature:
     # Минимальная и максимальная температура подачи в теплый пол
     direct:
