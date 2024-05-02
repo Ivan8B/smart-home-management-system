@@ -7,11 +7,6 @@ management:
       exposure:
         include: prometheus
       base-path: /
-  metrics:
-    enable:
-      # Эти компоненты экспортируют метрики с ключевым словом name, на которое ругается unified-agent
-      executor: false
-      cache: false
 
 spring:
   cache:
