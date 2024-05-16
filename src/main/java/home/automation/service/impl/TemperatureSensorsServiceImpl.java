@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
-@CacheConfig(cacheNames = {"temperature_cache"})
+@CacheConfig(cacheNames = {"temperature_sensors_cache"})
 public class TemperatureSensorsServiceImpl implements TemperatureSensorsService {
     public static final Integer TEMPERATURE_SENSOR_BORDER_VALUE = Integer.parseInt("1000000000000000", 2);
     public static final Integer TEMPERATURE_SENSOR_SUBTRACTING = 65536;
@@ -56,7 +56,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
     }
 
     @Override
-    @Cacheable("temperature_cache")
+    @Cacheable("temperature_sensors_cache")
     public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
             int rawTemperature =
