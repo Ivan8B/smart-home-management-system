@@ -10,7 +10,6 @@ management:
 
 spring:
   cache:
-    cache-names: temperature_cache
     caffeine:
       spec: maximumSize=100,expireAfterWrite=15s
 
@@ -35,13 +34,13 @@ temperature:
   # Периодичность расчета необходимости отопления в доме
   controlInterval: PT1M
   # Целевая температура в доме
-  insideTarget: 18
+  insideTarget: 22
   # Температура на улице, при повышении до которой отопление должно отключаться
-  outsideMax: 16
+  outsideMax: 20
   # Отопление включается при опускании уличной на гистерезис от заданной
   hysteresis: 2
 
-# Настройки опроса плат опроса датчиков DS18B20, модель R4DCB08
+# Настройки плат опроса датчиков DS18B20, модель R4DCB08
 temperatureSensorsBoard:
   # плата 1
   board1:
