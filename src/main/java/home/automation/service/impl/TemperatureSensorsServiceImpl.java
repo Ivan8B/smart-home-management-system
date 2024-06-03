@@ -57,7 +57,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
 
     @Override
     @Cacheable("temperature_sensors_cache")
-    public @Nullable Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
+    public Float getCurrentTemperatureForSensor(TemperatureSensor sensor) {
         try {
             int rawTemperature =
                     modbusService.readHoldingRegister(configuration.getAddressByName(sensor.getBoardName()),
