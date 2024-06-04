@@ -354,7 +354,6 @@ public class HealthServiceImpl implements HealthService {
             message.append(minimumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
                     .collect(Collectors.joining(", ")));
             message.append("\n");
-            ;
         }
         return message.toString();
     }
