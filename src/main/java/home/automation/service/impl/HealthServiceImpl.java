@@ -258,7 +258,7 @@ public class HealthServiceImpl implements HealthService {
 
     private boolean electricBoilerIsTurnedOff() {
         return electricBoilerTurnedOnEvents.isEmpty()
-                && electricBoilerService.getStatus() == ElectricBoilerStatus.TURNED_OFF;
+                && electricBoilerService.getStatus() != ElectricBoilerStatus.TURNED_ON;
     }
 
     private boolean cityPowerInputIsOk() {
