@@ -15,6 +15,7 @@ import home.automation.service.HeatingPumpsService;
 import home.automation.service.HistoryService;
 import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.service.UniversalSensorsService;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private final Logger logger = LoggerFactory.getLogger(BotServiceImpl.class);
     private final TelegramBotConfiguration telegramBotConfiguration;
     private final TemperatureSensorsService temperatureSensorsService;
+    private final UniversalSensorsService universalSensorsService;
     private final GasBoilerService gasBoilerService;
     private final HistoryService historyService;
     private final FloorHeatingService floorHeatingService;
@@ -53,6 +55,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     public BotServiceImpl(
             TelegramBotConfiguration telegramBotConfiguration,
             TemperatureSensorsService temperatureSensorsService,
+            UniversalSensorsService universalSensorsService,
             GasBoilerService gasBoilerService,
             HistoryService historyService,
             @Lazy FloorHeatingService floorHeatingService,
@@ -67,6 +70,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
+        this.universalSensorsService = universalSensorsService;
         this.temperatureSensorsService = temperatureSensorsService;
         this.gasBoilerService = gasBoilerService;
         this.historyService = historyService;
@@ -159,6 +163,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(funnelHeatingService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(universalSensorsService.getCurrentParamsFormatted()).append("\n\n");
         return message.toString();
     }
 

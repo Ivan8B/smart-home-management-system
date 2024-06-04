@@ -113,7 +113,7 @@ public class ModbusServiceImpl implements ModbusService {
     public int readHoldingRegister(int address, int registerId) throws ModbusException {
         try {
             init();
-            Future<int[]> future = executorService.submit(() -> readHoldingRegistersWithDelay(address, registerId));
+            Future<int[]> future = executorService.submit(() -> readHoldingRegistersWithDelay(address, registerId, 1));
             return future.get()[0];
         } catch (Exception e) {
             logger.error("Ошибка чтения регистра", e);
@@ -121,8 +121,21 @@ public class ModbusServiceImpl implements ModbusService {
         }
     }
 
-    private int[] readHoldingRegistersWithDelay(int address, int registerId) throws Exception {
-        int[] result = modbusMaster.readHoldingRegisters(address, registerId, 1);
+    @Override
+    public int[] readHoldingRegisters(int address, int registerStartId, int quantity) throws ModbusException {
+        try {
+            init();
+            Future<int[]> future = executorService.submit(() -> readHoldingRegistersWithDelay(address,
+                    registerStartId, quantity));
+            return future.get();
+        } catch (Exception e) {
+            logger.error("Ошибка чтения регистров", e);
+            throw new ModbusException();
+        }
+    }
+
+    private int[] readHoldingRegistersWithDelay(int address, int registerId, int quantity) throws Exception {
+        int[] result = modbusMaster.readHoldingRegisters(address, registerId, quantity);
         delay();
         return result;
     }

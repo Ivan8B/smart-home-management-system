@@ -200,6 +200,33 @@ cityPowerInput:
   # Периодичность опросов напряжения на входе в ИБП
   controlInterval: PT1M
 
+# Настройки управления климатом в жилых комнатах
+livingRooms:
+  # Большая спальня
+  mainBedroom:
+    # универсальный датчик (температура, влажность, CO2), модель CO2RS485
+    universalSensor:
+      # Modbus slaveId
+      address: 7
+  # Вторая спальня
+  secondBedroom:
+    # универсальный датчик (температура, влажность, CO2), модель CO2RS485
+    universalSensor:
+      # Modbus slaveId
+      address: 8
+  # Кабинет
+  study:
+    # универсальный датчик (температура, влажность, CO2), модель CO2RS485
+    universalSensor:
+      # Modbus slaveId
+      address: 9
+  # Гостиная
+  lounge:
+    # универсальный датчик (температура, влажность, CO2), модель CO2RS485
+    universalSensor:
+      # Modbus slaveId
+      address: 10
+
 health:
   # Периодичность опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService и критичных температур)
   controlInterval: PT15M

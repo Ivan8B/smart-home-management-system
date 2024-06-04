@@ -4,6 +4,7 @@ import home.automation.enums.CityPowerInputStatus;
 import home.automation.enums.ElectricBoilerStatus;
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
+import home.automation.enums.UniversalSensor;
 import home.automation.event.error.CityPowerInputErrorEvent;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
@@ -13,6 +14,7 @@ import home.automation.event.error.GasBoilerFakeOutsideTemperatureErrorEvent;
 import home.automation.event.error.HeatRequestErrorEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
+import home.automation.event.error.UniversalSensorPollErrorEvent;
 import home.automation.event.info.CityPowerInputNoPowerEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.event.info.MaximumTemperatureViolationEvent;
@@ -59,6 +61,7 @@ public class HealthServiceImpl implements HealthService {
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minimumTemperatureViolationEvents = new HashSet<>();
     private final Set<TemperatureSensor> maximumTemperatureViolationEvents = new HashSet<>();
+    private final Set<UniversalSensor> universalSensorPollErrorEvents = new HashSet<>();
     private SelfMonitoringStatus lastStatus = SelfMonitoringStatus.OK;
 
     public HealthServiceImpl(
@@ -88,7 +91,7 @@ public class HealthServiceImpl implements HealthService {
         SelfMonitoringStatus newStatus = SelfMonitoringStatus.OK;
 
         if (!gasBoilerFakeOutsideTemperatureIsOk() || !minorTemperatureSensorsAreOk() || !streetLightRelayIsOk()
-                || !funnelHeatingIsOk() || !maximumTemperaturesAreOk()) {
+                || !funnelHeatingIsOk() || !maximumTemperaturesAreOk() || !universalSensorsAreOk()) {
             newStatus = SelfMonitoringStatus.MINOR_PROBLEMS;
             notifyAndSetLastStatus(newStatus);
         }
@@ -227,6 +230,11 @@ public class HealthServiceImpl implements HealthService {
         maximumTemperatureViolationEvents.add(event.getSensor());
     }
 
+    @EventListener
+    public void onUniversalSensorPollErrorEvent(UniversalSensorPollErrorEvent event) {
+        universalSensorPollErrorEvents.add(event.getSensor());
+    }
+
     @Override
     public String getFormattedStatus() {
         return calculateHealthStatus().getTemplate();
@@ -290,6 +298,10 @@ public class HealthServiceImpl implements HealthService {
         return maximumTemperatureViolationEvents.isEmpty();
     }
 
+    private boolean universalSensorsAreOk() {
+        return universalSensorPollErrorEvents.isEmpty();
+    }
+
     private void clear() {
         heatRequestErrorEvents.clear();
         gasBoilerErrorEvents.clear();
@@ -305,6 +317,7 @@ public class HealthServiceImpl implements HealthService {
         criticalTemperatureSensorFailEvents.clear();
         minimumTemperatureViolationEvents.clear();
         maximumTemperatureViolationEvents.clear();
+        universalSensorPollErrorEvents.clear();
     }
 
     private String formatCriticalMessage() {
@@ -365,6 +378,12 @@ public class HealthServiceImpl implements HealthService {
         if (!maximumTemperaturesAreOk()) {
             message.append("* слишком высокая температура датчиков: ");
             message.append(maximumTemperatureViolationEvents.stream().map(TemperatureSensor::getTemplate)
+                    .collect(Collectors.joining(", ")));
+            message.append("\n");
+        }
+        if (!universalSensorsAreOk()) {
+            message.append("* отказ универсальных датчиков: ");
+            message.append(universalSensorPollErrorEvents.stream().map(UniversalSensor::getTemplate)
                     .collect(Collectors.joining(", ")));
             message.append("\n");
         }
