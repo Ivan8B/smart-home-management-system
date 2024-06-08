@@ -111,20 +111,21 @@ public class UniversalSensorsServiceImpl implements UniversalSensorsService {
     }
 
     private String getCurrentParamsFromUniversalSensorFormatted(UniversalSensor sensor) {
-        Float temperature = getCurrentTemperatureForSensor(sensor);
-        if (temperature == null) {
-            return sensor.getTemplate() + " - ошибка опроса температуры!";
-        }
-        Integer humidityPercent = getCurrentHumidityPercentForSensor(sensor);
-        if (humidityPercent == null) {
-            return sensor.getTemplate() + " - ошибка опроса влажности!";
-        }
-        Integer co2ppm = getCurrentCO2ppmForSensor(sensor);
-        if (co2ppm == null) {
-            return sensor.getTemplate() + " - ошибка опроса содержания CO2!";
-        }
         DecimalFormat df = new DecimalFormat("#.#");
-        return sensor.getTemplate() + " " + df.format(temperature) + " C°, " + df.format(humidityPercent) + "%, " + df.format(co2ppm) + "ppm";
+
+        Float temperature = getCurrentTemperatureForSensor(sensor);
+        String temperatureFormatted = (temperature != null) ? df.format(temperature) + " C°" : "ошибка опроса " +
+                "температуры";
+
+        Integer humidityPercent = getCurrentHumidityPercentForSensor(sensor);
+        String humidityPercentFormatted = (humidityPercent != null) ? df.format(humidityPercent) + "%" : "ошибка опроса " +
+                "влажности";
+
+        Integer co2ppm = getCurrentCO2ppmForSensor(sensor);
+        String co2ppmFormatted = (co2ppm != null) ? df.format(co2ppm) + " ppm" : "ошибка опроса " +
+                "CO2";
+
+        return sensor.getTemplate() + " " + temperatureFormatted + ", " + humidityPercentFormatted + ", " + co2ppmFormatted;
     }
 
     @Override
