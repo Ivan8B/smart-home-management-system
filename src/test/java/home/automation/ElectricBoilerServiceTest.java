@@ -2,9 +2,11 @@ package home.automation;
 
 import home.automation.configuration.ElectricBoilerConfiguration;
 import home.automation.enums.ElectricBoilerStatus;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.exception.ModbusException;
 import home.automation.service.ElectricBoilerService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.TemperatureSensorsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,9 @@ public class ElectricBoilerServiceTest extends AbstractTest {
     @MockBean
     TemperatureSensorsService temperatureSensorsService;
 
+    @MockBean
+    HeatRequestService heatRequestService;
+
     private void invokeScheduledMethod(ElectricBoilerStatus status) {
         try {
             if (status == ElectricBoilerStatus.TURNED_ON) {
@@ -45,24 +50,52 @@ public class ElectricBoilerServiceTest extends AbstractTest {
     }
 
     @Test
-    @DisplayName("Проверка включения электрокотла при низкой температуре в котельной")
+    @DisplayName("Проверка включения электрокотла при низкой температуре в котельной и наличии запроса на тепло")
     void checkEnable() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
                 .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() - 1F);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
                 .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
     }
 
     @Test
+    @DisplayName("Проверка не включения электрокотла при низкой температуре в котельной и отсутствии запроса на тепло")
+    void checkNotEnable() throws ModbusException {
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
+                .thenReturn(TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() - 1F);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NO_NEED_HEAT);
+        invokeScheduledMethod(ElectricBoilerStatus.TURNED_OFF);
+        Mockito.verify(modbusService, Mockito.times(0))
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
+    }
+
+    @Test
     @DisplayName("Проверка отключения электрокотла при высокой температуре в котельной")
-    void checkDisable() throws ModbusException {
+    void checkDisableTemperature() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
                 .thenReturn(
                         TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() +
                                 configuration.getHysteresis()
                                 +
                                 0.1F);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NEED_HEAT);
+        invokeScheduledMethod(ElectricBoilerStatus.TURNED_ON);
+        Mockito.verify(modbusService, Mockito.times(1))
+                .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
+    }
+
+    @Test
+    @DisplayName("Проверка отключения электрокотла при отсутствии запроса на тепло")
+    void checkDisableHeatRequest() throws ModbusException {
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE))
+                .thenReturn(
+                        TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() +
+                                configuration.getHysteresis()
+                                -
+                                0.1F);
+        Mockito.when(heatRequestService.getStatus()).thenReturn(HeatRequestStatus.NO_NEED_HEAT);
         invokeScheduledMethod(ElectricBoilerStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
                 .writeCoil(configuration.getAddress(), configuration.getCoil(), false);

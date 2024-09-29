@@ -2,11 +2,13 @@ package home.automation.service.impl;
 
 import home.automation.configuration.ElectricBoilerConfiguration;
 import home.automation.enums.ElectricBoilerStatus;
+import home.automation.enums.HeatRequestStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ElectricBoilerService;
+import home.automation.service.HeatRequestService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
@@ -23,18 +25,21 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
 
     private final TemperatureSensorsService temperatureSensorsService;
 
+    private final HeatRequestService heatRequestService;
+
     private final ApplicationEventPublisher applicationEventPublisher;
 
     private final ModbusService modbusService;
 
     public ElectricBoilerServiceImpl(
             ElectricBoilerConfiguration configuration,
-            TemperatureSensorsService temperatureSensorsService,
+            TemperatureSensorsService temperatureSensorsService, HeatRequestService heatRequestService,
             ApplicationEventPublisher applicationEventPublisher,
             ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.temperatureSensorsService = temperatureSensorsService;
+        this.heatRequestService = heatRequestService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.modbusService = modbusService;
     }
@@ -54,14 +59,15 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             return;
         }
 
-        if (currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature()) {
+        if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT &&
+                currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature()) {
             logger.debug("Требуется включение электрического котла, включаем");
             turnOn();
             applicationEventPublisher.publishEvent(new ElectricBoilerTurnedOnEvent(this));
             return;
         }
-        if (currentTemperature
-                > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
+        if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT ||
+                currentTemperature > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
             logger.debug("Работа электрического котла не требуется, выключаем");
             turnOff();
         }
