@@ -76,7 +76,7 @@ gasBoiler:
     return:
       onMaxCurvePoint: 28   # При weatherCurve max (когда тепло) - опорная точка прямой обратки
       onMinCurvePoint: 45   # При weatherCurve min (когда холодно) - опорная точка прямой обратки
-      min: 22               # Минимально возможная температура обратки для включения котла
+      min: 24               # Минимально возможная температура обратки для включения котла
     # Температурный интервал выбранной кривой погодозависимой автоматики котла, сейчас выбрана кривая N20
     weatherCurve:
       min: -20
@@ -213,19 +213,19 @@ livingRooms:
     # универсальный датчик (температура, влажность, CO2), модель CO2RS485
     universalSensor:
       # Modbus slaveId
-      address: 8
+      address: 7
   # Кабинет
   study:
     # универсальный датчик (температура, влажность, CO2), модель CO2RS485
     universalSensor:
       # Modbus slaveId
-      address: 9
+      address: 7
   # Гостиная
   lounge:
     # универсальный датчик (температура, влажность, CO2), модель CO2RS485
     universalSensor:
       # Modbus slaveId
-      address: 10
+      address: 7
 
 health:
   # Периодичность опросов селфмониторинга (проверки по аварийным событиям сервиса HealthService и критичных температур)
