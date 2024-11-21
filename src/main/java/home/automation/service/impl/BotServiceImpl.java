@@ -11,7 +11,6 @@ import home.automation.service.GasBoilerFakeOutsideTemperatureService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.HeatRequestService;
-import home.automation.service.HeatingPumpsService;
 import home.automation.service.HistoryService;
 import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
@@ -44,8 +43,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private final FloorHeatingService floorHeatingService;
     private final ElectricBoilerService electricBoilerService;
     private final CityPowerInputService cityPowerInputService;
-    private final HeatingPumpsService heatingPumpsService;
-    private final GasBoilerFakeOutsideTemperatureService gasBoilerFakeOutsideTemperatureService;
     private final HeatRequestService heatRequestService;
     private final HealthService healthService;
     private final StreetLightService streetLightService;
@@ -61,8 +58,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             @Lazy FloorHeatingService floorHeatingService,
             ElectricBoilerService electricBoilerService,
             CityPowerInputService cityPowerInputService,
-            HeatingPumpsService heatingPumpsService,
-            GasBoilerFakeOutsideTemperatureService gasBoilerFakeOutsideTemperatureService,
             HeatRequestService heatRequestService,
             @Lazy HealthService healthService,
             StreetLightService streetLightService,
@@ -77,8 +72,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.floorHeatingService = floorHeatingService;
         this.electricBoilerService = electricBoilerService;
         this.cityPowerInputService = cityPowerInputService;
-        this.heatingPumpsService = heatingPumpsService;
-        this.gasBoilerFakeOutsideTemperatureService = gasBoilerFakeOutsideTemperatureService;
         this.heatRequestService = heatRequestService;
         this.healthService = healthService;
         this.streetLightService = streetLightService;
@@ -158,8 +151,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         message.append("* ").append(floorHeatingService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(electricBoilerService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(cityPowerInputService.getFormattedStatus()).append("\n\n");
-        message.append("* ").append(heatingPumpsService.getFormattedStatus()).append("\n\n");
-        message.append("* ").append(gasBoilerFakeOutsideTemperatureService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(funnelHeatingService.getFormattedStatus()).append("\n\n");
