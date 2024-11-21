@@ -363,6 +363,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatus() {
-        return status.getTemplate();
+        return status.getTemplate() +
+                "\n* целевая подача из газового котла - " + calculateTargetDirectTemperature() + " C°";
     }
 }
