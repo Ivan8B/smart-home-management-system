@@ -426,6 +426,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     @Override
     public String getFormattedStatus() {
-        return "процент подмеса в теплые полы - " + getCurrentValvePercent() + "%";
+        return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +
+                "целевая температура подачи в теплые полы - " + calculateTargetDirectTemperature() + " C°";
     }
 }
