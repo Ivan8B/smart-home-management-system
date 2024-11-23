@@ -237,11 +237,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return temperatureConfiguration.getDirectMinTemperature();
         }
         else {
-            /* Формула расчета : (Tцелевая -Tнаруж)*K + Tцелевая + (Тцелевая-Твпомещении) */
+            /* Формула расчета : (Tцелевая - Tнаруж)*K + Tцелевая + (Тцелевая - Твпомещении) + const(из настроек) */
             calculated =
                     (generalConfiguration.getInsideTarget() - outsideTemperature) * temperatureConfiguration.getK()
                             + generalConfiguration.getInsideTarget() + (generalConfiguration.getInsideTarget()
-                            - averageInternalTemperature);
+                            - averageInternalTemperature) + temperatureConfiguration.getDirectConstTemperature();
         }
 
         if (calculated > temperatureConfiguration.getDirectMaxTemperature()) {
