@@ -2,13 +2,17 @@ package home.automation.service.impl;
 
 import home.automation.configuration.ElectricBoilerConfiguration;
 import home.automation.enums.ElectricBoilerStatus;
+import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.HeatRequestStatus;
+import home.automation.enums.HeatingPumpsStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ElectricBoilerService;
+import home.automation.service.GasBoilerService;
 import home.automation.service.HeatRequestService;
+import home.automation.service.HeatingPumpsService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import org.slf4j.Logger;
@@ -27,19 +31,28 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
 
     private final HeatRequestService heatRequestService;
 
+    private final HeatingPumpsService heatingPumpsService;
+
+    private final GasBoilerService gasBoilerService;
+
     private final ApplicationEventPublisher applicationEventPublisher;
 
     private final ModbusService modbusService;
 
     public ElectricBoilerServiceImpl(
             ElectricBoilerConfiguration configuration,
-            TemperatureSensorsService temperatureSensorsService, HeatRequestService heatRequestService,
+            TemperatureSensorsService temperatureSensorsService,
+            HeatRequestService heatRequestService,
+            HeatingPumpsService heatingPumpsService,
+            GasBoilerService gasBoilerService,
             ApplicationEventPublisher applicationEventPublisher,
             ModbusService modbusService
     ) {
         this.configuration = configuration;
         this.temperatureSensorsService = temperatureSensorsService;
         this.heatRequestService = heatRequestService;
+        this.heatingPumpsService = heatingPumpsService;
+        this.gasBoilerService = gasBoilerService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.modbusService = modbusService;
     }
@@ -59,15 +72,21 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
             return;
         }
 
-        if (heatRequestService.getStatus() == HeatRequestStatus.NEED_HEAT &&
-                currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature()) {
+        if (currentTemperature < TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() &&
+                heatRequestService.getStatus() != HeatRequestStatus.NO_NEED_HEAT &&
+                heatingPumpsService.getStatus() != HeatingPumpsStatus.TURNED_OFF &&
+                gasBoilerService.getStatus() != GasBoilerStatus.WORKS
+                ) {
             logger.debug("Требуется включение электрического котла, включаем");
             turnOn();
             applicationEventPublisher.publishEvent(new ElectricBoilerTurnedOnEvent(this));
             return;
         }
-        if (heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT ||
-                currentTemperature > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis()) {
+        if (currentTemperature > TemperatureSensor.BOILER_ROOM_TEMPERATURE.getMinimumTemperature() + configuration.getHysteresis() ||
+                heatRequestService.getStatus() == HeatRequestStatus.NO_NEED_HEAT ||
+                heatingPumpsService.getStatus() == HeatingPumpsStatus.TURNED_OFF ||
+                gasBoilerService.getStatus() == GasBoilerStatus.WORKS
+                ) {
             logger.debug("Работа электрического котла не требуется, выключаем");
             turnOff();
         }
