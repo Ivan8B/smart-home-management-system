@@ -26,6 +26,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -426,7 +427,16 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
     @Override
     public String getFormattedStatus() {
+        Float targetDirectTemperature = calculateTargetDirectTemperature();
+        String formattedTargetDirectTemperature;
+        if (targetDirectTemperature == null) {
+            formattedTargetDirectTemperature=  "ошибка расчета!";
+        } else {
+            DecimalFormat df = new DecimalFormat("#.#");
+            formattedTargetDirectTemperature = df.format(targetDirectTemperature) + " C°";
+        }
+
         return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +
-                "целевая температура подачи в теплые полы - " + calculateTargetDirectTemperature() + " C°";
+                "целевая температура подачи в теплые полы - " + formattedTargetDirectTemperature;
     }
 }

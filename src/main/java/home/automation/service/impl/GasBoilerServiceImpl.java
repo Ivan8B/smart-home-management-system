@@ -14,12 +14,14 @@ import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.text.DecimalFormat;
 import java.time.Instant;
 
 @Service
@@ -228,6 +230,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     @Override
+    @Nullable
     public Float calculateTargetDirectTemperature() {
         /* рассчитываем температуру подачи в зависимости от температуры на улице (линейная функция) */
         /* в котле BAXI ПЗА устанавливается кривой, каждая кривая имеет свои границы, эти границы и будут
@@ -363,7 +366,15 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
     @Override
     public String getFormattedStatus() {
+        Float targetDirectTemperature = calculateTargetDirectTemperature();
+        String formattedTargetDirectTemperature;
+        if (targetDirectTemperature == null) {
+            formattedTargetDirectTemperature=  "ошибка расчета!";
+        } else {
+            DecimalFormat df = new DecimalFormat("#.#");
+            formattedTargetDirectTemperature = df.format(targetDirectTemperature) + " C°";
+        }
         return status.getTemplate() +
-                "\n* целевая подача из газового котла - " + calculateTargetDirectTemperature() + " C°";
+                "\n* целевая подача из газового котла - " + formattedTargetDirectTemperature;
     }
 }
