@@ -437,6 +437,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
 
         return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +
-                "целевая температура подачи в теплые полы - " + formattedTargetDirectTemperature;
+                "целевая температура подачи в теплые полы " + formattedTargetDirectTemperature;
     }
 }

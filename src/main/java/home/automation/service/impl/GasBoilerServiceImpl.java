@@ -375,6 +375,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             formattedTargetDirectTemperature = df.format(targetDirectTemperature) + " C°";
         }
         return status.getTemplate() +
-                "\n* целевая подача из газового котла - " + formattedTargetDirectTemperature;
+                "\n* целевая подача из газового котла " + formattedTargetDirectTemperature;
     }
 }
