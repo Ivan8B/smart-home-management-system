@@ -127,6 +127,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
         if (targetDirectTemperature == null) {
             logger.warn("Нет данных по целевой подаче в полы, не получится управлять трехходовым клапаном");
+            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
             return;
         }
         Integer calculatedTargetValvePercent = calculateTargetValvePercentByTemperatureBeforeMixing(
