@@ -290,26 +290,17 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private void setValveOnPercent(int targetValvePercent) {
         valveLocker.lock();
         try {
-            int powerTime;
-            if (targetValvePercent == -1) {
-                logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
-                powerTime = relayConfiguration.getRotationTime() + relayConfiguration.getRotationTimeReserve();
+            Integer currentValvePercent = getCurrentValvePercent();
+            logger.debug("Текущий процент открытия клапана {}", currentValvePercent);
+            if (currentValvePercent == null) {
+                logger.warn("Не удалось получить текущее положение клапана");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                return;
             }
-            else {
-                Integer currentValvePercent = getCurrentValvePercent();
-                logger.debug("Текущий процент открытия клапана {}", currentValvePercent);
-                if (currentValvePercent == null) {
-                    logger.warn("Не удалось получить текущее положение клапана");
-                    applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-                    return;
-                }
-                int valvePercentDelta = targetValvePercent - currentValvePercent;
-                if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
-                    logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
-                    return;
-                }
-                powerTime = calculateTime(targetValvePercent, currentValvePercent);
-                logger.debug("Питание на клапан нужно подать на {} секунд", powerTime);
+            int valvePercentDelta = targetValvePercent - currentValvePercent;
+            if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
+                logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
+                return;
             }
 
             logger.info("Включаем питание сервопривода клапана");
@@ -323,32 +314,17 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     voltageIn10mv
             );
 
-            Thread.sleep(powerTime * 1000);
+            Thread.sleep(relayConfiguration.getRotationTime() * 1000L);
             logger.info("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
 
             logger.info("Сервопривод был передвинут, новый процент открытия {}", targetValvePercent);
         } catch (ModbusException | InterruptedException e) {
-            logger.error("Ошибка выставления напряжение на ЦАП");
+            logger.error("Ошибка выставления напряжение на ЦАП или работы с реле питания");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
         } finally {
             valveLocker.unlock();
         }
-    }
-
-    private int calculateTime(int targetValvePercent, int currentValvePercent) {
-        /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и
-        возвращается до нужного процента */
-        /* но на всякий случая подаем питание пропорционально сумме положений и при увеличении процента открытия
-        тоже, похоже иногда клапан увеличивает процент через ноль */
-        /* считаем по напряжению которое будет выдаваться на ЦАП, вычитаем 2 раза по 2 вольта - клапан работает от 2
-        до 10V */
-        return (int) (Math.round(
-                relayConfiguration.getRotationTime()
-                        *
-                        (getVoltageInVFromPercent(currentValvePercent) + getVoltageInVFromPercent(targetValvePercent) -
-                                4) / 8.0)
-                + 2 * relayConfiguration.getRotationTimeReserve());
     }
 
     private Integer getCurrentValvePercent() {
