@@ -144,6 +144,15 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     @Override
+    public Duration getGasBoilerCurrentStatusDuration() {
+        Instant lastKey = gasBoilerStatusDailyHistory.keySet().stream().max(Comparator.naturalOrder()).orElse(null);
+        if (lastKey == null) {
+            return null;
+        }
+        return Duration.between(lastKey, Instant.now());
+    }
+
+    @Override
     public void putCalculatedTargetValvePercent(Integer calculatedTargetValvePercent, Instant ts) {
         if (calculatedTargetValvePercent != null) {
             calculatedValvePercentLastNValues.put(ts, calculatedTargetValvePercent);

@@ -3,6 +3,7 @@ package home.automation.service;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 
+import java.time.Duration;
 import java.time.Instant;
 
 public interface HistoryService {
@@ -29,6 +30,13 @@ public interface HistoryService {
      * @return сообщение для бота
      */
     String getGasBoilerFormattedStatusForLastDay();
+
+    /**
+     * Получение длительности периода текущего состояния газового котла
+     *
+     * @return длительность текущего состояния
+     */
+    Duration getGasBoilerCurrentStatusDuration();
 
     /**
      * Добавление рассчитанного процента открытия клапана в историю

@@ -118,47 +118,52 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private void control() {
         logger.debug("Запущена задача управления теплым полом");
 
-        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
-            logger.info("Котел не работает на отопление, теплым полом управлять не нужно");
-            return;
+        if (gasBoilerService.getStatus() == GasBoilerStatus.WORKS) {
+            logger.info("Котел работает на отопление, можно считать целевое положение клапана");
+
+            Float targetDirectTemperature = calculateTargetDirectTemperature();
+            logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
+            if (targetDirectTemperature == null) {
+                logger.warn("Нет данных по целевой подаче в полы, не получится считать положение клапана");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                return;
+            }
+            Integer calculatedTargetValvePercent = calculateTargetValvePercentByTemperatureBeforeMixing(
+                    targetDirectTemperature);
+            logger.debug("Рассчитанный по температуре подмеса целевой процент открытия клапана {}",
+                    calculatedTargetValvePercent);
+            if (calculatedTargetValvePercent == null) {
+                logger.warn("Не удалось рассчитать целевое положение клапана, не получится считать положение клапана");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+                return;
+            }
+            logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
+            historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
         }
 
-        Float targetDirectTemperature = calculateTargetDirectTemperature();
-        logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
-        if (targetDirectTemperature == null) {
-            logger.warn("Нет данных по целевой подаче в полы, не получится управлять трехходовым клапаном");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-            return;
-        }
-        Integer calculatedTargetValvePercent = calculateTargetValvePercentByTemperatureBeforeMixing(
-                targetDirectTemperature);
-        logger.debug("Рассчитанный по температуре подмеса целевой процент открытия клапана {}",
-                calculatedTargetValvePercent);
-        if (calculatedTargetValvePercent == null) {
-            logger.warn("Не удалось рассчитать целевое положение клапана, не получится управлять трехходовым " +
-                    "клапаном");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-            return;
-        }
-        logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
-        historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
+        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS
+                || (historyService.getGasBoilerCurrentStatusDuration() != null &&
+                floorHeatingConfiguration.getGasBoilerWorkDurationToRotateValve()
+                        .minus(historyService.getGasBoilerCurrentStatusDuration()).isNegative())) {
+            logger.info("Котел не работает на отопление или работает уже давно, можно управлять клапаном");
 
-        Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
-        logger.debug("Целевой процент за последние " + floorHeatingConfiguration.getValuesCountForAverage() +
-                " расчетов {}", averageTargetValvePercent);
-        if (averageTargetValvePercent == null) {
-            logger.info(
-                    "Недостаточно данных по  среднему целевому положению клапана, не получится управлять трехходовым" +
-                            " клапаном");
-            return;
-        }
+            Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
+            logger.debug("Целевой процент за последние " + floorHeatingConfiguration.getValuesCountForAverage() +
+                    " расчетов {}", averageTargetValvePercent);
+            if (averageTargetValvePercent == null) {
+                logger.info(
+                        "Недостаточно данных по  среднему целевому положению клапана, не получится управлять трехходовым" +
+                                " клапаном");
+                return;
+            }
 
-        logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
-        if (valveLocker.isLocked()) {
-            logger.info("Клапан заблокирован, не выставляем положение");
-            return;
+            logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
+            if (valveLocker.isLocked()) {
+                logger.info("Клапан заблокирован, не выставляем положение");
+                return;
+            }
+            setValveOnPercent(averageTargetValvePercent);
         }
-        setValveOnPercent(averageTargetValvePercent);
     }
 
     private Integer calculateTargetValvePercentByTemperatureBeforeMixing(float targetDirectTemperature) {
