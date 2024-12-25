@@ -108,7 +108,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.debug("Чтобы отпустить процесс инициализации приложения выставляем клапан через таски");
             ExecutorService executor = Executors.newSingleThreadExecutor();
             logger.info("Система была перезагружена, закрываем клапан подмеса для калибровки");
-            executor.submit(() -> setValveOnPercent(-1));
+            executor.submit(() -> setValveOnPercent(0));
             logger.info("и открываем его на половину");
             executor.submit(() -> setValveOnPercent(50));
         }
@@ -400,8 +400,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private float getVoltageInVFromPercent(int percent) {
         /* поскольку клапан открывается неравномерно нужна коррекция */
         /* эта коррекция по линейной функции и весьма приблизительна */
-        /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
-        float correctedPercent = (percent == -1) ? 0 : (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
+        float correctedPercent = (percent == 0) ? 0 :
+                (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
 
         /* клапан работает в интервале напряжений от 2 до 10 В */
         return 2f + 8f * correctedPercent / 100;
