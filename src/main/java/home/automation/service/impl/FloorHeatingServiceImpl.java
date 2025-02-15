@@ -230,14 +230,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return null;
         }
 
-        Float returnTemperature =
-                temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
-        logger.debug("Температура обратки из полов {}", returnTemperature);
-        if (returnTemperature == null) {
-            logger.warn("Нет возможности определить температуру обратки из теплых полов");
-            return null;
-        }
-
         if (generalConfiguration.getInsideTarget() < outsideTemperature ||
                 generalConfiguration.getInsideTarget() < averageInternalTemperature) {
             logger.debug("Нарушены граничные условия, возвращаем минимальную температуру подачи в полы");
