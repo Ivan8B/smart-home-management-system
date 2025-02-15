@@ -63,6 +63,12 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 .description("Дельта подачи/обратки при работе")
                 .register(meterRegistry);
 
+        Gauge.builder("gas_boiler", this::calculatePowerInkWIfWorks)
+                .tag("component", "power")
+                .tag("system", "home_automation")
+                .description("Мощность при работе в кВт")
+                .register(meterRegistry);
+
         Gauge.builder("gas_boiler", this::getGasBoilerRelayNumericStatus)
                 .tag("component", "relay_status")
                 .tag("system", "home_automation")
@@ -362,6 +368,21 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         else {
             return gasBoilerDirectTemperature - gasBoilerReturnTemperature;
         }
+    }
+
+    private Float calculatePowerInkWIfWorks() {
+        Float temperatureDelta = getTemperatureDeltaIfWorks();
+
+        if (getStatus() != GasBoilerStatus.WORKS || temperatureDelta == null) {
+            return null;
+        }
+        else {
+            /* Формула расчета мощности Q = m * с * ΔT, где m - масса теплоносителя, а c его теплоемкость.
+            Теплоемкость воды 4200 Вт/°C), масса теплоносителя считается в кубометрах в час, поэтому формула выглядит так:
+            Q = (1000/3600 * m м3/ч) * (4200 Вт/°C) * ΔT °C = 1.163 кВт/°C * m м3/ч * ΔT °C */
+            return (float) (1.163 * configuration.getWaterFlow() * temperatureDelta);
+        }
+
     }
 
     @Override

@@ -1,12 +1,9 @@
 package home.automation.service.impl;
 
 import home.automation.configuration.FloorHeatingConfiguration;
-import home.automation.configuration.GasBoilerConfiguration;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.service.HistoryService;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
@@ -25,28 +22,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.stream.Collectors;
 
 @Service
 public class HistoryServiceImpl implements HistoryService {
-    private final GasBoilerConfiguration gasBoilerConfiguration;
     private final FloorHeatingConfiguration floorHeatingConfiguration;
     private final Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerDirectTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Float> gasBoilerReturnTemperatureDailyHistory = new HashMap<>();
     private final Map<Instant, Integer> calculatedValvePercentLastNValues = new HashMap<>();
 
-    public HistoryServiceImpl(MeterRegistry meterRegistry,
-                              GasBoilerConfiguration gasBoilerConfiguration,
-                              FloorHeatingConfiguration floorHeatingConfiguration) {
-        this.gasBoilerConfiguration = gasBoilerConfiguration;
+    public HistoryServiceImpl(FloorHeatingConfiguration floorHeatingConfiguration) {
         this.floorHeatingConfiguration = floorHeatingConfiguration;
-
-        Gauge.builder("gas_boiler", this::getGasBoilerAverage3HourlyPower)
-                .tag("component", "average_3_hour_power")
-                .tag("system", "home_automation")
-                .description("Средняя мощность за 3 часа")
-                .register(meterRegistry);
     }
 
     @Override
@@ -76,50 +62,6 @@ public class HistoryServiceImpl implements HistoryService {
                 .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
         gasBoilerReturnTemperatureDailyHistory.entrySet()
                 .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
-    }
-
-    private Float getGasBoilerAverage3HourlyPower() {
-        if (!(gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.IDLE)
-                || gasBoilerStatusDailyHistory.containsValue(GasBoilerStatus.WORKS))
-                ||
-                gasBoilerDirectTemperatureDailyHistory.isEmpty() ||
-                gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
-            return null;
-        }
-
-        /* история работы котла собирается за сутки, а нам нужно за три часа, поэтому отрезаем лишнее */
-        Map<Instant, GasBoilerStatus> gasBoilerStatus3HourHistory = gasBoilerStatusDailyHistory.entrySet().stream()
-                .filter(status -> status.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        Pair<List<Float>, List<Float>> intervals = calculateWorkIdleIntervals(gasBoilerStatus3HourHistory);
-        float work3HourPercent = calculateWorkPercent(intervals);
-
-        /* аналогично для расчета среднечасовой дельты, еще и фильтруем только те записи, когда котел работал */
-        Map<Instant, Float> gasBoilerDirectWhenWorkTemperature3HourHistory =
-                gasBoilerDirectTemperatureDailyHistory.entrySet().stream()
-                        .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                        .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
-                                && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        Map<Instant, Float> gasBoilerReturnWhenWorkTemperature3HourHistory =
-                gasBoilerReturnTemperatureDailyHistory.entrySet().stream()
-                        .filter(temperature -> temperature.getKey().isAfter(Instant.now().minus(3, ChronoUnit.HOURS)))
-                        .filter(temperature -> gasBoilerStatus3HourHistory.containsKey(temperature.getKey())
-                                && gasBoilerStatus3HourHistory.get(temperature.getKey()) == GasBoilerStatus.WORKS)
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        /* еще раз проверяем, что история не пустая */
-        if (gasBoilerReturnWhenWorkTemperature3HourHistory.isEmpty() ||
-                gasBoilerReturnTemperatureDailyHistory.isEmpty()) {
-            return null;
-        }
-        /* рассчитываем среднюю дельту за 3 часа за время работы котла */
-        float delta = calculateAverageTemperatureDeltaWhenWork(
-                gasBoilerDirectWhenWorkTemperature3HourHistory,
-                gasBoilerReturnWhenWorkTemperature3HourHistory
-        );
-
-        return calculateAverageGasBoilerPowerInkW(delta, work3HourPercent);
     }
 
     @Override
@@ -261,29 +203,5 @@ public class HistoryServiceImpl implements HistoryService {
             return countWorks;
         }
         return (float) (countWorks / countHours);
-    }
-
-    private float calculateAverageTemperatureDeltaWhenWork(
-            Map<Instant, Float> gasBoilerDirectWhenWorkTemperatureHistory,
-            Map<Instant, Float> gasBoilerReturnWhenWorkTemperatureHistory
-    ) {
-        float averageDirect =
-                (float) (gasBoilerDirectWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                        .orElse(0f));
-        float averageReturn =
-                (float) (gasBoilerReturnWhenWorkTemperatureHistory.values().stream().mapToDouble(t -> t).average()
-                        .orElse(0f));
-        return averageDirect - averageReturn;
-    }
-
-    private float calculateAverageGasBoilerPowerInkW(float averageDelta, float workPercent) {
-        if (workPercent == 0) {
-            return 0f;
-        }
-    /* Формула расчета мощности Q = m * с * ΔT, где m - масса теплоносителя, а c его теплоемкость.
-    Теплоемкость воды 4200 Вт/°C), масса теплоносителя считается в кубометрах в час, поэтому формула выглядит так:
-    Q = (1000/3600 * m м3/ч) * (4200 Вт/°C) * ΔT °C = 1.163 кВт/°C * m м3/ч * ΔT °C */
-        float powerWhenWorks = (float) (1.163 * gasBoilerConfiguration.getWaterFlow() * averageDelta);
-        return powerWhenWorks * workPercent / 100;
     }
 }
