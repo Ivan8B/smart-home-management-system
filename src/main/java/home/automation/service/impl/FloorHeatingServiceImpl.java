@@ -230,9 +230,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             return null;
         }
 
-        if (generalConfiguration.getInsideTarget() < outsideTemperature ||
-                generalConfiguration.getInsideTarget() < averageInternalTemperature) {
-            logger.debug("Нарушены граничные условия, возвращаем минимальную температуру подачи в полы");
+        if (generalConfiguration.getInsideTarget() < outsideTemperature) {
+            logger.debug("На улице слишком жарко, возвращаем минимальную температуру подачи в полы");
             return temperatureConfiguration.getDirectMinTemperature();
         }
         else {
