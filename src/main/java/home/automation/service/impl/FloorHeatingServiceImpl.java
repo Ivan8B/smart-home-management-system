@@ -143,8 +143,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS
                 || (historyService.getGasBoilerCurrentStatusDuration() != null &&
-                floorHeatingConfiguration.getGasBoilerWorkDurationToRotateValve()
-                        .minus(historyService.getGasBoilerCurrentStatusDuration()).isNegative())) {
+                historyService.getGasBoilerCurrentStatusDuration()
+                        .minus(floorHeatingConfiguration.getGasBoilerWorkDurationToRotateValve()).isNegative())) {
             logger.info("Котел не работает на отопление или работает уже давно, можно управлять клапаном");
 
             Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();

@@ -12,6 +12,7 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -136,4 +137,20 @@ public class HistoryServiceTest extends AbstractTest {
         assertEquals(floorHeatingConfiguration.getValuesCountForAverage(), getCalculatedValvePercentLastNValues().size());
         assertFalse(getCalculatedValvePercentLastNValues().containsKey(now));
     }
+
+    @Test
+    @DisplayName("Проверка метода получения времени нахождения газового котла в текущем статусе ")
+    void checkGasBoilerCurrentStatusDuration() {
+        long deltaSeconds;
+        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        deltaSeconds = Duration.of(9, ChronoUnit.MINUTES).minus(historyService.getGasBoilerCurrentStatusDuration()).toSeconds();
+        assertTrue(Math.abs(deltaSeconds) < 5);
+
+        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        deltaSeconds = Duration.of(5, ChronoUnit.MINUTES).minus(historyService.getGasBoilerCurrentStatusDuration()).toSeconds();
+        assertTrue(Math.abs(deltaSeconds) < 5);
+    }
+
 }
