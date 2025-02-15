@@ -109,8 +109,8 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             logger.info("Система была перезагружена, закрываем клапан подмеса для калибровки");
             executor.submit(() -> setValveOnPercent(0));
-            logger.info("и открываем его на половину");
-            executor.submit(() -> setValveOnPercent(50));
+            logger.info("и открываем его на треть");
+            executor.submit(() -> setValveOnPercent(33));
         }
     }
 
