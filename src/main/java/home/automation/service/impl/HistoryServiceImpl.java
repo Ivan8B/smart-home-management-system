@@ -50,14 +50,22 @@ public class HistoryServiceImpl implements HistoryService {
     }
 
     @Override
-    public void putGasBoilerStatusToDailyHistory(GasBoilerStatus status, Instant ts) {
-        gasBoilerStatusDailyHistory.put(ts, status);
+    public synchronized void putGasBoilerStatusToDailyHistory(GasBoilerStatus status, Instant ts) {
+        /* не добавляем если статус такой же, как и предыдущий, экономим память */
+        if (status != getLastGasBoilerStatus()) {
+            gasBoilerStatusDailyHistory.put(ts, status);
+        }
         gasBoilerStatusDailyHistory.entrySet()
                 .removeIf(entry -> entry.getKey().isBefore(Instant.now().minus(1, ChronoUnit.DAYS)));
     }
 
+    private GasBoilerStatus getLastGasBoilerStatus() {
+        Optional<Instant> maxKey = gasBoilerStatusDailyHistory.keySet().stream().max(Comparator.naturalOrder());
+        return maxKey.map(gasBoilerStatusDailyHistory::get).orElse(null);
+    }
+
     @Override
-    public void putTemperatureToDailyHistory(TemperatureSensor sensor, Float temperature, Instant ts) {
+    public synchronized void putTemperatureToDailyHistory(TemperatureSensor sensor, Float temperature, Instant ts) {
         if (temperature != null) {
             switch (sensor) {
                 case WATER_DIRECT_GAS_BOILER_TEMPERATURE -> gasBoilerDirectTemperatureDailyHistory.put(ts, temperature);

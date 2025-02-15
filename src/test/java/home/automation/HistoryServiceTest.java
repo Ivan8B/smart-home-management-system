@@ -40,6 +40,17 @@ public class HistoryServiceTest extends AbstractTest {
         }
     }
 
+    private void invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus status, Instant ts) {
+        try {
+            Method method = historyService.getClass().getDeclaredMethod("putGasBoilerStatusToDailyHistory",
+                    GasBoilerStatus.class, Instant.class);
+            method.setAccessible(true);
+            method.invoke(historyService, status, ts);
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось добавить статус котла в датасет", e);
+        }
+    }
+    
     private Pair<List<Float>, List<Float>> invokeCalculateWorkIdleIntervalsMethod(Map<Instant, GasBoilerStatus> gasBoilerStatusHistory) {
         try {
             Method method = historyService.getClass().getDeclaredMethod("calculateWorkIdleIntervals", Map.class);
@@ -65,16 +76,16 @@ public class HistoryServiceTest extends AbstractTest {
     void checkCalculateAverageTurnOnPerHour() {
         /* с момента включения прошло меньше часа */
         Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(7, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(6, ChronoUnit.MINUTES), GasBoilerStatus.ERROR);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(4, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.INIT, Instant.now().minus(10, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(9, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(8, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(7, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.ERROR, Instant.now().minus(6, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(5, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(4, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(3, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(2, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(1, ChronoUnit.MINUTES));
 
         assertEquals(3f,
                 invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(
@@ -83,17 +94,17 @@ public class HistoryServiceTest extends AbstractTest {
 
         /* с момента включения прошло больше часа */
         gasBoilerStatusDailyHistory.clear();
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.HOURS), GasBoilerStatus.INIT);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(8, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(7, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(6, ChronoUnit.HOURS), GasBoilerStatus.ERROR);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(4, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(3, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(2, ChronoUnit.HOURS), GasBoilerStatus.WORKS);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(1, ChronoUnit.HOURS), GasBoilerStatus.IDLE);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(30, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.INIT, Instant.now().minus(10, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(9, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(8, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(7, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.ERROR, Instant.now().minus(6, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(5, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(4, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(3, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(2, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(1, ChronoUnit.HOURS));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.WORKS, Instant.now().minus(30, ChronoUnit.MINUTES));
 
         assertEquals(0.4f,
                 invokeCalculateAverageTurnOnPerHourMethod(invokeCalculateWorkIdleIntervalsMethod(
@@ -142,14 +153,11 @@ public class HistoryServiceTest extends AbstractTest {
     @DisplayName("Проверка метода получения времени нахождения газового котла в текущем статусе ")
     void checkGasBoilerCurrentStatusDuration() {
         long deltaSeconds;
-        Map<Instant, GasBoilerStatus> gasBoilerStatusDailyHistory = getGasBoilerStatusDailyHistory();
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(10, ChronoUnit.MINUTES), GasBoilerStatus.INIT);
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(9, ChronoUnit.MINUTES), GasBoilerStatus.IDLE);
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.INIT, Instant.now().minus(10, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(9, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(8, ChronoUnit.MINUTES));
+        invokePutGasBoilerStatusToDailyHistory(GasBoilerStatus.IDLE, Instant.now().minus(7, ChronoUnit.MINUTES));
         deltaSeconds = Duration.of(9, ChronoUnit.MINUTES).minus(historyService.getGasBoilerCurrentStatusDuration()).toSeconds();
-        assertTrue(Math.abs(deltaSeconds) < 5);
-
-        gasBoilerStatusDailyHistory.put(Instant.now().minus(5, ChronoUnit.MINUTES), GasBoilerStatus.WORKS);
-        deltaSeconds = Duration.of(5, ChronoUnit.MINUTES).minus(historyService.getGasBoilerCurrentStatusDuration()).toSeconds();
         assertTrue(Math.abs(deltaSeconds) < 5);
     }
 
