@@ -63,7 +63,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
                 .description("Дельта подачи/обратки при работе")
                 .register(meterRegistry);
 
-        Gauge.builder("gas_boiler", this::calculatePowerInkWIfWorks)
+        Gauge.builder("gas_boiler", this::calculatePowerInkW)
                 .tag("component", "power")
                 .tag("system", "home_automation")
                 .description("Мощность при работе в кВт")
@@ -370,11 +370,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         }
     }
 
-    private Float calculatePowerInkWIfWorks() {
+    private Float calculatePowerInkW() {
         Float temperatureDelta = getTemperatureDeltaIfWorks();
 
         if (getStatus() != GasBoilerStatus.WORKS || temperatureDelta == null) {
-            return null;
+            return 0f;
         }
         else {
             /* Формула расчета мощности Q = m * с * ΔT, где m - масса теплоносителя, а c его теплоемкость.
@@ -382,7 +382,6 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             Q = (1000/3600 * m м3/ч) * (4200 Вт/°C) * ΔT °C = 1.163 кВт/°C * m м3/ч * ΔT °C */
             return (float) (1.163 * configuration.getWaterFlow() * temperatureDelta);
         }
-
     }
 
     @Override
