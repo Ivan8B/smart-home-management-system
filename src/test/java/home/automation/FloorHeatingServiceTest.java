@@ -42,25 +42,25 @@ public class FloorHeatingServiceTest extends AbstractTest {
                 .thenReturn(-20F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
                 .thenReturn(22F);
-        assertEquals(42F, invokeCalculateTargetDirectTemperature(), 0.5f);
+        assertEquals(41F, invokeCalculateTargetDirectTemperature(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(-10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
                 .thenReturn(22F);
-        assertEquals(38F, invokeCalculateTargetDirectTemperature(), 0.5f);
+        assertEquals(37F, invokeCalculateTargetDirectTemperature(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(0F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
                 .thenReturn(22F);
-        assertEquals(34F, invokeCalculateTargetDirectTemperature(), 0.5f);
+        assertEquals(33F, invokeCalculateTargetDirectTemperature(), 0.5f);
 
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
                 .thenReturn(10F);
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
                 .thenReturn(22F);
-        assertEquals(30F, invokeCalculateTargetDirectTemperature(), 0.5f);
+        assertEquals(29F, invokeCalculateTargetDirectTemperature(), 0.5f);
     }
 
     @Test
