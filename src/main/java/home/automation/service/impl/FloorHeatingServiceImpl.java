@@ -306,17 +306,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     return;
                 }
                 /* считаем по напряжению которое будет выдаваться на ЦА */
-                if (valvePercentDelta > 0) {
-                    powerTime =
-                            (int) Math.round(relayConfiguration.getRotationTime() * (getVoltageInVFromPercent(currentValvePercent)
-                                    - getVoltageInVFromPercent(targetValvePercent)) / 8.0) + relayConfiguration.getRotationTimeReserve();
-                } else {
-                    /* когда клапан крутится по часовой стрелке (то есть уменьшает процент открытия) - он доходит до нуля и возвращается до нужного процента */
-                    /* вычитаем 2 раза по 2 вольта - клапан работает от 2 до 10V */
-                    powerTime =
-                            (int) Math.round(relayConfiguration.getRotationTime() * (getVoltageInVFromPercent(currentValvePercent) - 2
-                                    + getVoltageInVFromPercent(targetValvePercent) - 2) / 8.0) + relayConfiguration.getRotationTimeReserve();
-                }
+                /* вычитаем из напряжения 2 вольта - клапан работает от 2 до 10V */
+                /* клапан доходит до нуля и возвращается до нужного процента */
+                powerTime =
+                        (int) Math.round(relayConfiguration.getRotationTime() * ((getVoltageInVFromPercent(currentValvePercent) - 2)
+                                + (getVoltageInVFromPercent(targetValvePercent) - 2)) / 8.0) + relayConfiguration.getRotationTimeReserve();
                 logger.debug("Питание на клапан нужно подать на {} секунд", powerTime);
             }
 
