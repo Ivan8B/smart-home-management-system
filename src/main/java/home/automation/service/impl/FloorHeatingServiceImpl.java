@@ -94,12 +94,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 .tag("system", "home_automation")
                 .description("Текущий процент открытия клапана по температуре")
                 .register(meterRegistry);
-
-        Gauge.builder("floor", this::getCalculatedValvePercent)
-                .tag("component", "calculated_valve_percent")
-                .tag("system", "home_automation")
-                .description("Рассчитанный моментальный процент открытия клапана")
-                .register(meterRegistry);
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -376,13 +370,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
         logger.debug("Текущий процент открытия клапана по температуре {}", calculated);
         return calculated;
-    }
-
-    private Integer getCalculatedValvePercent() {
-        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS) {
-            return null;
-        }
-        return historyService.getLastCalculatedTargetValvePercent();
     }
 
     private int getPercentFromVoltageInV(float voltage) {
