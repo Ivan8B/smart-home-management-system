@@ -139,6 +139,12 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             notify("Считаю статус системы...");
             return formatStatus();
         }
+        if (BotCommands.CALIBRATE_FLOOR.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на калибровку сервопривода теплого пола");
+            notify("Запущена калибровка..");
+            floorHeatingService.calibrate();
+            notify("Калибровка завершена");
+        }
         return null;
     }
 

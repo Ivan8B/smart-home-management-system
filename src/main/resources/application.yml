@@ -140,9 +140,9 @@ floorHeating:
       # Coil в который пишется значение (F05), нумерация с 0
       coil: 1
       # Расчетное время полного оборота клапана (секунд)
-      rotationTime: 45
+      rotationTime: 52
       # Запас по времени на каждую операцию с клапаном (секунд)
-      rotationTimeReserve: 5
+      rotationTimeReserve: 2
     # Цифро-аналоговый преобразователь
     dac:
       # Modbus slaveId

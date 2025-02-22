@@ -435,4 +435,30 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +
                 "целевая температура подачи в теплые полы " + formattedTargetDirectTemperature;
     }
+
+    @Override
+    public void calibrate() {
+        /* функция для отладки и поиска времени вращения клапана, нужна на период пусконаладки */
+        try {
+            int time = 52;
+            setValveOnVoltage(getVoltageInVFromPercent(0), 30);
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(40), Math.round(time * 40 / 100) + 2); // 21
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 40 / 100) + 2); // 21
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(80), Math.round(time * 80 / 100) + 2); // 42
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 80 / 100) + 2);  // 42
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(40), Math.round(time * 40 / 100) + 2); // 21
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(80), Math.round(time * (40 + 80) / 100) + 2); // 62
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(30), Math.round(time * (80 + 30) / 100) + 2); // 55
+            Thread.sleep(5 * 1000);
+            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 30 / 100 + 2));  // 15
+            Thread.sleep(5 * 1000);
+        } catch (InterruptedException ignored) {};
+    }
 }
