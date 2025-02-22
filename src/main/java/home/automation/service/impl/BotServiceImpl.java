@@ -136,7 +136,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private @Nullable String processBotCommand(String messageText) {
         if (BotCommands.GET_STATUS.getTelegramCommand().equals(messageText)) {
             logger.info("Получена команда на получение статуса системы");
-            notify("Считаю статус системы...\n");
+            notify("Считаю статус системы...");
             return formatStatus();
         }
         return null;
