@@ -279,8 +279,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private void setValveOnPercent(int targetValvePercent) {
-        valveLocker.lock();
-        try {
             int powerTime;
             if (targetValvePercent == -1) {
                 logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
@@ -303,27 +301,31 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 /* вычитаем из напряжения 2 вольта - клапан работает от 2 до 10V */
                 /* клапан доходит до нуля и возвращается до нужного процента */
                 powerTime =
-                        (int) Math.round(relayConfiguration.getRotationTime() * ((getVoltageInVFromPercent(currentValvePercent) - 2)
-                                + (getVoltageInVFromPercent(targetValvePercent) - 2)) / 8.0) + relayConfiguration.getRotationTimeReserve();
+                        (int) Math.round(relayConfiguration.getRotationTime() * ((getVoltageInVFromPercentWithCorrection(currentValvePercent) - 2)
+                                + (getVoltageInVFromPercentWithCorrection(targetValvePercent) - 2)) / 8.0) + relayConfiguration.getRotationTimeReserve();
                 logger.debug("Питание на клапан нужно подать на {} секунд", powerTime);
             }
 
+            setValveOnVoltage(getVoltageInVFromPercentWithCorrection(targetValvePercent), powerTime);
+            logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
+    }
+
+    private void setValveOnVoltage(float voltage, int powerTime) {
+        valveLocker.lock();
+        try {
             logger.info("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
-            int voltageIn10mv = Math.round(getVoltageInVFromPercent(targetValvePercent) * 100);
-            logger.debug("Устанавливаемое напряжение на ЦАП {}V", (float) voltageIn10mv / 100);
+            logger.debug("Устанавливаемое напряжение на ЦАП {}V", voltage);
             modbusService.writeHoldingRegister(
                     dacConfiguration.getAddress(),
                     dacConfiguration.getRegister(),
-                    voltageIn10mv
+                    Math.round(voltage* 100)
             );
 
             Thread.sleep(powerTime * 1000L);
             logger.info("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
-
-            logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
         } catch (ModbusException | InterruptedException e) {
             logger.error("Ошибка выставления напряжение на ЦАП или работы с реле питания");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
@@ -340,7 +342,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                             dacConfiguration.getRegister())
                             / 100;
             logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
-            int currentPercent = getPercentFromVoltageInV(currentVoltageInV);
+            int currentPercent = getPercentFromVoltageInVWithCorrection(currentVoltageInV);
             logger.debug("Текущий процент открытия клапана по ЦАП {}", currentPercent);
             return currentPercent;
         } catch (ModbusException e) {
@@ -372,7 +374,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         return calculated;
     }
 
-    private int getPercentFromVoltageInV(float voltage) {
+    private int getPercentFromVoltageInVWithCorrection(float voltage) {
         /* процент считается в интервале напряжений от 2 до 10 В */
         if (voltage < 2) {
             voltage = 2;
@@ -391,12 +393,20 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         return Math.round((correctedPercent - dacConfiguration.getCorrectionConstant()) / dacConfiguration.getCorrectionGradient());
     }
 
-    private float getVoltageInVFromPercent(int percent) {
+    private float getVoltageInVFromPercentWithCorrection(int percent) {
         /* поскольку клапан открывается неравномерно нужна коррекция */
         /* эта коррекция по линейной функции и весьма приблизительна */
         /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
+        int correctedPercent = percent == -1 ? 0 :
+                Math.round (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
+        logger.debug("Рассчетный процент с коррекцией {}", correctedPercent);
+        return getVoltageInVFromPercent(correctedPercent);
+    }
+
+    private float getVoltageInVFromPercent(int percent) {
         if (percent == -1) {
-            return 0;
+            percent = 0;
+            logger.debug("Калибровка");
         }
         if (percent < 0) {
             percent = 0;
@@ -406,10 +416,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             percent = 100;
             logger.warn("Задан процент открытия клапана теплого пола более 100!");
         }
-        float correctedPercent = (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
 
         /* клапан работает в интервале напряжений от 2 до 10 В */
-        return 2f + 8f * correctedPercent / 100;
+        return 2f + 8f * percent / 100;
     }
 
     @Override
