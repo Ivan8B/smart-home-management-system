@@ -329,7 +329,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.info("Выключаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
 
-            logger.info("Сервопривод был передвинут, новый процент открытия {}", targetValvePercent);
+            logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
         } catch (ModbusException | InterruptedException e) {
             logger.error("Ошибка выставления напряжение на ЦАП или работы с реле питания");
             applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
