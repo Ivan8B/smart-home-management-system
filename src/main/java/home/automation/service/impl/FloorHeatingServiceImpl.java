@@ -389,9 +389,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         /* процент считается в интервале напряжений от 2 до 10 В */
         if (voltage < 2) {
             voltage = 2;
+            logger.warn("Напряжение на ЦАП клапана теплого пола менее 2В!");
         }
         if (voltage > 10) {
             voltage = 10;
+            logger.warn("Напряжение на ЦАП клапана теплого пола более 2В!");
         }
         /* клапан работает в интервале напряжений от 2 до 10 В */
         int correctedPercent = Math.round(((voltage - 2) / 8) * 100);
@@ -406,8 +408,18 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         /* поскольку клапан открывается неравномерно нужна коррекция */
         /* эта коррекция по линейной функции и весьма приблизительна */
         /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
-        float correctedPercent = (percent == -1) ? 0 :
-                (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
+        if (percent == -1) {
+            return 0;
+        }
+        if (percent < 0) {
+            percent = 0;
+            logger.warn("Задан отрицательный процент открытия клапана теплого пола!");
+        }
+        if (percent > 100) {
+            percent = 100;
+            logger.warn("Задан процент открытия клапана теплого пола более 100!");
+        }
+        float correctedPercent = (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
 
         /* клапан работает в интервале напряжений от 2 до 10 В */
         return 2f + 8f * correctedPercent / 100;
