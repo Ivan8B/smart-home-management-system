@@ -400,10 +400,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private float getVoltageInVFromPercentWithCorrection(int percent) {
         /* поскольку клапан открывается неравномерно нужна коррекция */
         /* эта коррекция по линейной функции и весьма приблизительна */
-        /* если процент открытия -1 - корректировать не надо, нужно вернуть 0 для калибровки клапана */
-        int correctedPercent = percent == -1 ? 0 :
+        /* если процент открытия 0 или -1 - корректировать не надо, нужно вернуть 0 */
+        int correctedPercent = (percent == 0 || percent == -1)  ? 0 :
                 Math.round (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
-        logger.debug("Рассчетный процент с коррекцией {}", correctedPercent);
+        logger.debug("Расчетный процент с коррекцией {}", correctedPercent);
         return getVoltageInVFromPercent(correctedPercent);
     }
 
@@ -411,6 +411,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (percent == -1) {
             percent = 0;
             logger.debug("Калибровка");
+        }
+        if (percent == 0) {
+            logger.debug("Полное закрытие клапана");
         }
         if (percent < 0) {
             percent = 0;
