@@ -113,7 +113,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         logger.debug("Запущена задача управления теплым полом");
 
         if (gasBoilerService.getStatus() == GasBoilerStatus.WORKS) {
-            logger.info("Котел работает на отопление, можно считать целевое положение клапана");
+            logger.debug("Котел работает на отопление, можно считать целевое положение клапана");
 
             Float targetDirectTemperature = calculateTargetDirectTemperature();
             logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
@@ -139,7 +139,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 || (historyService.getGasBoilerCurrentStatusDuration() != null &&
                 historyService.getGasBoilerCurrentStatusDuration()
                         .compareTo(floorHeatingConfiguration.getGasBoilerWorkDurationToRotateValve()) > 0)) {
-            logger.info("Котел не работает на отопление или работает уже давно, можно управлять клапаном");
+            logger.debug("Котел не работает на отопление или работает уже давно, можно управлять клапаном");
 
             Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
             logger.debug("Целевой процент за последние " + floorHeatingConfiguration.getValuesCountForAverage() +
