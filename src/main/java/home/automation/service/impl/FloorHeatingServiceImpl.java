@@ -307,7 +307,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             }
 
             setValveOnVoltage(getVoltageInVFromPercentWithCorrection(targetValvePercent), powerTime);
-            logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
+            if (targetValvePercent == -1) {
+                logger.info("Сервопривод полностью перекрыт");
+            } else {
+                logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
+            }
     }
 
     private void setValveOnVoltage(float voltage, int powerTime) {
