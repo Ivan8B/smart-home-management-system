@@ -60,13 +60,13 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         Gauge.builder("gas_boiler", this::getTemperatureDeltaIfWorks)
                 .tag("component", "delta")
                 .tag("system", "home_automation")
-                .description("Дельта подачи/обратки при работе")
+                .description("Дельта подачи/обратки при работе газового котла")
                 .register(meterRegistry);
 
         Gauge.builder("gas_boiler", this::calculatePowerInkW)
                 .tag("component", "power")
                 .tag("system", "home_automation")
-                .description("Мощность при работе в кВт")
+                .description("Мощность в кВт газового котла")
                 .register(meterRegistry);
 
         Gauge.builder("gas_boiler", this::getGasBoilerRelayNumericStatus)
@@ -355,14 +355,24 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private Float getTemperatureDeltaIfWorks() {
+        Float delta = getTemperatureDeltaIfPositive();
+        if (delta == null || getStatus() != GasBoilerStatus.WORKS) {
+            return null;
+        }
+        else {
+            return delta;
+        }
+    }
+
+    private Float getTemperatureDeltaIfPositive() {
         Float gasBoilerDirectTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE);
         Float gasBoilerReturnTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE);
 
-        if (getStatus() != GasBoilerStatus.WORKS ||
-                gasBoilerDirectTemperature == null ||
-                gasBoilerReturnTemperature == null) {
+        if (gasBoilerDirectTemperature == null
+                || gasBoilerReturnTemperature == null
+                || gasBoilerDirectTemperature < gasBoilerReturnTemperature) {
             return null;
         }
         else {
@@ -371,9 +381,9 @@ public class GasBoilerServiceImpl implements GasBoilerService {
     }
 
     private Float calculatePowerInkW() {
-        Float temperatureDelta = getTemperatureDeltaIfWorks();
+        Float temperatureDelta = getTemperatureDeltaIfPositive();
 
-        if (getStatus() != GasBoilerStatus.WORKS || temperatureDelta == null) {
+        if (temperatureDelta == null || temperatureDelta < 0) {
             return 0f;
         }
         else {
