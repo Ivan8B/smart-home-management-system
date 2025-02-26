@@ -9,6 +9,7 @@ import home.automation.exception.ModbusException;
 import home.automation.service.GasBoilerFakeOutsideTemperatureService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -49,7 +50,7 @@ public class GasBoilerFakeOutsideTemperatureServiceImpl implements GasBoilerFake
 
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
-        logger.debug("Температура на улице {}", currentTemperature);
+        logger.debug("Температура на улице {}", TD_F.format(currentTemperature));
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");

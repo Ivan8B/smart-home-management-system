@@ -15,6 +15,7 @@ import home.automation.service.HeatRequestService;
 import home.automation.service.HeatingPumpsService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -63,7 +64,7 @@ public class ElectricBoilerServiceImpl implements ElectricBoilerService {
 
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.BOILER_ROOM_TEMPERATURE);
-        logger.debug("Температура в котельной {}", currentTemperature);
+        logger.debug("Температура в котельной {}", TD_F.format(currentTemperature));
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры в котельной");

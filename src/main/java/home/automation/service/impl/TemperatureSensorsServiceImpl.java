@@ -6,9 +6,9 @@ import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.exception.ModbusException;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheConfig;
@@ -16,7 +16,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -89,8 +88,7 @@ public class TemperatureSensorsServiceImpl implements TemperatureSensorsService 
         if (temperature == null) {
             return sensor.getTemplate() + " - ошибка опроса!";
         }
-        DecimalFormat df = new DecimalFormat("#.#");
-        return sensor.getTemplate() + " " + df.format(temperature) + " C°";
+        return sensor.getTemplate() + " " + TD_F.format(temperature);
     }
 
     @Override

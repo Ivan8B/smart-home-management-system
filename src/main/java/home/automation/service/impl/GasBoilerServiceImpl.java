@@ -12,6 +12,7 @@ import home.automation.service.HeatRequestService;
 import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +22,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
 import java.time.Instant;
 
 @Service
@@ -138,7 +138,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
             /* Можно сделать событие о невозможности рассчитать статус газового котла. Но зачем оно? */
         }
         else if (lastDirectTemperature == null) {
-            logger.debug("Появилась температура подачи {}, но статус котла пока неизвестен", newDirectTemperature);
+            logger.debug("Появилась температура подачи {}, но статус котла пока неизвестен",
+                    TD_F.format(newDirectTemperature));
             status = GasBoilerStatus.INIT;
         }
         else
@@ -160,25 +161,25 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         if (newDirectTemperature != null) {
             logger.debug("Записываем новую температуру подачи {} вместо старой {}",
-                    newDirectTemperature,
-                    lastDirectTemperature);
+                    TD_F.format(newDirectTemperature),
+                    TD_F.format(lastDirectTemperature));
             lastDirectTemperature = newDirectTemperature;
         }
 
         if (status == GasBoilerStatus.WORKS || status == GasBoilerStatus.INIT) {
             if (maxDirectTemperatureForPeriod == null || newDirectTemperature > maxDirectTemperatureForPeriod) {
-                logger.debug("Записываем максимальную температуру подачи {} вместо старой {}",
-                        newDirectTemperature,
-                        maxDirectTemperatureForPeriod);
+                logger.debug("Появилась новая максимальная температура подачи {}, записываем ее вместо старой {}",
+                        TD_F.format(newDirectTemperature),
+                        TD_F.format(maxDirectTemperatureForPeriod));
                 maxDirectTemperatureForPeriod = newDirectTemperature;
             }
 
-            logger.debug("Отправляем в историю текущую температуру подачи {}", newDirectTemperature);
+            logger.debug("Отправляем в историю текущую температуру подачи {}", TD_F.format(newDirectTemperature));
             historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_DIRECT_GAS_BOILER_TEMPERATURE,
                     newDirectTemperature,
                     now);
 
-            logger.debug("Отправляем в историю текущую температуру обратки {}", newReturnTemperature);
+            logger.debug("Отправляем в историю текущую температуру обратки {}", TD_F.format(newReturnTemperature));
             historyService.putTemperatureToDailyHistory(TemperatureSensor.WATER_RETURN_GAS_BOILER_TEMPERATURE,
                     newReturnTemperature,
                     now);
@@ -202,15 +203,15 @@ public class GasBoilerServiceImpl implements GasBoilerService {
 
         if (outsideTemperature == null) {
             float targetReturnTemperature = configuration.getTemperatureReturnOnMinCurvePoint();
-            logger.debug("Нет информации о температуре на улице, расчетная температура обратки для включения {} C°",
-                    targetReturnTemperature);
+            logger.debug("Нет информации о температуре на улице, расчетная температура обратки для включения {}",
+                    TD_F.format(targetReturnTemperature));
             return targetReturnTemperature;
         }
 
         if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
             float targetReturnTemperature = configuration.getTemperatureReturnOnMinCurvePoint();
             logger.debug("Температура на улице ниже минимальной температуры климатической кривой, расчетная " +
-                            "температура обратки для включения {} C°", targetReturnTemperature);
+                            "температура обратки для включения {}", TD_F.format(targetReturnTemperature));
             return targetReturnTemperature;
         }
 
@@ -227,11 +228,11 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         float targetReturnTemperature = m * outsideTemperature + b;
         if (targetReturnTemperature < configuration.getTemperatureReturnMin()) {
             targetReturnTemperature = configuration.getTemperatureReturnMin();
-            logger.debug("Расчетная температура обратки для включения меньше минимальной, используем минимальную {} C°",
-                    targetReturnTemperature);
+            logger.debug("Расчетная температура обратки для включения меньше минимальной, используем минимальную {}",
+                    TD_F.format(targetReturnTemperature));
             return targetReturnTemperature;
         }
-        logger.debug("Расчетная температура обратки для включения {} C°", targetReturnTemperature);
+        logger.debug("Расчетная температура обратки для включения {}", TD_F.format(targetReturnTemperature));
         return targetReturnTemperature;
     }
 
@@ -252,16 +253,14 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         if (outsideTemperature <= configuration.getTemperatureWeatherCurveMin()) {
             float targetDirectTemperature = configuration.getTemperatureDirectMax();
             logger.debug("Температура на улице ниже минимальной температуры климатической кривой, расчетная " +
-                    "температура " +
-                    "подачи {} C°", targetDirectTemperature);
+                    "температура подачи {}", TD_F.format(targetDirectTemperature));
             return targetDirectTemperature;
         }
 
         if (outsideTemperature >= configuration.getTemperatureWeatherCurveMax()) {
             float targetDirectTemperature = configuration.getTemperatureDirectMin();
             logger.debug("Температура на улице выше максимальной температуры климатической кривой, расчетная " +
-                    "температура " +
-                    "подачи {} C°", targetDirectTemperature);
+                    "температура подачи {}", TD_F.format(targetDirectTemperature));
             return targetDirectTemperature;
         }
 
@@ -276,8 +275,8 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         float b = configuration.getTemperatureDirectMax() - m * configuration.getTemperatureWeatherCurveMin();
 
         float targetDirectTemperature = m * outsideTemperature + b;
-        logger.debug("Температура на улице в пределах климатической кривой, расчетная температура подачи {} C°",
-                targetDirectTemperature);
+        logger.debug("Температура на улице в пределах климатической кривой, расчетная температура подачи {}",
+                TD_F.format(targetDirectTemperature));
         return targetDirectTemperature;
     }
 
@@ -401,8 +400,7 @@ public class GasBoilerServiceImpl implements GasBoilerService {
         if (targetDirectTemperature == null) {
             formattedTargetDirectTemperature=  "ошибка расчета!";
         } else {
-            DecimalFormat df = new DecimalFormat("#.#");
-            formattedTargetDirectTemperature = df.format(targetDirectTemperature) + " C°";
+            formattedTargetDirectTemperature = TD_F.format(targetDirectTemperature);
         }
         return status.getTemplate() +
                 "\n* целевая подача из газового котла " + formattedTargetDirectTemperature;

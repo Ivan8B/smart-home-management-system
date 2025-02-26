@@ -4,10 +4,11 @@ import home.automation.configuration.FloorHeatingConfiguration;
 import home.automation.enums.GasBoilerStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.service.HistoryService;
+import home.automation.utils.P_F;
+import home.automation.utils.decimal.D_F;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -77,8 +78,6 @@ public class HistoryServiceImpl implements HistoryService {
         float workPercent = calculateWorkPercent(intervals);
         float averageTurnOnPerHour = calculateAverageTurnOnPerHour(intervals);
 
-        DecimalFormat df0 = new DecimalFormat("#");
-        DecimalFormat df1 = new DecimalFormat("#.#");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
         Instant oldestTimestampIntDataset = Collections.min(gasBoilerStatusDailyHistory.keySet());
@@ -88,9 +87,9 @@ public class HistoryServiceImpl implements HistoryService {
                 + " котел работал на отопление ";
 
         return intro +
-                df0.format(workPercent) +
-                "% времени\n* среднее количество розжигов в час " +
-                df1.format(averageTurnOnPerHour);
+                P_F.format(Math.round(workPercent)) +
+                " времени\n* среднее количество розжигов в час " +
+                D_F.format(averageTurnOnPerHour);
     }
 
     @Override

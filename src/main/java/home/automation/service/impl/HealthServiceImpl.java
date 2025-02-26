@@ -24,6 +24,7 @@ import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -135,8 +136,8 @@ public class HealthServiceImpl implements HealthService {
                         logger.warn(
                                 sensor.getTemplate() +
                                         " - слишком низкая температура - " +
-                                        currentTemperatureForSensor +
-                                        " C°!");
+                                        TD_F.format(currentTemperatureForSensor) +
+                                        "!");
                         logger.debug("Отправляем событие о низкой температуре");
                         applicationEventPublisher.publishEvent(new MinimumTemperatureViolationEvent(this, sensor));
                     }
@@ -152,8 +153,8 @@ public class HealthServiceImpl implements HealthService {
                         logger.warn(
                                 sensor.getTemplate() +
                                         " - слишком высокая температура - " +
-                                        currentTemperatureForSensor +
-                                        " C°!");
+                                        TD_F.format(currentTemperatureForSensor) +
+                                        "!");
                         logger.debug("Отправляем событие о высокой температуре");
                         applicationEventPublisher.publishEvent(new MaximumTemperatureViolationEvent(this, sensor));
                     }

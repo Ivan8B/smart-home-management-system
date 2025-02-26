@@ -14,6 +14,9 @@ import home.automation.service.GasBoilerService;
 import home.automation.service.HistoryService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.P_F;
+import home.automation.utils.decimal.TD_F;
+import home.automation.utils.decimal.VD_F;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +29,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -116,7 +118,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.debug("Котел работает на отопление, можно считать целевое положение клапана");
 
             Float targetDirectTemperature = calculateTargetDirectTemperature();
-            logger.debug("Целевая температура подачи в полы - {}", targetDirectTemperature);
+            logger.debug("Целевая температура подачи в полы - {}", TD_F.format(targetDirectTemperature));
             if (targetDirectTemperature == null) {
                 logger.warn("Нет данных по целевой подаче в полы, не получится считать положение клапана");
                 applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
@@ -125,13 +127,13 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             Integer calculatedTargetValvePercent = calculateTargetValvePercentByTemperatureBeforeMixing(
                     targetDirectTemperature);
             logger.debug("Рассчитанный по температуре подмеса целевой процент открытия клапана {}",
-                    calculatedTargetValvePercent);
+                    P_F.format(calculatedTargetValvePercent));
             if (calculatedTargetValvePercent == null) {
                 logger.warn("Не удалось рассчитать целевое положение клапана, не получится считать положение клапана");
                 applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
                 return;
             }
-            logger.debug("Добавляем рассчитанное значение клапана {} в историю", calculatedTargetValvePercent);
+            logger.debug("Добавляем рассчитанное значение клапана {} в историю", P_F.format(calculatedTargetValvePercent));
             historyService.putCalculatedTargetValvePercent(calculatedTargetValvePercent, Instant.now());
         }
 
@@ -143,7 +145,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
             Integer averageTargetValvePercent = historyService.getAverageCalculatedTargetValvePercentForLastNValues();
             logger.debug("Целевой процент за последние " + floorHeatingConfiguration.getValuesCountForAverage() +
-                    " расчетов {}", averageTargetValvePercent);
+                    " расчетов {}", P_F.format(averageTargetValvePercent));
             if (averageTargetValvePercent == null) {
                 logger.info(
                         "Недостаточно данных по  среднему целевому положению клапана, не получится управлять трехходовым" +
@@ -163,7 +165,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private Integer calculateTargetValvePercentByTemperatureBeforeMixing(float targetDirectTemperature) {
         Float floorDirectBeforeMixingTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_DIRECT_FLOOR_TEMPERATURE_BEFORE_MIXING);
-        logger.debug("Температура подачи в узел подмеса {}", floorDirectBeforeMixingTemperature);
+        logger.debug("Температура подачи в узел подмеса {}", TD_F.format(floorDirectBeforeMixingTemperature));
         if (floorDirectBeforeMixingTemperature == null) {
             logger.warn("Нет данных по температуре подачи в узел подмеса, не получится управлять трехходовым " +
                     "клапаном");
@@ -172,7 +174,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         Float floorReturnTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.WATER_RETURN_FLOOR_TEMPERATURE);
-        logger.debug("Температура обратки из полов {}", floorReturnTemperature);
+        logger.debug("Температура обратки из полов {}", TD_F.format(floorReturnTemperature));
         if (floorReturnTemperature == null) {
             logger.warn("Нет данных по температуре обратки из пола, не получится управлять трехходовым клапаном");
             return null;
@@ -190,18 +192,18 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         if (targetPercent > 100) {
             logger.debug("Слишком высокий процент открытия клапана {}, возвращаем максимально допустимый {}",
-                    targetPercent,
-                    100);
+                    P_F.format(targetPercent),
+                    P_F.format(100));
             return 100;
         }
         if (targetPercent < 0) {
             logger.debug("Слишком низкий процент открытия клапана {}, возвращаем минимально допустимый {}",
-                    targetPercent,
-                    0);
+                    P_F.format(targetPercent),
+                    P_F.format(0));
             return 0;
         }
 
-        logger.debug("Рассчитанный целевой процент открытия клапана {}", targetPercent);
+        logger.debug("Рассчитанный целевой процент открытия клапана {}", P_F.format(targetPercent));
         return targetPercent;
     }
 
@@ -210,7 +212,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         float calculated;
 
         Float averageInternalTemperature = calculateAverageInternalTemperature();
-        logger.debug("Средняя температура в помещениях {}", averageInternalTemperature);
+        logger.debug("Средняя температура в помещениях {}", TD_F.format(averageInternalTemperature));
         if (averageInternalTemperature == null) {
             logger.warn("Нет возможности определить среднюю температуру в помещениях");
             return null;
@@ -218,7 +220,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         Float outsideTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
-        logger.debug("Температура на улице {}", outsideTemperature);
+        logger.debug("Температура на улице {}", TD_F.format(outsideTemperature));
         if (outsideTemperature == null) {
             logger.warn("Нет возможности определить температуру на улице");
             return null;
@@ -239,7 +241,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (calculated > temperatureConfiguration.getDirectMaxTemperature()) {
             logger.debug(
                     "Целевая температура подачи в полы больше максимальной, возвращаем максимальную - {}",
-                    temperatureConfiguration.getDirectMaxTemperature()
+                    TD_F.format(temperatureConfiguration.getDirectMaxTemperature())
             );
             return temperatureConfiguration.getDirectMaxTemperature();
         }
@@ -247,7 +249,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (calculated < temperatureConfiguration.getDirectMinTemperature()) {
             logger.debug(
                     "Целевая температура подачи в полы меньше минимальной, возвращаем минимальную - {}",
-                    temperatureConfiguration.getDirectMinTemperature()
+                    TD_F.format(temperatureConfiguration.getDirectMinTemperature())
             );
             return temperatureConfiguration.getDirectMinTemperature();
         }
@@ -286,7 +288,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             }
             else {
                 Integer currentValvePercent = getCurrentValvePercent();
-                logger.debug("Текущий процент открытия клапана {}", currentValvePercent);
+                logger.debug("Текущий процент открытия клапана {}", P_F.format(currentValvePercent));
                 if (currentValvePercent == null) {
                     logger.warn("Не удалось получить текущее положение клапана");
                     applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
@@ -294,7 +296,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 }
                 int valvePercentDelta = targetValvePercent - currentValvePercent;
                 if (Math.abs(valvePercentDelta) < dacConfiguration.getAccuracy()) {
-                    logger.debug("Клапан уже установлен на заданный процент {}", targetValvePercent);
+                    logger.debug("Клапан уже установлен на заданный процент {}", P_F.format(targetValvePercent));
                     return;
                 }
                 /* считаем по напряжению которое будет выдаваться на ЦА */
@@ -310,7 +312,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             if (targetValvePercent == -1) {
                 logger.info("Сервопривод полностью перекрыт");
             } else {
-                logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}", powerTime, targetValvePercent);
+                logger.info("Сервопривод был передвинут за {} секунд, новый процент открытия {}",
+                        powerTime,
+                        P_F.format(targetValvePercent));
             }
     }
 
@@ -320,7 +324,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             logger.info("Включаем питание сервопривода клапана");
             modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
 
-            logger.debug("Устанавливаемое напряжение на ЦАП {}V", voltage);
+            logger.debug("Устанавливаемое напряжение на ЦАП {}", VD_F.format(voltage));
             modbusService.writeHoldingRegister(
                     dacConfiguration.getAddress(),
                     dacConfiguration.getRegister(),
@@ -345,9 +349,9 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                     (float) modbusService.readHoldingRegister(dacConfiguration.getAddress(),
                             dacConfiguration.getRegister())
                             / 100;
-            logger.debug("Текущее напряжение на ЦАП {}V", currentVoltageInV);
+            logger.debug("Текущее напряжение на ЦАП {}", VD_F.format(currentVoltageInV));
             int currentPercent = getPercentFromVoltageInVWithCorrection(currentVoltageInV);
-            logger.debug("Текущий процент открытия клапана по ЦАП {}", currentPercent);
+            logger.debug("Текущий процент открытия клапана по ЦАП {}", P_F.format(currentPercent));
             return currentPercent;
         } catch (ModbusException e) {
             logger.error("Ошибка чтения напряжение на ЦАП");
@@ -374,7 +378,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (calculated < 0 || calculated > 100) {
             return -1;
         }
-        logger.debug("Текущий процент открытия клапана по температуре {}", calculated);
+        logger.debug("Текущий процент открытия клапана по температуре {}", P_F.format(calculated));
         return calculated;
     }
 
@@ -403,7 +407,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         /* если процент открытия 0 или -1 - корректировать не надо, нужно вернуть 0 */
         int correctedPercent = (percent == 0 || percent == -1)  ? 0 :
                 Math.round (dacConfiguration.getCorrectionGradient() * percent + dacConfiguration.getCorrectionConstant());
-        logger.debug("Расчетный процент с коррекцией {}", correctedPercent);
+        logger.debug("Расчетный процент с коррекцией {}", P_F.format(correctedPercent));
         return getVoltageInVFromPercent(correctedPercent);
     }
 
@@ -435,8 +439,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (targetDirectTemperature == null) {
             formattedTargetDirectTemperature=  "ошибка расчета!";
         } else {
-            DecimalFormat df = new DecimalFormat("#.#");
-            formattedTargetDirectTemperature = df.format(targetDirectTemperature) + " C°";
+            formattedTargetDirectTemperature = TD_F.format(targetDirectTemperature);
         }
 
         return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +

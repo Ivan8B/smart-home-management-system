@@ -7,6 +7,9 @@ import home.automation.exception.ModbusException;
 import home.automation.model.UniversalSensorData;
 import home.automation.service.ModbusService;
 import home.automation.service.UniversalSensorsService;
+import home.automation.utils.P_F;
+import home.automation.utils.PPM_F;
+import home.automation.utils.decimal.TD_F;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -16,7 +19,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -111,19 +113,14 @@ public class UniversalSensorsServiceImpl implements UniversalSensorsService {
     }
 
     private String getCurrentParamsFromUniversalSensorFormatted(UniversalSensor sensor) {
-        DecimalFormat df = new DecimalFormat("#.#");
-
         Float temperature = getCurrentTemperatureForSensor(sensor);
-        String temperatureFormatted = (temperature != null) ? df.format(temperature) + " C°" : "ошибка опроса " +
-                "температуры";
+        String temperatureFormatted = (temperature != null) ? TD_F.format(temperature) : "ошибка опроса температуры";
 
         Integer humidityPercent = getCurrentHumidityPercentForSensor(sensor);
-        String humidityPercentFormatted = (humidityPercent != null) ? df.format(humidityPercent) + "%" : "ошибка опроса " +
-                "влажности";
+        String humidityPercentFormatted = (humidityPercent != null) ? P_F.format(humidityPercent) : "ошибка опроса влажности";
 
         Integer co2ppm = getCurrentCO2ppmForSensor(sensor);
-        String co2ppmFormatted = (co2ppm != null) ? df.format(co2ppm) + " ppm" : "ошибка опроса " +
-                "CO2";
+        String co2ppmFormatted = (co2ppm != null) ? PPM_F.format(co2ppm) : "ошибка опроса CO2";
 
         return sensor.getTemplate() + " " + temperatureFormatted + ", " + humidityPercentFormatted + ", " + co2ppmFormatted;
     }

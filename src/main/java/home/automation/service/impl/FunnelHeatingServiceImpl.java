@@ -8,10 +8,10 @@ import home.automation.exception.ModbusException;
 import home.automation.service.FunnelHeatingService;
 import home.automation.service.ModbusService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.utils.decimal.TD_F;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -44,7 +44,7 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
 
         Float currentTemperature =
                 temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE);
-        logger.debug("Температура на улице {}", currentTemperature);
+        logger.debug("Температура на улице {}", TD_F.format(currentTemperature));
 
         if (currentTemperature == null) {
             logger.error("Ошибка получения температуры на улице");
