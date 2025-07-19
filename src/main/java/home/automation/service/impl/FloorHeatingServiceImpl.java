@@ -52,7 +52,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ReentrantLock valveLocker = new ReentrantLock();
     Environment environment;
-    private Instant lastRotateTime;
+    private Instant lastRotateTime = Instant.now();
 
     public FloorHeatingServiceImpl(
             FloorHeatingConfiguration floorHeatingConfiguration,
@@ -104,10 +104,11 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         if (!environment.matchesProfiles("test")) {
             logger.debug("Чтобы отпустить процесс инициализации приложения выставляем клапан через таски");
             ExecutorService executor = Executors.newSingleThreadExecutor();
-            logger.info("Система была перезагружена, закрываем клапан подмеса для калибровки");
-            executor.submit(() -> setValveOnPercent(-1));
-            logger.info("и открываем его на треть");
-            executor.submit(() -> setValveOnPercent(33));
+            logger.info("Система была перезагружена, закрываем клапан подмеса для калибровки и открываем его на треть");
+            executor.submit(() -> {
+                setValveOnPercent(-1);
+                setValveOnPercent(33);
+            });
         }
     }
 
@@ -155,12 +156,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
             }
 
             setValveOnPercent(averageTargetValvePercent);
-            return;
         }
 
-        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS
-                && lastRotateTime.isBefore(Instant.now().minus(floorHeatingConfiguration.getIdleIntervalToRotate()))) {
-            logger.debug("Клапаном в этом цикле не управляли, котел не работает, клапан проворачивался слишком давно");
+        if (lastRotateTime.isBefore(Instant.now().minus(floorHeatingConfiguration.getIdleIntervalToRotate()))) {
+            logger.debug("Клапан проворачивался слишком давно");
             logger.info("Начинаем проворот клапана, полностью закрываем его");
             setValveOnPercent(-1);
             logger.info("и открываем его на треть");
@@ -403,7 +402,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
         }
         if (voltage > 10) {
             voltage = 10;
-            logger.warn("Напряжение на ЦАП клапана теплого пола более 2В!");
+            logger.warn("Напряжение на ЦАП клапана теплого пола более 10В!");
         }
         /* клапан работает в интервале напряжений от 2 до 10 В */
         int correctedPercent = Math.round(((voltage - 2) / 8) * 100);
