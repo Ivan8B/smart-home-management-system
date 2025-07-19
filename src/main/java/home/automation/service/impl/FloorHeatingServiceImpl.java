@@ -52,6 +52,7 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ReentrantLock valveLocker = new ReentrantLock();
     Environment environment;
+    private Instant lastRotateTime;
 
     public FloorHeatingServiceImpl(
             FloorHeatingConfiguration floorHeatingConfiguration,
@@ -153,12 +154,17 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 return;
             }
 
-            logger.debug("Выставляем клапан (если нет блокировки). Если заблокирован - установим при следующей попытке");
-            if (valveLocker.isLocked()) {
-                logger.info("Клапан заблокирован, не выставляем положение");
-                return;
-            }
             setValveOnPercent(averageTargetValvePercent);
+            return;
+        }
+
+        if (gasBoilerService.getStatus() != GasBoilerStatus.WORKS
+                && lastRotateTime.isBefore(Instant.now().minus(floorHeatingConfiguration.getIdleIntervalToRotate()))) {
+            logger.debug("Клапаном в этом цикле не управляли, котел не работает, клапан проворачивался слишком давно");
+            logger.info("Начинаем проворот клапана, полностью закрываем его");
+            setValveOnPercent(-1);
+            logger.info("и открываем его на треть");
+            setValveOnPercent(33);
         }
     }
 
@@ -281,6 +287,10 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
     }
 
     private void setValveOnPercent(int targetValvePercent) {
+            if (valveLocker.isLocked()) {
+                logger.info("Клапан заблокирован, не выставляем положение");
+                return;
+            }
             int powerTime;
             if (targetValvePercent == -1) {
                 logger.debug("Если выставляем -1 для калибровки клапана - всегда подаем питание на максимальное время");
@@ -308,7 +318,34 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                 logger.debug("Питание на клапан нужно подать на {} секунд", powerTime);
             }
 
-            setValveOnVoltage(getVoltageInVFromPercentWithCorrection(targetValvePercent), powerTime);
+            float voltage = getVoltageInVFromPercentWithCorrection(targetValvePercent);
+
+            logger.debug("Берем блокировку на клапан");
+            valveLocker.lock();
+            try {
+                logger.info("Включаем питание сервопривода клапана");
+                modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
+
+                logger.debug("Устанавливаемое напряжение на ЦАП {}", VD_F.format(voltage));
+                modbusService.writeHoldingRegister(
+                        dacConfiguration.getAddress(),
+                        dacConfiguration.getRegister(),
+                        Math.round(voltage* 100)
+                );
+
+                Thread.sleep(powerTime * 1000L);
+                logger.info("Выключаем питание сервопривода клапана");
+                modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
+            } catch (ModbusException | InterruptedException e) {
+                logger.error("Ошибка выставления напряжение на ЦАП или работы с реле питания");
+                applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
+            } finally {
+                logger.debug("Снимаем блокировку на клапан");
+                valveLocker.unlock();
+                logger.debug("Записываем время поворота клапана");
+                lastRotateTime = Instant.now();
+            }
+
             if (targetValvePercent == -1) {
                 logger.info("Сервопривод полностью перекрыт");
             } else {
@@ -316,30 +353,6 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
                         powerTime,
                         P_F.format(targetValvePercent));
             }
-    }
-
-    private void setValveOnVoltage(float voltage, int powerTime) {
-        valveLocker.lock();
-        try {
-            logger.info("Включаем питание сервопривода клапана");
-            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), true);
-
-            logger.debug("Устанавливаемое напряжение на ЦАП {}", VD_F.format(voltage));
-            modbusService.writeHoldingRegister(
-                    dacConfiguration.getAddress(),
-                    dacConfiguration.getRegister(),
-                    Math.round(voltage* 100)
-            );
-
-            Thread.sleep(powerTime * 1000L);
-            logger.info("Выключаем питание сервопривода клапана");
-            modbusService.writeCoil(relayConfiguration.getAddress(), relayConfiguration.getCoil(), false);
-        } catch (ModbusException | InterruptedException e) {
-            logger.error("Ошибка выставления напряжение на ЦАП или работы с реле питания");
-            applicationEventPublisher.publishEvent(new FloorHeatingErrorEvent(this));
-        } finally {
-            valveLocker.unlock();
-        }
     }
 
     private Integer getCurrentValvePercent() {
@@ -444,31 +457,5 @@ public class FloorHeatingServiceImpl implements FloorHeatingService {
 
         return "текущий процент подмеса в теплые полы - " + getCurrentValvePercent() + "%" + "\n* " +
                 "целевая температура подачи в теплые полы " + formattedTargetDirectTemperature;
-    }
-
-    @Override
-    public void calibrate() {
-        /* функция для отладки и поиска времени вращения клапана, нужна на период пусконаладки */
-        try {
-            int time = 52;
-            setValveOnVoltage(getVoltageInVFromPercent(0), 30);
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(40), Math.round(time * 40 / 100) + 2); // 21
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 40 / 100) + 2); // 21
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(80), Math.round(time * 80 / 100) + 2); // 42
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 80 / 100) + 2);  // 42
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(40), Math.round(time * 40 / 100) + 2); // 21
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(80), Math.round(time * (40 + 80) / 100) + 2); // 62
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(30), Math.round(time * (80 + 30) / 100) + 2); // 55
-            Thread.sleep(5 * 1000);
-            setValveOnVoltage(getVoltageInVFromPercent(0), Math.round(time * 30 / 100 + 2));  // 15
-            Thread.sleep(5 * 1000);
-        } catch (InterruptedException ignored) {};
     }
 }

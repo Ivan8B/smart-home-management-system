@@ -7,11 +7,18 @@ import java.time.Duration;
 
 @Configuration
 public class FloorHeatingConfiguration {
+    @Value("${floorHeating.idleIntervalToRotate}")
+    private Duration idleIntervalToRotate;
+
     @Value("${floorHeating.valuesCountForAverage}")
     private Integer valuesCountForAverage;
 
     @Value("${floorHeating.gasBoilerWorkDurationToRotateValve}")
     private Duration gasBoilerWorkDurationToRotateValve;
+
+    public Duration getIdleIntervalToRotate() {
+        return idleIntervalToRotate;
+    }
 
     public Integer getValuesCountForAverage() {
         return valuesCountForAverage;
