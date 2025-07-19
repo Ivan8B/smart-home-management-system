@@ -7,7 +7,6 @@ import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
 import home.automation.service.FloorHeatingService;
 import home.automation.service.FunnelHeatingService;
-import home.automation.service.GasBoilerFakeOutsideTemperatureService;
 import home.automation.service.GasBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.HeatRequestService;
@@ -138,12 +137,6 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             logger.info("Получена команда на получение статуса системы");
             notify("Считаю статус системы...");
             return formatStatus();
-        }
-        if (BotCommands.CALIBRATE_FLOOR.getTelegramCommand().equals(messageText)) {
-            logger.info("Получена команда на калибровку сервопривода теплого пола");
-            notify("Запущена калибровка..");
-            floorHeatingService.calibrate();
-            notify("Калибровка завершена");
         }
         return null;
     }

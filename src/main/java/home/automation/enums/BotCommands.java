@@ -1,8 +1,7 @@
 package home.automation.enums;
 
 public enum BotCommands {
-    GET_STATUS("/get_status"),
-    CALIBRATE_FLOOR("/calibrate_floor");
+    GET_STATUS("/get_status");
 
     private final String telegramCommand;
 
