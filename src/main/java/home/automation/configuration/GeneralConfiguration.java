@@ -11,8 +11,11 @@ public class GeneralConfiguration {
     @Value("${temperature.outsideMax}")
     private Float outsideMax;
 
-    @Value("${temperature.hysteresis}")
-    private Float hysteresis;
+    @Value("${temperature.outsideHysteresis}")
+    private Float outsideHysteresis;
+
+    @Value("${temperature.insideHysteresis}")
+    private Float insideHysteresis;
 
     public Float getInsideTarget() {
         return insideTarget;
@@ -22,7 +25,11 @@ public class GeneralConfiguration {
         return outsideMax;
     }
 
-    public Float getHysteresis() {
-        return hysteresis;
+    public Float getOutsideHysteresis() {
+        return outsideHysteresis;
+    }
+
+    public Float getInsideHysteresis() {
+        return insideHysteresis;
     }
 }

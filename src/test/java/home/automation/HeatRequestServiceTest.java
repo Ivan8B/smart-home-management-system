@@ -44,7 +44,7 @@ public class HeatRequestServiceTest extends AbstractTest {
     @DisplayName("Проверка наличия запроса на тепло в дом при низкой температуре на улице")
     void checkNeedHeat() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(configuration.getOutsideMax() - configuration.getHysteresis() - 1F);
+                .thenReturn(configuration.getOutsideMax() - configuration.getOutsideHysteresis() - 1F);
         invokeScheduledMethod();
         assertEquals(HeatRequestStatus.NEED_HEAT, heatRequestService.getStatus());
     }
@@ -62,18 +62,31 @@ public class HeatRequestServiceTest extends AbstractTest {
     @DisplayName("Проверка гистерезиса")
     void checkHysteresis() throws ModbusException {
         Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(configuration.getOutsideMax() + 1F);
+                .thenReturn(configuration.getOutsideMax() - configuration.getOutsideHysteresis() + 0.1F);
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+                .thenReturn(configuration.getInsideTarget() + 0.1F);
         invokeScheduledMethod();
         assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
 
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(configuration.getOutsideMax() - configuration.getHysteresis() + 0.1F);
-        invokeScheduledMethod();
-        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
-
-        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.OUTSIDE_TEMPERATURE))
-                .thenReturn(configuration.getOutsideMax() - configuration.getHysteresis() - 1F);
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+                .thenReturn(configuration.getInsideTarget() - configuration.getInsideHysteresis() - 0.1F);
         invokeScheduledMethod();
         assertEquals(HeatRequestStatus.NEED_HEAT, heatRequestService.getStatus());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+                .thenReturn(configuration.getInsideTarget() - configuration.getInsideHysteresis() + 0.1F);
+        invokeScheduledMethod();
+        assertEquals(HeatRequestStatus.NEED_HEAT, heatRequestService.getStatus());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+                .thenReturn(configuration.getInsideTarget() + 0.1F);
+        invokeScheduledMethod();
+        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
+
+        Mockito.when(temperatureSensorsService.getCurrentTemperatureForSensor(TemperatureSensor.CHILD_BATHROOM_TEMPERATURE))
+                .thenReturn(configuration.getInsideTarget() - configuration.getInsideHysteresis() + 0.1F);
+        invokeScheduledMethod();
+        assertEquals(HeatRequestStatus.NO_NEED_HEAT, heatRequestService.getStatus());
     }
 }
