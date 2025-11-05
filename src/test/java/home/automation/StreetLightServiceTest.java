@@ -10,7 +10,9 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Method;
+import java.time.ZoneId;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class StreetLightServiceTest extends AbstractTest {
     @Autowired
@@ -40,7 +42,7 @@ public class StreetLightServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка отключения освещения в светлое время суток")
     void checkDisable() throws ModbusException {
-        Calendar dayTime = Calendar.getInstance();
+        Calendar dayTime = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         dayTime.set(2023, Calendar.JUNE, 22, 12, 0);
 
         invokeScheduledMethod(dayTime, StreetLightStatus.TURNED_ON);
@@ -57,7 +59,7 @@ public class StreetLightServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка включения освещения в темное время суток")
     void checkEnable() throws ModbusException {
-        Calendar nightTime = Calendar.getInstance();
+        Calendar nightTime = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         nightTime.set(2023, Calendar.JUNE, 22, 2, 0);
 
         invokeScheduledMethod(nightTime, StreetLightStatus.TURNED_OFF);
@@ -74,13 +76,13 @@ public class StreetLightServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка граничного условия - включения после заката")
     void checkEnableEveningTwilight() throws ModbusException {
-        Calendar dayTimeBefore = Calendar.getInstance();
+        Calendar dayTimeBefore = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         dayTimeBefore.set(2023, Calendar.JUNE, 22, 21, 18);
         invokeScheduledMethod(dayTimeBefore, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
                 .writeCoil(configuration.getAddress(), configuration.getCoil(), false);
 
-        Calendar dayTimeAfter = Calendar.getInstance();
+        Calendar dayTimeAfter = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         dayTimeAfter.set(2023, Calendar.JUNE, 22, 21, 20);
         invokeScheduledMethod(dayTimeAfter, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
@@ -90,13 +92,13 @@ public class StreetLightServiceTest extends AbstractTest {
     @Test
     @DisplayName("Проверка граничного условия - отключения после восхода")
     void checkDisableMorningTwilight() throws ModbusException {
-        Calendar dayTimeBefore = Calendar.getInstance();
+        Calendar dayTimeBefore = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         dayTimeBefore.set(2023, Calendar.JUNE, 22, 3, 44);
         invokeScheduledMethod(dayTimeBefore, StreetLightStatus.TURNED_OFF);
         Mockito.verify(modbusService, Mockito.times(1))
                 .writeCoil(configuration.getAddress(), configuration.getCoil(), true);
 
-        Calendar dayTimeAfter = Calendar.getInstance();
+        Calendar dayTimeAfter = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"));
         dayTimeAfter.set(2023, Calendar.JUNE, 22, 3, 46);
         invokeScheduledMethod(dayTimeAfter, StreetLightStatus.TURNED_ON);
         Mockito.verify(modbusService, Mockito.times(1))
