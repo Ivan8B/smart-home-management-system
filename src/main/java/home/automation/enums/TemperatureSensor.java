@@ -60,7 +60,7 @@ public enum TemperatureSensor {
                     "подача в теплые полы после подмеса",
                     true,
                     null,
-                    45f
+                    50f
             ),
 
     WATER_RETURN_FLOOR_TEMPERATURE
