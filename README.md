@@ -87,12 +87,12 @@
 **Настройки**:
 
 * выставлен адрес 4 командой 00 10 00 00 00 01 02 00 04 AA 03
-* адрес указан в параметрах "pump.relay.address", "floorHeating.valve.relay.address"
+* адрес указан в параметрах "gasBoiler.fakeOutsideTemperature.mainRelay.address", "gasBoiler.fakeOutsideTemperature.secondaryRelay.address"
 
 **Подключения**:
 
-* к COM1 и NC1 подключен насос теплых полов и насос радиатора, параметр "pump.relay.coil=0"
-* к COM2 и NO2 подключено питание сервопривода теплых полов, параметр "floorHeating.valve.relay.coil=1"
+* COM1 подключен к входу ПЗА котла, на NC1 подключен уличный датчик, на NO1 подключен COM2, параметр "gasBoiler.fakeOutsideTemperature.mainRelay.coil=0"
+* к NC2 подключен резистор на +1 градус, к NO2 резистор на -20 градусов, другие концы резисторов к входу ПЗА котла, параметр "gasBoiler.fakeOutsideTemperature.secondaryRelay.coil=1"
 
 ### Цифро-аналоговой преобразователь N4DAC02
 
