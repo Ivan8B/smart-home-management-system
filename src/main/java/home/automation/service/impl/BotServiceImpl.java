@@ -14,6 +14,7 @@ import home.automation.service.HistoryService;
 import home.automation.service.StreetLightService;
 import home.automation.service.TemperatureSensorsService;
 import home.automation.service.UniversalSensorsService;
+import home.automation.service.WaterLeakService;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
     private final HealthService healthService;
     private final StreetLightService streetLightService;
     private final FunnelHeatingService funnelHeatingService;
+    private final WaterLeakService waterLeakService;
     private BotSession session;
 
     public BotServiceImpl(
@@ -60,7 +62,8 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             HeatRequestService heatRequestService,
             @Lazy HealthService healthService,
             StreetLightService streetLightService,
-            FunnelHeatingService funnelHeatingService
+            FunnelHeatingService funnelHeatingService,
+            WaterLeakService waterLeakService
     ) {
         super(telegramBotConfiguration.getToken());
         this.telegramBotConfiguration = telegramBotConfiguration;
@@ -75,6 +78,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         this.healthService = healthService;
         this.streetLightService = streetLightService;
         this.funnelHeatingService = funnelHeatingService;
+        this.waterLeakService = waterLeakService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -143,6 +147,18 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
             notify("Считаю статус системы...");
             return formatStatus();
         }
+        if (BotCommands.OPEN_WATER.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на открытие всех кранов и включение насоса");
+            notify("Открываю все краны и включаю насос...");
+            waterLeakService.openAllValvesAndTurnOnPump();
+            return "Все краны открыты, насос включен";
+        }
+        if (BotCommands.CLOSE_FILTERS.getTelegramCommand().equals(messageText)) {
+            logger.info("Получена команда на перекрытие крана фильтров");
+            notify("Перекрываю кран фильтров...");
+            waterLeakService.closeFilterValves();
+            return "Кран фильтров перекрыты";
+        }
         return null;
     }
 
@@ -154,6 +170,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         message.append("* ").append(historyService.getGasBoilerFormattedStatusForLastDay()).append("\n\n");
         message.append("* ").append(floorHeatingService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(electricBoilerService.getFormattedStatus()).append("\n\n");
+        message.append("* ").append(waterLeakService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(cityPowerInputService.getFormattedStatus()).append("\n\n");
         message.append("* ").append(temperatureSensorsService.getCurrentTemperaturesFormatted()).append("\n\n");
         message.append("* ").append(streetLightService.getFormattedStatus()).append("\n\n");
@@ -169,7 +186,7 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
         try {
             execute(sendMessage);
         } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+            logger.error("Ошибка отправки сообщения в чат " + chatId, e);
         }
     }
 

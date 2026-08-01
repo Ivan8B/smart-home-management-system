@@ -5,6 +5,7 @@ import home.automation.enums.ElectricBoilerStatus;
 import home.automation.enums.SelfMonitoringStatus;
 import home.automation.enums.TemperatureSensor;
 import home.automation.enums.UniversalSensor;
+import home.automation.enums.WaterLeakStatus;
 import home.automation.event.error.CityPowerInputErrorEvent;
 import home.automation.event.error.ElectricBoilerErrorEvent;
 import home.automation.event.error.FloorHeatingErrorEvent;
@@ -15,15 +16,18 @@ import home.automation.event.error.HeatRequestErrorEvent;
 import home.automation.event.error.StreetLightErrorEvent;
 import home.automation.event.error.TemperatureSensorPollErrorEvent;
 import home.automation.event.error.UniversalSensorPollErrorEvent;
+import home.automation.event.error.WaterLeakErrorEvent;
 import home.automation.event.info.CityPowerInputNoPowerEvent;
 import home.automation.event.info.ElectricBoilerTurnedOnEvent;
 import home.automation.event.info.MaximumTemperatureViolationEvent;
 import home.automation.event.info.MinimumTemperatureViolationEvent;
+import home.automation.event.info.WaterLeakDetectedEvent;
 import home.automation.service.BotService;
 import home.automation.service.CityPowerInputService;
 import home.automation.service.ElectricBoilerService;
 import home.automation.service.HealthService;
 import home.automation.service.TemperatureSensorsService;
+import home.automation.service.WaterLeakService;
 import home.automation.utils.decimal.TD_F;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +50,7 @@ public class HealthServiceImpl implements HealthService {
     private final TemperatureSensorsService temperatureSensorsService;
     private final ElectricBoilerService electricBoilerService;
     private final CityPowerInputService cityPowerInputService;
+    private final WaterLeakService waterLeakService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final List<HeatRequestErrorEvent> heatRequestErrorEvents = new ArrayList<>();
     private final List<GasBoilerErrorEvent> gasBoilerErrorEvents = new ArrayList<>();
@@ -58,6 +63,8 @@ public class HealthServiceImpl implements HealthService {
     private final List<FloorHeatingErrorEvent> floorHeatingErrorEvents = new ArrayList<>();
     private final List<StreetLightErrorEvent> streetLightErrorEvents = new ArrayList<>();
     private final List<FunnelHeatingErrorEvent> funnelHeatingErrorEvents = new ArrayList<>();
+    private final List<WaterLeakErrorEvent> waterLeakErrorEvents = new ArrayList<>();
+    private final List<WaterLeakDetectedEvent> waterLeakDetectedEvents = new ArrayList<>();
     private final Set<TemperatureSensor> criticalTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minorTemperatureSensorFailEvents = new HashSet<>();
     private final Set<TemperatureSensor> minimumTemperatureViolationEvents = new HashSet<>();
@@ -70,12 +77,14 @@ public class HealthServiceImpl implements HealthService {
             TemperatureSensorsService temperatureSensorsService,
             ElectricBoilerService electricBoilerService,
             CityPowerInputService cityPowerInputService,
+            WaterLeakService waterLeakService,
             ApplicationEventPublisher applicationEventPublisher
     ) {
         this.botService = botService;
         this.temperatureSensorsService = temperatureSensorsService;
         this.electricBoilerService = electricBoilerService;
         this.cityPowerInputService = cityPowerInputService;
+        this.waterLeakService = waterLeakService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -99,7 +108,7 @@ public class HealthServiceImpl implements HealthService {
 
         if (!heatRequestIsOk() || !gasBoilerIsOk() || !electricBoilerIsOk() || !electricBoilerIsTurnedOff()
                 || !cityPowerInputIsOk() || !cityPowerInputHasPower() || !floorHeatingIsOk()
-                || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk()) {
+                || !criticalTemperatureSensorsAreOk() || !minimumTemperaturesAreOk() || !waterLeakIsOk()) {
             newStatus = SelfMonitoringStatus.EMERGENCY;
             notifyAndSetLastStatus(newStatus);
         }
@@ -212,6 +221,16 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @EventListener
+    public void onWaterLeakErrorEvent(WaterLeakErrorEvent event) {
+        waterLeakErrorEvents.add(event);
+    }
+
+    @EventListener
+    public void onWaterLeakDetectedEvent(WaterLeakDetectedEvent event) {
+        waterLeakDetectedEvents.add(event);
+    }
+
+    @EventListener
     public void onTemperatureSensorPollErrorEvent(TemperatureSensorPollErrorEvent event) {
         if ((event.getSensor().isCritical())) {
             criticalTemperatureSensorFailEvents.add(event.getSensor());
@@ -283,6 +302,11 @@ public class HealthServiceImpl implements HealthService {
         return funnelHeatingErrorEvents.isEmpty();
     }
 
+    private boolean waterLeakIsOk() {
+        return waterLeakErrorEvents.isEmpty()
+                && waterLeakDetectedEvents.isEmpty();
+    }
+
     private boolean criticalTemperatureSensorsAreOk() {
         return criticalTemperatureSensorFailEvents.isEmpty();
     }
@@ -314,6 +338,8 @@ public class HealthServiceImpl implements HealthService {
         floorHeatingErrorEvents.clear();
         streetLightErrorEvents.clear();
         funnelHeatingErrorEvents.clear();
+        waterLeakErrorEvents.clear();
+        waterLeakDetectedEvents.clear();
         minorTemperatureSensorFailEvents.clear();
         criticalTemperatureSensorFailEvents.clear();
         minimumTemperatureViolationEvents.clear();
@@ -343,6 +369,9 @@ public class HealthServiceImpl implements HealthService {
         }
         if (!floorHeatingIsOk()) {
             message.append("* отказ управления теплым полом\n");
+        }
+        if (!waterLeakIsOk()) {
+            message.append("* протечка воды или отказ системы защиты от протечки\n");
         }
         if (!criticalTemperatureSensorsAreOk()) {
             message.append("* отказ критичных температурных датчиков: ");
