@@ -112,7 +112,12 @@ public class BotServiceImpl extends TelegramLongPollingBot implements BotService
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (!update.hasMessage() || !userHasPrivileges(update.getMessage().getFrom())) {
+        if (!update.hasMessage()) {
+            logger.warn("Получен update без сообщения, игнорируем: {}", update);
+            return;
+        }
+
+        if (!userHasPrivileges(update.getMessage().getFrom())) {
             logger.warn("Получено сообщение от неизвестного пользователя {}, игнорируем",
                     update.getMessage().getFrom()
             );
