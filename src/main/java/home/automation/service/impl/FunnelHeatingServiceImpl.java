@@ -54,6 +54,8 @@ public class FunnelHeatingServiceImpl implements FunnelHeatingService {
             return;
         }
 
+        logger.debug("Температура на улице {}", TD_F.format(currentTemperature));
+
         if (configuration.getTemperatureMin() < currentTemperature
                 && currentTemperature < configuration.getTemperatureMax()) {
             logger.debug("Требуется подогрев воронок, включаем");
